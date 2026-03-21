@@ -360,10 +360,11 @@ export default function Auth() {
                                 <Field label="Zip Code" type="text" value={zipCode} onChange={setZipCode} />
 
                                 <div className="auth-input-wrapper">
-                                    <label>Community</label>
+                                    <label id="community-label">Community</label>
                                     <CustomSelect
                                         value={communityId}
                                         onChange={e => setCommunityId(e.target.value)}
+                                        labelId="community-label"
                                         options={[
                                             { value: "", label: "Not Sure / General Request" },
                                             ...(matchedCommunities.length > 0
@@ -378,8 +379,9 @@ export default function Auth() {
                                 </div>
 
                                 <div className="auth-input-wrapper">
-                                    <label>Tell us about yourself <span style={{ color: intro?.length > 200 ? '#d9534f' : 'inherit', fontWeight: 'normal', fontSize: '0.75rem', marginLeft: '8px' }}>{intro?.length || 0}/250</span></label>
+                                    <label htmlFor="field-about-yourself">Tell us about yourself <span style={{ color: intro?.length > 200 ? '#d9534f' : 'inherit', fontWeight: 'normal', fontSize: '0.75rem', marginLeft: '8px' }}>{intro?.length || 0}/250</span></label>
                                     <textarea
+                                        id="field-about-yourself"
                                         value={intro}
                                         onChange={e => setIntro(e.target.value)}
                                         maxLength={250}
@@ -455,31 +457,35 @@ function Field({ label, type, value, onChange }) {
     const [show, setShow] = useState(false);
     const isPassword = type === "password";
     const actualType = isPassword ? (show ? "text" : "password") : type;
+    const id = `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
 
     return (
         <div className="auth-input-wrapper">
-            <label>{label}</label>
+            <label htmlFor={id}>{label}</label>
             <input
+                id={id}
                 type={actualType}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 required
                 style={{ paddingRight: isPassword ? "2.5rem" : "1rem" }}
+                autoComplete={type === "email" ? "email" : type === "password" ? "current-password" : "off"}
             />
             {isPassword && (
                 <button
-                type="button"
-                onClick={() => setShow(!show)}
-                className="auth-eye-btn"
-                title={show ? "Hide password" : "Show password"}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
-            >
-                {show ? (
-                    <img src="/Images/Dark Design Open Eye.png" alt="Hide password" style={{ width: "24px", height: "auto" }} />
-                ) : (
-                    <img src="/Images/Dark Design Closed Eye.png" alt="Show password" style={{ width: "24px", height: "auto" }} />
-                )}
-            </button>
+                    type="button"
+                    onClick={() => setShow(!show)}
+                    className="auth-eye-btn"
+                    aria-label={show ? "Hide password" : "Show password"}
+                    title={show ? "Hide password" : "Show password"}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                    {show ? (
+                        <img src="/Images/Dark Design Open Eye.png" alt="" aria-hidden="true" style={{ width: "24px", height: "auto" }} />
+                    ) : (
+                        <img src="/Images/Dark Design Closed Eye.png" alt="" aria-hidden="true" style={{ width: "24px", height: "auto" }} />
+                    )}
+                </button>
             )}
         </div>
     );
@@ -488,16 +494,25 @@ function Field({ label, type, value, onChange }) {
 function MessageBox({ msg }) {
     if (!msg.text) return null;
     return (
-        <p style={{ textAlign: "center", fontSize: "0.9rem", color: msg.isError ? "#d9534f" : "#27ae60", marginTop: "-0.5rem", marginBottom: "1rem" }}>
+        <p
+            role="alert"
+            aria-live="assertive"
+            style={{ textAlign: "center", fontSize: "0.9rem", color: msg.isError ? "#d9534f" : "#27ae60", marginTop: "-0.5rem", marginBottom: "1rem" }}
+        >
             {msg.text}
         </p>
     );
 }
 
-// --- CustomSelect Component (glassmorphism dropdown) ---
-function CustomSelect({ value, onChange, options, disabled }) {
+// --- CustomSelect Component (glassmorphism dropdown, fully keyboard accessible) ---
+function CustomSelect({ value, onChange, options, disabled, labelId }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [focusedIndex, setFocusedIndex] = useState(-1);
     const containerRef = useRef(null);
+    const listRef = useRef(null);
+
+    const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
+    const selectedIndex = options.findIndex(o => String(o.value) === String(value));
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -509,12 +524,62 @@ function CustomSelect({ value, onChange, options, disabled }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
+    useEffect(() => {
+        if (isOpen) setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen && listRef.current && focusedIndex >= 0) {
+            const item = listRef.current.children[focusedIndex];
+            if (item) item.scrollIntoView({ block: "nearest" });
+        }
+    }, [focusedIndex, isOpen]);
+
+    const handleKeyDown = (e) => {
+        if (disabled) return;
+        switch (e.key) {
+            case "Enter":
+            case " ":
+                e.preventDefault();
+                if (isOpen && focusedIndex >= 0) {
+                    onChange({ target: { value: options[focusedIndex].value } });
+                    setIsOpen(false);
+                } else {
+                    setIsOpen(true);
+                }
+                break;
+            case "ArrowDown":
+                e.preventDefault();
+                if (!isOpen) { setIsOpen(true); break; }
+                setFocusedIndex(i => Math.min(i + 1, options.length - 1));
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                setFocusedIndex(i => Math.max(i - 1, 0));
+                break;
+            case "Escape":
+                e.preventDefault();
+                setIsOpen(false);
+                break;
+            case "Tab":
+                setIsOpen(false);
+                break;
+            default:
+                break;
+        }
+    };
 
     return (
         <div ref={containerRef} className="custom-select-container" style={{ position: "relative" }}>
             <div
+                role="combobox"
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-labelledby={labelId}
+                aria-disabled={disabled}
+                tabIndex={disabled ? -1 : 0}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
+                onKeyDown={handleKeyDown}
                 style={{
                     cursor: disabled ? "not-allowed" : "pointer",
                     display: "flex",
@@ -530,12 +595,14 @@ function CustomSelect({ value, onChange, options, disabled }) {
                     borderRadius: "8px",
                     color: "#ffffff",
                     fontSize: "1rem",
+                    outline: "none",
                 }}
+                className="custom-select-trigger"
             >
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {selectedOption ? selectedOption.label : "Select..."}
                 </span>
-                <span style={{
+                <span aria-hidden="true" style={{
                     transform: isOpen ? "rotate(180deg)" : "none",
                     transition: "transform 0.2s ease",
                     fontSize: "0.8rem",
@@ -545,11 +612,18 @@ function CustomSelect({ value, onChange, options, disabled }) {
             </div>
 
             {isOpen && !disabled && (
-                <ul className="custom-select-dropdown">
-                    {options.map(opt => (
+                <ul
+                    ref={listRef}
+                    role="listbox"
+                    aria-labelledby={labelId}
+                    className="custom-select-dropdown"
+                >
+                    {options.map((opt, idx) => (
                         <li
                             key={String(opt.value)}
-                            className={`custom-select-option ${String(value) === String(opt.value) ? "selected" : ""}`}
+                            role="option"
+                            aria-selected={String(value) === String(opt.value)}
+                            className={`custom-select-option ${String(value) === String(opt.value) ? "selected" : ""} ${idx === focusedIndex ? "focused" : ""}`}
                             onClick={() => {
                                 onChange({ target: { value: opt.value } });
                                 setIsOpen(false);

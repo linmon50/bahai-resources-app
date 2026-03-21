@@ -39,7 +39,8 @@ White: #FFFFFF,
 Light Blue: #97f7e9
 
 Green button: Dark Green: #178145, Light Green: #94c690
-Blue button: Dark Blue: #0091c7, Light Blue: #58acbf
+Blue button: Dark Blue: #0091c7, Light Blue: 
+
 
 background-color: #002c44;
   /* Color of the top element */
@@ -76,3 +77,9 @@ Message board:
 Calendar / events:
 -Events created by admins or members
 -RSVP or attendance tracking
+
+First Git repository checkpoint run: git reset --hard 64e5397
+To save new checkpoints run: 	git add -A
+				git commit -m "describe what you changed"
+
+

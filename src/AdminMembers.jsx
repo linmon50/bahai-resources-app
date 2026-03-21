@@ -20,9 +20,14 @@ const levelLabel = (lv) => ADMIN_LEVELS.find(a => a.value === lv)?.label || "Unk
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
-function CustomSelect({ value, onChange, options, disabled, className, style }) {
+function CustomSelect({ value, onChange, options, disabled, className, style, labelId }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [focusedIndex, setFocusedIndex] = useState(-1);
     const containerRef = useRef(null);
+    const listRef = useRef(null);
+
+    const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
+    const selectedIndex = options.findIndex(o => String(o.value) === String(value));
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -34,38 +39,98 @@ function CustomSelect({ value, onChange, options, disabled, className, style }) 
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
+    useEffect(() => {
+        if (isOpen) setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen && listRef.current && focusedIndex >= 0) {
+            const item = listRef.current.children[focusedIndex];
+            if (item) item.scrollIntoView({ block: "nearest" });
+        }
+    }, [focusedIndex, isOpen]);
+
+    const handleKeyDown = (e) => {
+        if (disabled) return;
+        switch (e.key) {
+            case "Enter":
+            case " ":
+                e.preventDefault();
+                if (isOpen && focusedIndex >= 0) {
+                    onChange({ target: { value: options[focusedIndex].value } });
+                    setIsOpen(false);
+                } else {
+                    setIsOpen(true);
+                }
+                break;
+            case "ArrowDown":
+                e.preventDefault();
+                if (!isOpen) { setIsOpen(true); break; }
+                setFocusedIndex(i => Math.min(i + 1, options.length - 1));
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                setFocusedIndex(i => Math.max(i - 1, 0));
+                break;
+            case "Escape":
+                e.preventDefault();
+                setIsOpen(false);
+                break;
+            case "Tab":
+                setIsOpen(false);
+                break;
+            default:
+                break;
+        }
+    };
 
     return (
         <div ref={containerRef} className={`custom-select-container ${className || ""}`} style={{ position: "relative", ...style }}>
-            <div 
-                className="admin-input"
+            <div
+                role="combobox"
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-labelledby={labelId}
+                aria-disabled={disabled}
+                tabIndex={disabled ? -1 : 0}
+                className="admin-input custom-select-trigger"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
+                onKeyDown={handleKeyDown}
                 style={{
                     cursor: disabled ? "not-allowed" : "pointer",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                     opacity: disabled ? 0.6 : 1,
-                    userSelect: "none"
+                    userSelect: "none",
+                    outline: "none",
                 }}
             >
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedOption ? selectedOption.label : "Select..."}</span>
-                <span style={{ 
-                    transform: isOpen ? "rotate(180deg)" : "none", 
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {selectedOption ? selectedOption.label : "Select..."}
+                </span>
+                <span aria-hidden="true" style={{
+                    transform: isOpen ? "rotate(180deg)" : "none",
                     transition: "transform 0.2s ease",
                     fontSize: "0.8rem",
                     color: "rgba(255,255,255,0.7)",
                     marginLeft: "10px"
                 }}>▼</span>
             </div>
-            
+
             {isOpen && !disabled && (
-                <ul className="custom-select-dropdown">
-                    {options.map(opt => (
-                        <li 
+                <ul
+                    ref={listRef}
+                    role="listbox"
+                    aria-labelledby={labelId}
+                    className="custom-select-dropdown"
+                >
+                    {options.map((opt, idx) => (
+                        <li
                             key={opt.value}
-                            className={`custom-select-option ${String(value) === String(opt.value) ? "selected" : ""}`}
+                            role="option"
+                            aria-selected={String(value) === String(opt.value)}
+                            className={`custom-select-option ${String(value) === String(opt.value) ? "selected" : ""} ${idx === focusedIndex ? "focused" : ""}`}
                             onClick={() => {
                                 onChange({ target: { value: opt.value } });
                                 setIsOpen(false);
@@ -79,6 +144,7 @@ function CustomSelect({ value, onChange, options, disabled, className, style }) 
         </div>
     );
 }
+
 
 function CommunitySelect({ communities, value, onChange }) {
     return (
@@ -289,7 +355,8 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                 <div className="invite-tab-header">
                     <h3 style={{
                         color: "#ffffff",
-                        fontFamily: "'Open Sans', system-ui, sans-serif",
+                        fontFamily: "'Fredoka', sans-serif",
+                        fontWeight: 600,
                         fontSize: "1.35rem",
                         margin: 0
                     }}>
@@ -307,15 +374,15 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                 </div>
             )}
 
-            {errorMsg && <div className="admin-error-box">{errorMsg}</div>}
+            {errorMsg && <div role="alert" className="admin-error-box">{errorMsg}</div>}
             {statusMsg && (
-                <div className="admin-warning-box" style={{ backgroundColor: "#55c46f", border: "none", color: "#ffffff" }}>
+                <div role="status" aria-live="polite" className="admin-warning-box" style={{ backgroundColor: "#55c46f", border: "none", color: "#ffffff" }}>
                     {statusMsg}
                 </div>
             )}
 
             {duplicateEmails.length > 0 && (
-                <div className="admin-warning-box">
+                <div role="alert" className="admin-warning-box">
                     <strong>⚠️ Already members or have an active invite:</strong>
                     <ul style={{ margin: "0.5rem 0", paddingLeft: "1.25rem", color: "inherit" }}>
                         {duplicateEmails.map(e => <li key={e} style={{ marginBottom: "0.2rem" }}>{e}</li>)}
@@ -339,7 +406,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
             )}
 
             {registeredEmails.length > 0 && (
-                <div className="admin-warning-box" style={{ backgroundColor: "rgba(120, 100, 15, 0.85)", border: "1px solid #b49009", color: "#fcd34d" }}>
+                <div role="alert" className="admin-warning-box" style={{ backgroundColor: "rgba(120, 100, 15, 0.85)", border: "1px solid #b49009", color: "#fcd34d" }}>
                     <strong>ℹ️ Already have accounts (but not in this community):</strong>
                     <ul style={{ margin: "0.5rem 0", paddingLeft: "1.25rem", color: "inherit" }}>
                         {registeredEmails.map(e => <li key={e} style={{ marginBottom: "0.2rem" }}>{e}</li>)}
@@ -553,7 +620,8 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
             <div style={{ marginBottom: "1.5rem" }}>
                 <h3 style={{
                     color: "#ffffff",
-                    fontFamily: "'Open Sans', system-ui, sans-serif",
+                    fontFamily: "'Fredoka', sans-serif",
+                    fontWeight: 600,
                     fontSize: "1.35rem",
                     margin: 0
                 }}>
@@ -728,7 +796,8 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
             <div style={{ marginBottom: "1.5rem" }}>
                 <h3 style={{
                     color: "#ffffff",
-                    fontFamily: "'Open Sans', system-ui, sans-serif",
+                    fontFamily: "'Fredoka', sans-serif",
+                    fontWeight: 600,
                     fontSize: "1.35rem",
                     margin: 0
                 }}>
@@ -766,7 +835,7 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
                                     {members.map(m => (
                                         <tr key={m.user_id}>
                                             <td>{m.email}</td>
-                                            <td>{m.display_name || <em style={{ color: "#a0a0a0" }}>No profile</em>}</td>
+                                            <td>{m.display_name || <em style={{ color: "#97f7e9" }}>No profile</em>}</td>
                                             <td>{m.joined_at ? new Date(m.joined_at).toLocaleDateString() : 'N/A'}</td>
                                             {editingId === m.user_id ? (
                                                 <>
@@ -823,6 +892,46 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
     const [statusMsg, setStatusMsg] = useState("");
     const [viewingRequest, setViewingRequest] = useState(null);
 
+    const modalRef = useRef(null);
+    const triggerRef = useRef(null);
+
+    useEffect(() => {
+        if (viewingRequest && modalRef.current) {
+            const focusableElements = modalRef.current.querySelectorAll(
+                'button, [href], input, select, textarea, [tabIndex]:not([tabIndex="-1"])'
+            );
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Tab') {
+                    if (e.shiftKey) { // Shift + Tab
+                        if (document.activeElement === firstElement) {
+                            lastElement.focus();
+                            e.preventDefault();
+                        }
+                    } else { // Tab
+                        if (document.activeElement === lastElement) {
+                            firstElement.focus();
+                            e.preventDefault();
+                        }
+                    }
+                } else if (e.key === 'Escape') {
+                    setViewingRequest(null);
+                }
+            };
+
+            if (firstElement) firstElement.focus();
+
+            modalRef.current.addEventListener('keydown', handleKeyDown);
+            return () => {
+                if (modalRef.current) modalRef.current.removeEventListener('keydown', handleKeyDown);
+            };
+        } else if (!viewingRequest && triggerRef.current) {
+            triggerRef.current.focus();
+        }
+    }, [viewingRequest]);
+
     const toggleSelect = (id) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
@@ -868,7 +977,8 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
             <div style={{ marginBottom: "1.5rem" }}>
                 <h3 style={{
                     color: "#ffffff",
-                    fontFamily: "'Open Sans', system-ui, sans-serif",
+                    fontFamily: "'Fredoka', sans-serif",
+                    fontWeight: 600,
                     fontSize: "1.35rem",
                     margin: 0
                 }}>
@@ -936,11 +1046,14 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                     </td>
                                     <td>{r.email}</td>
                                     <td>{r.zip_code}</td>
-                                    <td>{r.community_name || <em style={{ color: "#a0a0a0" }}>General Request</em>}</td>
+                                    <td>{r.community_name || <em style={{ color: "#97f7e9" }}>General Request</em>}</td>
                                     <td>{r.created_at ? new Date(r.created_at).toLocaleDateString() : 'N/A'}</td>
                                     <td>
                                         <button
-                                            onClick={() => setViewingRequest(r)}
+                                            onClick={(e) => {
+                                                triggerRef.current = e.currentTarget;
+                                                setViewingRequest(r);
+                                            }}
                                             className="admin-pill-btn secondary" style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
                                         >
                                             View Message
@@ -971,19 +1084,25 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
             {/* Request Detail Modal */}
             {viewingRequest && createPortal(
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(112, 212, 219, 1) 0%, rgba(49, 101, 168, 1) 52%, rgba(84, 0, 140, 0.95) 100%)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000 }}>
-                    <div className="admin-panel" style={{ padding: '2.5rem', maxWidth: '550px', width: '90%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', position: 'relative' }}>
+                    <div 
+                        ref={modalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="modal-title"
+                        tabIndex="-1"
+                        className="admin-panel" style={{ padding: '2.5rem', maxWidth: '550px', width: '90%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', position: 'relative' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: 0, color: "#ffffff", fontFamily: "'Open Sans', system-ui, sans-serif", fontSize: "1.35rem" }}>Invite Request Detail</h3>
+                            <h3 id="modal-title" style={{ margin: 0, color: "#ffffff", fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: "1.35rem" }}>Invite Request Detail</h3>
                             <button onClick={() => setViewingRequest(null)} style={{ background: 'none', border: 'none', fontSize: '2rem', cursor: 'pointer', color: 'white', lineHeight: 1 }}>×</button>
                         </div>
                         <div style={{ marginBottom: '2rem', color: '#ffffff', fontSize: '1.05rem', lineHeight: '1.6' }}>
                             <p style={{ margin: '0.5rem 0' }}><strong>Email:</strong> {viewingRequest.email}</p>
                             <p style={{ margin: '0.5rem 0' }}><strong>Zip Code:</strong> {viewingRequest.zip_code}</p>
-                            <p style={{ margin: '0.5rem 0' }}><strong>Community:</strong> {viewingRequest.community_name || "General Request"}</p>
+                            <p style={{ margin: '0.5rem 0' }}><strong>Community:</strong> {viewingRequest.community_name || <em style={{ color: "#97f7e9" }}>General Request</em>}</p>
                             <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}>
                                 <strong style={{ color: '#ffffff' }}>Message:</strong>
                                 <p style={{ whiteSpace: 'pre-wrap', marginTop: '0.75rem', maxHeight: '200px', overflowY: 'auto', color: '#ffffff', fontSize: '0.95rem' }}>
-                                    {viewingRequest.message || <em style={{ color: "rgba(255,255,255,0.6)" }}>No introductory message provided.</em>}
+                                    {viewingRequest.message || <em style={{ color: "#97f7e9" }}>No introductory message provided.</em>}
                                 </p>
                             </div>
                         </div>
@@ -1038,9 +1157,37 @@ export default function AdminMembers() {
         return raw.split(/[\n, ]+/).map(e => e.trim()).filter(e => e.includes("@")).length;
     };
 
+    const tabRefs = useRef([]);
+
     const switchTab = (i) => {
         setActiveTab(i);
         setAccordionOpen(i);
+    };
+
+    const handleTabKeyDown = (e, index) => {
+        let newIndex = index;
+        if (e.key === "ArrowRight") {
+            e.preventDefault();
+            newIndex = (index + 1) % TABS.length;
+        } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            newIndex = (index - 1 + TABS.length) % TABS.length;
+        } else if (e.key === "Home") {
+            e.preventDefault();
+            newIndex = 0;
+        } else if (e.key === "End") {
+            e.preventDefault();
+            newIndex = TABS.length - 1;
+        }
+
+        if (newIndex !== index) {
+            switchTab(newIndex);
+            setTimeout(() => {
+                if (tabRefs.current[newIndex]) {
+                    tabRefs.current[newIndex].focus();
+                }
+            }, 0);
+        }
     };
 
     const fetchMembers = async (cid) => {
@@ -1231,6 +1378,8 @@ export default function AdminMembers() {
                                 aria-selected={activeTab === i}
                                 aria-controls={panelId}
                                 onClick={() => switchTab(i)}
+                                onKeyDown={(e) => handleTabKeyDown(e, i)}
+                                ref={el => tabRefs.current[i] = el}
                                 className={`admin-tab-btn ${activeTab === i ? 'active' : ''}`}
                                 tabIndex={activeTab === i ? 0 : -1}
                             >

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Open+Sans:wght@400;600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Water+Brush&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Fredoka:wght@600&family=Open+Sans:wght@400;600&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Water+Brush&display=swap');
 
 :root {
   --bg-main: #121212;
@@ -119,9 +119,9 @@ body {
 }
 
 .navbar-logo {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: 1.55rem;
-  font-weight: 700;
+  font-weight: 600;
   color: white;
   line-height: 1.25;
   text-align: center;
@@ -620,13 +620,13 @@ form .auth-input-wrapper:last-of-type {
 .admin-header-container {
   width: 100%;
   max-width: 1152px;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .admin-title {
-  font-family: 'Open Sans', system-ui, sans-serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 0 1.5rem;
   color: #ffffff;
   letter-spacing: 0.01em;
@@ -659,6 +659,7 @@ form .auth-input-wrapper:last-of-type {
   display: flex;
   gap: 0;
   margin-bottom: 0;
+  padding-top: 2px;
   flex-wrap: nowrap;
   align-items: flex-end;
   overflow-x: auto;
@@ -983,6 +984,19 @@ textarea.admin-input {
   font-family: 'Open Sans', system-ui, sans-serif;
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+/* ── Custom Select focus ring (keyboard accessibility) ── */
+
+.custom-select-trigger:focus-visible {
+  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.35);
+  border-color: #97f7e9;
+  border-radius: 8px;
+}
+
+.custom-select-option.focused {
+  background: rgba(151, 247, 233, 0.2);
+  color: #ffffff;
 }
 
 /* ── Buttons ────────────────────────────────────────────── */
