@@ -1,0 +1,78 @@
+* Local and multi-community admins should not be able to invite users to be global admins. Only global admins can invite other global admins. If an admin invites someone who's already an admin of another community to be an admin level 1 of their own community then their admin level should stay at a level 2 (if their level was already level 2) or automatically change to level 2 after a message prompt pops up letting the inviter know that user's admin level they are inviting was changed to a level 2 multi-community admin status and they click okay. Not sure if this makes sense to do. Advise.
+
+* I think the Admin Level feild on the create invites page should be a drop down feild and actually say the name of the admin level rather than just the number. For example: 0 - member, 1 - local admin, 2 - multi-community admin, 3 - global admin.
+
+* May need to add another role for "guest" because in my religion some things are closed off to friends and seekers of the Faith and should only be known by declaired members of the Faith like Feasts and Funds. The guest role would only be able to see the functions not pertaining to members only.
+
+* Please make it so all the drop-downs are in alphebetical and numerical order
+
+* I noticed that even though user linmon8803+testtest6@gmail.com was assigned as a global admin, their id was not populated in the global_admins table. Also their information is in the memberships and invites tables, which I'm not sure is a good idea for securitie's sake.
+
+* There is currently no way for a user to request an admin to send them an invite. I think the best way to go about this would be to provide a form on the sign up with invite page where they can say what zip code they live in to narrow down which communities would likely be of most interest to them based on their location and provide their email address. They can then give a short introduction of themselves and a message would be sent to the admins of that community once submitted. On the admin side there could be another tab added to the member management page called "invite requests" that would show each request that they could then click on to see the full message. A check box could be beside each request that would allow admins to batch populate their emails to the form on the invite new users tab or deny and delete their request. These options would also be beside each individual request similar to how it's set up on the "manage members" tab.
+
+* Only global admins can see the invite requests that choose the "general request" option and these requests can be shown under every community to invite or deny them.
+
+* Only admins of that community can see invite requests for their respective communities. For example, an admin for Community A should not be able to see invite requests for Community B unless they are also an admin in community B and only if they selected community B in the community feild drop-down.
+
+* If a user is an admin for multiple communities, then invite requests should only be displayed if they are requesting a code for the community chosen in the community drop-down feild. They should not be mixed together.
+
+* After an invite code is sent to the invite requestee's email then their invite request should be automatically removed.
+
+* Admins should be able to open up and see the full message of each request. Display the invite and deny buttons on that pop up window.
+
+- Users who are already members may use the invite requests form but only if they are not already a member of that community they are requesting an invite for. In that case, their email would be auto added to the grant access form instead of the invite new users form.
+
+* Display a number next to each tab showing the number of emails populated into the target emails feild for the invite new users tab, the number of emails populated into the user emails feild for the grant access tab, the number of members in manage members tab, and the number of requests under the invite requests tab.
+
+- When an admin hits generate invites or grant access, the emails therein should be checked to see if it's already associated with a user who's in the same community. If so, then a message should pop up saying that's the case.
+
+- Neither the invite new users nor the grant access forms should allow dulplicate emails.
+
+* If the admin denys a request then that email address should be wipped from the invite new users and grant access forms if they happen to already be populated in those forms.
+
+Colors:
+Dark Blue: #002c44,
+Green: #089447,
+Medium Blue: #2783c1,
+Magenta: #a80973,
+White: #FFFFFF,
+Light Blue: #97f7e9
+
+Green button: Dark Green: #178145, Light Green: #94c690
+Blue button: Dark Blue: #0091c7, Light Blue: #58acbf
+
+background-color: #002c44;
+  /* Color of the top element */
+  mix-blend-mode: overlay;
+  /* The blending mode */
+
+New Community Set up:
+- Have a feature on the request an invite form that let's a user create their own community 
+- Communities can be orgainized into categories like ((Faith based: Baha'i, Christian, Muslim)(Civic organizations: Rotary club, Kiwanis club, Lions club)(Non-profit: Food banks, charities, community outreach)(Volunteer event groups: festivals, art fairs, maker events, charity runs)(Community Advocacy Groups: Environmental groups, local housing advocacy, mutual aid networks)) Then if a community is under the same umbrella as another one they can pool their resources, documentation and learnings.
+-Maybe types of communities can be used as templates so instead of communities of the same type starting from scratch they can start with the basics that every community of that type needs. Personal and any other sensitive information would of course be scrubbed before being turned into a community template.
+
+Authentication & access control:
+-Admin approval required
+-Member code generated by admin
+-Members-only access
+
+User profiles:
+-Name, skills they can offer (human resources)
+-Items they can share (material resources)
+-Optional contact preferences
+
+Resource sharing:
+-Listings for help, skills, tools, items
+-Ability to request or offer resources
+
+Messaging:
+-1:1 chat
+-Group chat (user-selected groups)
+
+Message board:
+-Announcements
+-Community discussions
+
+Calendar / events:
+-Events created by admins or members
+-RSVP or attendance tracking

@@ -1,0 +1,42 @@
+Users
+
+disply_name	user_id					community_id				role		admin_level	email				password
+
+Test User 4	95d79959-2a6d-417c-9719-51a06ab2ee78	3401431b-5120-4c0c-9eca-f8bcf6388803	admin		3		linmon8800@gmail.com		Test8800
+
+Test User 1	d63a1675-bb92-4157-b3c5-cb1e50629a4d	f2e41fc7-fbef-4b9c-b583-8a85a40055e7	member		0		linon8803@gmail.com		Scissors789
+
+Test User 1	d63a1675-bb92-4157-b3c5-cb1e50629a4d	8213ca0d-f81b-45d8-929d-d8a43d84e682	member		0		linon8803@gmail.com		Scissors789
+
+Test User 2	c51f2492-978d-4f26-aa57-3dcfcc949f89	f2e41fc7-fbef-4b9c-b583-8a85a40055e7	admin		1		linmon8802@gmail.com		Pencil789
+
+Test User 3	3040347a-2b6f-4d0e-81b6-03e707e2fc1b	3401431b-5120-4c0c-9eca-f8bcf6388803	admin		2		linmon8801@gmail.com		Test8801
+
+Test User 3	3040347a-2b6f-4d0e-81b6-03e707e2fc1b	8213ca0d-f81b-45d8-929d-d8a43d84e682	member		0		linmon8801@gmail.com		Test8801
+
+Test User 3	3040347a-2b6f-4d0e-81b6-03e707e2fc1b	f2e41fc7-fbef-4b9c-b583-8a85a40055e7	admin		2		linmon8801@gmail.com		Test8801
+
+Test User 5	27b6dc00-f04b-4618-b8db-b0afde9286f8	3401431b-5120-4c0c-9eca-f8bcf6388803	member		0		linmon880@gmail.com		Test880
+
+Test User 6	07918d07-f853-4260-8c54-66db85dacbbc	3401431b-5120-4c0c-9eca-f8bcf6388803	member		0		linmon8803+testtest4@gmail.com	Testtest4
+
+Test User 7	111bedc6-f28d-41e6-8395-16217ed934a7	3401431b-5120-4c0c-9eca-f8bcf6388803	member		0		linmon8803+testtest5@gmail.com	Testtest5%
+
+Test User 8	7b11f661-e2ed-4909-b80a-55c39067e1fb	3401431b-5120-4c0c-9eca-f8bcf6388803	member		0		linmon8803+testtest2@gmail.com	Testtest2
+
+Test User 9	9f1ef64b-5d46-473d-b1b8-d1215ad329e0	3401431b-5120-4c0c-9eca-f8bcf6388803	member		0		linmon8803+testtest3@gmail.com	Testtest3
+
+Test User 10	094b65c3-f8cd-41fc-a28d-48760ba0d702	3401431b-5120-4c0c-9eca-f8bcf6388803	admin		3		linmon8803+Testtest6@gmail.com	Testtest6
+
+Test User 11	fac109c9-4e7d-4d16-90f7-3a0a4e466ff2	3401431b-5120-4c0c-9eca-f8bcf6388803	admin		3		linmon8803+Testtest7@gmail.com	Testtest7
+
+
+Communities
+
+name			id
+
+Test Community A	f2e41fc7-fbef-4b9c-b583-8a85a40055e7
+
+Test Community B	3401431b-5120-4c0c-9eca-f8bcf6388803
+
+Test Community C	8213ca0d-f81b-45d8-929d-d8a43d84e682

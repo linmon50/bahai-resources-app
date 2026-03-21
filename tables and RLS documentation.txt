@@ -1,0 +1,292 @@
+Project Name: Baha'i Resources App
+Database Password: 9FkRwsDtZw3eRGHp
+Project ID: vlztrffenluumhpsthyn
+
+Tables
+
+table: communities: 
+[column: id, type: uuid, default: gen_random_uuid(), required: yes, constraints: is primary key], 
+[column: name, type: text, default: NULL, required: yes],
+[column: slug, type: text, default: NULL, required: yes],
+[column: created_at, type: timestamptz, default: now(), required: yes],
+[column: description, type: text, default: NULL, required: no]
+
+table: events: 
+[column: id, type: uuid, default: gen_random_uuid(), required: yes, constraints: is primary key]
+[column: community_id, type: uuid, default: NULL (Has a foreign key relation to public.communities.id), required: yes]
+[column: created_by, type: uuid, default: NULL (Has a foreign key relation to auth.users.id), required: yes]
+[column: title, type: text, default: NULL, required: yes]
+[column: start_time, type: timestamptz, default: NULL, required: yes]
+[column: description, type: text, default: NULL, required: no]
+[column: end_time, type: timestamptz, default: NULL, required: no]
+[column: location, type: text, default: NULL, required: no]
+[column: created_at, type: timestamptz, default: now(), required: no]
+
+table: global_admins: 
+[column: id, type: uuid, default: NULL (Has a foreign key relation to auth.users.id), required: yes, constraints: is primary key]
+
+table: invites: 
+[column: id, type: uuid, default: gen_random_uuid(), required: yes, constraints: is primary key], 
+[column: code, type: text, default: NULL, required: yes, constraints: is unique], 
+[column: community_id, type: uuid, default: NULL (Has a foreign key relation to public.communities.id), required: yes], 
+[column: role, type: text, default: NULL, required: yes], 
+[column: admin_level, type: int4, default: 0, required: yes], 
+[column: used_at, type: timestamptz, default: NULL, required: no], 
+[column: used_by, type: uuid (Has a foreign key relation to auth.users.id), default: NULL, required: no], 
+[column: expires_at, type: timestamptz, default: NULL, required: no], 
+[column: created_by, type: uuid, default: NULL (Has a foreign key relation to auth.users.id), required: no], 
+[column: active, type: bool, default: TRUE, required: no], 
+[column: created_at, type: timestamptz, default: now(), required: no],
+[column: email, type: text, default: NULL, required: yes]
+
+table: memberships:
+[column: id, type: uuid, default: gen_random_uuid(), required: yes, constraints: is primary key]
+[column: user_id, type: uuid, default: NULL (Has a foreign key relation to auth.users.id), required: yes]
+[column: community_id, type: uuid, default: NULL (Has a foreign key relation to public.communities.id), required: yes]
+[column: role, type: text, default: NULL, required: yes]
+[column: approved, type: bool, default: FALSE, required: yes]
+[column: joined_at, type: timestamptz, default: now(), required: yes]
+[column: admin_level, type: int2, default: 0, required: yes]
+
+table: profiles: 
+[column: user_id, type: uuid, default: NULL (Has a foreign key relation to auth.users.id), required: yes, constraints: is primary key]
+[column: display_name, type: text, default: NULL, required: yes]
+[column: bio, type: text, default: NULL, required: no]
+[column: accessibility_needs, type: text, default: NULL, required: no]
+[column: avatar_url, type: text, default: NULL, required: no]
+[column: created_at, type: timestamptz, default: now(), required: yes]
+
+table: resources: 
+[column: id, type: uuid, default: gen_random_uuid(), required: yes, constraints: is primary key]
+[column: community_id, type: uuid, default: NULL (Has a foreign key relation to public.communities.id), required: yes]
+[column: created_by, type: uuid, default: NULL (Has a foreign key relation to auth.users.id), required: yes]
+[column: title, type: text, default: NULL, required: yes]
+[column: description, type: text, default: NULL, required: no]
+[column: resource_type, type: text, default: NULL, required: yes]
+[column: status, type: text, default: 'active'::text, required: yes]
+[column: created_at, type: timestamptz, default: now(), required: yes]
+[column: updated_at, type: timestamptz, default: now(), required: yes]
+[column: resource_category, type: text, default: 'human'::text, required: yes]
+
+
+
+RLS Policies
+
+
+table name: communities, RLS name: Admins can update their communities, command: UPDATE, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Admins can update their communities"
+on "public"."communities"
+to public
+using (
+  (is_global_admin(auth.uid()) OR is_community_admin(auth.uid(), id))
+);
+
+table name: communities, RLS name: Global admins can create communities, command: INSERT, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Global admins can create communities"
+on "public"."communities"
+to public
+with check (
+  is_global_admin(auth.uid())
+);
+
+table name: communities, RLS name: Global admins can delete communities, command: DELETE, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Global admins can delete communities"
+on "public"."communities"
+to public
+using (
+  is_global_admin(auth.uid())
+);
+
+table name: communities, RLS name: Members can view their communities, command: SELECT, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Members can view their communities"
+on "public"."communities"
+to public
+using (
+  (is_global_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.community_id = communities.id) AND (m.user_id = auth.uid()) AND (m.approved = true)))))
+);
+
+
+table name: events, RLS name: Community members can create events, command: INSERT, applied to: public, policy behavior: permissive, SQL script: 
+alter policy "Community members can create events"
+on "public"."events"
+to public
+with check (
+  (community_id IN ( SELECT memberships.community_id
+   FROM memberships
+  WHERE ((memberships.user_id = auth.uid()) AND memberships.approved)))
+);
+
+table name: events, RLS name: Event owners or admins can delete, command: DELETE, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Event owners or admins can delete"
+on "public"."events"
+to public
+using (
+  ((created_by = auth.uid()) OR is_community_admin(auth.uid(), community_id))
+);
+
+table name: events, RLS name: Event owners or admins can update, command: UPDATE, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Event owners or admins can update"
+on "public"."events"
+to public
+using (
+  ((created_by = auth.uid()) OR is_community_admin(auth.uid(), community_id))
+);
+
+table name: events, RLS name: Users can view events (member or global admin), command: SELECT, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Users can view events (member or global admin)"
+on "public"."events"
+to public
+using (
+  (is_global_admin(auth.uid()) OR (community_id IN ( SELECT memberships.community_id
+   FROM memberships
+  WHERE ((memberships.user_id = auth.uid()) AND memberships.approved))))
+);
+
+
+table name: global_admins, RLS name: No direct access to global_admins, command: ALL, applied to: public, policy behavior: permissive, SQL script:
+alter policy "No direct access to global_admins"
+on "public"."global_admins"
+to public
+using (
+  false
+) with check (
+  false
+);
+
+
+table name: invites, RLS name: Admins can insert invites, command: INSERT, applied to: authenticated, policy behavior: permissive, SQL script:
+alter policy "Admins can insert invites"
+on "public"."invites"
+to authenticated
+with check (
+  (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.user_id = auth.uid()) AND (m.community_id = invites.community_id) AND (m.admin_level > 0))))
+);
+
+table name: invites, RLS name: Admins can manage invites, command: UPDATE, applied to: authenticated, policy behavior: permissive, SQL script:
+alter policy "Admins can manage invites"
+on "public"."invites"
+to authenticated
+using (
+  (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.user_id = auth.uid()) AND (m.community_id = invites.community_id) AND (m.admin_level > 0))))
+) with check (
+  true
+);
+
+table name: invites, RLS name: RPC can consume invite, command: UPDATE, applied to: authenticated, policy behavior: permissive, SQL script:
+alter policy "RPC can consume invite"
+on "public"."invites"
+to authenticated
+using (
+  false
+) with check (
+  false
+); 
+
+
+table name: memberships, RLS name: Admins update memberships, command: UPDATE, applied to: public, policy behavior: permissive, SQL script: 
+alter policy "Admins update memberships"
+on "public"."memberships"
+to public
+using (
+  is_community_admin(auth.uid(), community_id)
+);
+
+table name: memberships, RLS name: Users can insert own membership, command: INSERT, applied to: public, policy behavior: permissive, SQL script: 
+alter policy "Users can insert own membership"
+on "public"."memberships"
+to public
+with check (
+  (user_id = auth.uid())
+);
+
+table name: memberships, RLS name: View memberships, command: SELECT, applied to: public, policy behavior: permissive, SQL script: 
+alter policy "View memberships"
+on "public"."memberships"
+to public
+using (
+  (is_global_admin(auth.uid()) OR (user_id = auth.uid()) OR is_community_admin(auth.uid(), community_id))
+);
+
+
+table name: profiles, RLS name: Users can create their own profile, command: INSERT, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Users can create their own profile"
+on "public"."profiles"
+to public
+with check (
+  (auth.uid() = user_id)
+);
+
+table name: profiles, RLS name: Users can update own profile (self only), command: UPDATE, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Users can update own profile (self only)"
+on "public"."profiles"
+to public
+using (
+  (user_id = auth.uid())
+);
+
+table name: profiles, RLS name: View profiles, command: SELECT, applied to: public, policy behavior: permissive, SQL script:
+alter policy "View profiles"
+on "public"."profiles"
+to public
+using (
+  ((auth.uid() = user_id) OR is_global_admin(auth.uid()) OR (EXISTS ( SELECT 1
+   FROM (memberships m1
+     JOIN memberships m2 ON ((m1.community_id = m2.community_id)))
+  WHERE ((m1.user_id = auth.uid()) AND (m1.approved = true) AND (m2.user_id = profiles.user_id) AND (m2.approved = true)))))
+);
+
+
+table name: resources, RLS name: Admins can delete resources in their community, command: DELETE, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Admins can delete resources in their community"
+on "public"."resources"
+to public
+using (
+  (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.user_id = auth.uid()) AND (m.community_id = resources.community_id) AND (m.approved = true) AND (m.admin_level >= 1))))
+);
+
+table name: resources, RLS name: Members can create resources in their community, command: INSERT, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Members can create resources in their community"
+on "public"."resources"
+to public
+with check (
+  (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.user_id = auth.uid()) AND (m.community_id = resources.community_id) AND (m.approved = true))))
+);
+
+table name: resources, RLS name: Members can view resources in their community, command: SELECT, applied to: public, policy behavior: permissive, SQL script: 
+alter policy "Members can view resources in their community"
+on "public"."resources"
+to public
+using (
+  (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.user_id = auth.uid()) AND (m.community_id = resources.community_id) AND (m.approved = true))))
+);
+
+table name: resources, RLS name: Update resources, command: UPDATE, applied to: public, policy behavior: permissive, SQL script:
+alter policy "Update resources"
+on "public"."resources"
+to public
+using (
+  ((created_by = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.user_id = auth.uid()) AND (m.community_id = resources.community_id) AND (m.approved = true) AND (m.admin_level >= 1)))))
+) with check (
+  ((created_by = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM memberships m
+  WHERE ((m.user_id = auth.uid()) AND (m.community_id = resources.community_id) AND (m.approved = true) AND (m.admin_level >= 1)))))
+);
+
+
+
+
+

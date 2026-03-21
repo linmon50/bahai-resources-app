@@ -1,0 +1,16 @@
+I thought of another idea for down the road -- event planning. This is how I imagine it would work:
+
+- All users can create an event planning session
+- Event planning let's users assign tasks by dragging and dropping or by using a pull-down/ search function on each action item to search for the user that would be assigned that task
+- Each action item has a title, user assigned, notes, date and time the action item was created, and a progress box saying how far along the task is from being completed
+- Documents can be uploaded in date upload order for notes, resources and meeting minutes
+- Only the user that created the event planning session can delete it or an admin
+- Only the users that have been invited to plan the event may make any changes
+- Only the event planning creator can invite other users to plan
+- Users do not have to be part of the planning event to be assigned action items but they do have to be allowed to to see and edit any action items assigned to them
+- Any member that was invited to event plan can add action items or documents
+- Users can message back and forth either as a group or one on one
+- When a task gets assigned to a user and completed, then it will be added to that user's experience list on their public profile page. The user may hide that experience if they wish.
+
+
+
