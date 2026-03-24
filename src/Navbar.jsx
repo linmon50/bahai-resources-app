@@ -44,6 +44,8 @@ export default function Navbar({ session, isAdmin }) {
                 <Link to="/" className={navLinkClass("/")} onClick={closeMenu}>Home</Link>
                 {session && (
                     <>
+                        <Link to="/directory" className={navLinkClass("/directory")} onClick={closeMenu}>Directory</Link>
+                        <Link to="/profile" className={navLinkClass("/profile")} onClick={closeMenu}>My Profile</Link>
                         {isAdmin && (
                             <Link
                                 to="/admin/members"

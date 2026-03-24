@@ -1169,3 +1169,67 @@ textarea.admin-input {
   cursor: pointer;
   accent-color: #97f7e9;
 }
+
+/* ── Profile & Edit Profile Responsive Grids ── */
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+  gap: 2rem;
+}
+
+.edit-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+  .edit-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.directory-search-input {
+  border: 2px solid rgba(151, 247, 233, 0.45);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.directory-search-input::placeholder {
+  color: white;
+  opacity: 1; /* Override Firefox default opacity */
+}
+
+.directory-search-input:focus {
+  border-color: #97f7e9 !important;
+  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.18), 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+/* ── Directory Member Cards ── */
+.directory-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, outline 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.directory-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.directory-card:focus-visible {
+  outline: 3px solid #97f7e9;
+  outline-offset: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}

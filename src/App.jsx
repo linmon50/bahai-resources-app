@@ -5,6 +5,9 @@ import Navbar from "./Navbar";
 import Auth from "./Auth";
 import AdminMembers from "./AdminMembers";
 import ResetPassword from "./ResetPassword";
+import EditProfilePage from "./EditProfilePage";
+import ProfilePage from "./ProfilePage";
+import DirectoryPage from "./DirectoryPage";
 
 function JoinCommunity() {
   const [code, setCode] = useState("");
@@ -200,6 +203,12 @@ export default function App() {
               path="/admin/members"
               element={(session && isAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin} /> : <Navigate to="/" replace />}
             />
+
+            {/* Profile and Directory Routes */}
+            <Route path="/profile" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
+            <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" replace />} />
+            <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
+            <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" replace />} />
 
             {/* Public: password reset link from email */}
             <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
