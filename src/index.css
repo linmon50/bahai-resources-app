@@ -5,7 +5,7 @@
   --bg-card: #1e1e1e;
   --bg-input: #2c2c2c;
   --text-main: #e0e0e0;
-  --text-muted: #a0a0a0;
+  --text-muted: #ffffff;
   --border-color: #333333;
 
   --primary: #4f46e5;
@@ -941,6 +941,35 @@ textarea.admin-input {
   min-height: 130px;
 }
 
+.admin-input-btn {
+  display: inline-block;
+  width: auto;
+  padding: 13px 24px;
+  background-color: rgba(255, 255, 255, 0.20);
+  border: 1px solid #97f7e9;
+  border-radius: 9999px;
+  color: #97f7e9;
+  font-family: 'Open Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s, background-color 0.2s;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.admin-input-btn:focus,
+.admin-input-btn:focus-visible {
+  border-color: #97f7e9;
+  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.18);
+}
+
+.admin-input-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
 /* ── Custom React Select Overlay ────────────────────────── */
 
 .custom-select-dropdown {
@@ -1056,7 +1085,7 @@ textarea.admin-input {
 .admin-pill-btn.secondary {
   background-color: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #e0e0e0;
+  color: #ffffff;
 }
 
 .admin-pill-btn.secondary:hover:not(:disabled) {
@@ -1147,6 +1176,10 @@ textarea.admin-input {
   font-size: 0.93rem;
 }
 
+.admin-table tbody tr {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
 .admin-table tr:last-child td {
   border-bottom: none;
 }
@@ -1194,8 +1227,7 @@ textarea.admin-input {
 
 .directory-search-input {
   border: 2px solid rgba(151, 247, 233, 0.45);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s;
 }
 
 .directory-search-input::placeholder {
@@ -1205,7 +1237,7 @@ textarea.admin-input {
 
 .directory-search-input:focus {
   border-color: #97f7e9 !important;
-  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.18), 0 4px 12px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.18) !important;
 }
 
 /* ── Directory Member Cards ── */

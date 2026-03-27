@@ -14,7 +14,7 @@ const ADMIN_LEVELS = [
 
 const ADMIN_LEVEL_OPTIONS = ADMIN_LEVELS.sort((a, b) => a.value - b.value);
 
-const TABS = ["Invite New Users", "Grant Access", "Manage Members", "Invite Requests"];
+const TABS = ["Invite New Users", "Grant Access", "Manage Members", "Invite Requests", "Pending Posts"];
 
 const levelLabel = (lv) => ADMIN_LEVELS.find(a => a.value === lv)?.label || "Unknown";
 
@@ -398,7 +398,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                 Remove &amp; Continue ({checkedEmails.length} remaining)
                             </button>
                         )}
-                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#e0e0e0" }}>
+                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
                             Cancel
                         </button>
                     </div>
@@ -429,7 +429,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                             </button>
                         )}
                         {duplicateEmails.length === 0 && (
-                            <button type="button" onClick={() => { setDuplicateEmails([]); setRegisteredEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#e0e0e0" }}>
+                            <button type="button" onClick={() => { setDuplicateEmails([]); setRegisteredEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
                                 Cancel
                             </button>
                         )}
@@ -648,7 +648,7 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
                                 Remove &amp; Continue ({checkedEmails.length} remaining)
                             </button>
                         )}
-                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#e0e0e0" }}>
+                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
                             Cancel
                         </button>
                     </div>
@@ -1122,7 +1122,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                             </button>
                             <button
                                 onClick={() => setViewingRequest(null)}
-                                className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#e0e0e0" }}
+                                className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}
                             >
                                 Close
                             </button>
@@ -1130,6 +1130,170 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                     </div>
                 </div>,
                 document.body
+            )}
+        </div>
+    );
+}
+
+function PendingPostsTab({ selectedCommunity, refreshCounts }) {
+    const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [actioningId, setActioningId] = useState(null);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectingPost, setRejectingPost] = useState(null);
+    const [rejectionReason, setRejectionReason] = useState("");
+
+    const fetchPending = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('bulletin_posts')
+            .select(`
+                *,
+                author:profiles(display_name, email)
+            `)
+            .eq('community_id', selectedCommunity)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: true });
+        
+        if (!error) setPosts(data || []);
+        if (refreshCounts) refreshCounts(data ? data.length : 0);
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        if (selectedCommunity) fetchPending();
+    }, [selectedCommunity]);
+
+    const handleApprove = async (id) => {
+        setActioningId(id);
+        const { error } = await supabase
+            .from('bulletin_posts')
+            .update({ status: 'approved' })
+            .eq('id', id);
+        
+        if (!error) {
+            fetchPending();
+        }
+        setActioningId(null);
+    };
+
+    const handleRejectSubmit = async () => {
+        if (!rejectionReason.trim()) return;
+        setActioningId(rejectingPost.id);
+        const { error } = await supabase
+            .from('bulletin_posts')
+            .update({ 
+                status: 'rejected',
+                rejection_reason: rejectionReason
+            })
+            .eq('id', rejectingPost.id);
+        
+        if (!error) {
+            setShowRejectModal(false);
+            setRejectingPost(null);
+            setRejectionReason("");
+            fetchPending();
+        }
+        setActioningId(null);
+    };
+
+    if (loading) return <p style={{ color: "#97f7e9", padding: "1rem" }}>Loading pending posts...</p>;
+
+    return (
+        <div className="admin-tab-container">
+            <h3 style={{ 
+                color: "#ffffff", 
+                marginBottom: "1.5rem", 
+                fontWeight: 600, 
+                fontSize: "1.35rem" 
+            }}>Bulletin Board Moderation Queue</h3>
+            
+            {posts.length === 0 ? (
+                <p style={{ color: "#97f7e9" }}>No pending posts for this community.</p>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {posts.map(post => (
+                        <div key={post.id} style={{ 
+                            background: 'rgba(255, 255, 255, 0.05)', 
+                            padding: '1.5rem', 
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.8rem' }}>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '1.1rem' }}>{post.author?.display_name || 'No Display Name'}</strong>
+                                    <span style={{ fontSize: '0.85rem', color: '#97f7e9' }}>{post.author?.email}</span>
+                                </div>
+                                <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{new Date(post.created_at).toLocaleString()}</span>
+                            </div>
+                            
+                            <p style={{ whiteSpace: 'pre-wrap', marginBottom: '1rem', fontSize: '1rem', lineHeight: '1.5' }}>{post.content}</p>
+                            
+                            {post.image_urls && post.image_urls.length > 0 && (
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: '0.8rem', 
+                                    marginBottom: '1.5rem', 
+                                    overflowX: 'auto',
+                                    paddingBottom: '0.5rem'
+                                }}>
+                                    {post.image_urls.map((url, idx) => (
+                                        <img key={idx} src={url} alt="Submission" style={{ height: '120px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                                    ))}
+                                </div>
+                            )}
+
+                            {post.link_url && (
+                                <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#97f7e9' }}>
+                                    <span style={{ color: '#ffffff' }}>Link: </span>
+                                    <a href={post.link_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>{post.link_url}</a>
+                                </div>
+                            )}
+                            
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button 
+                                    onClick={() => handleApprove(post.id)}
+                                    disabled={actioningId === post.id}
+                                    className="admin-pill-btn" 
+                                    style={{ background: '#55c46f', border: 'none', color: '#fff' }}
+                                >
+                                    {actioningId === post.id ? 'Approving...' : 'Approve & Publish'}
+                                </button>
+                                <button 
+                                    onClick={() => { setRejectingPost(post); setShowRejectModal(true); }}
+                                    disabled={actioningId === post.id}
+                                    className="admin-pill-btn danger"
+                                >
+                                    Reject With Reason
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {showRejectModal && (
+                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                    <div className="admin-modal" style={{ maxWidth: '500px', width: '100%', background: '#1a1d21', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
+                        <h2 style={{ marginBottom: '0.5rem', color: '#ffffff' }}>Reject Submission</h2>
+                        <p style={{ color: '#a0a0a0', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Explain why this post doesn't align with the community guidelines. The author will see this reason.</p>
+                        
+                        <textarea 
+                            className="admin-input"
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            placeholder="e.g. This post contains content that doesn't align with our community guidelines on Baha'i principles..."
+                            rows={5}
+                            style={{ width: '100%', marginBottom: '1.5rem', resize: 'none' }}
+                            autoFocus
+                        />
+                        
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button className="admin-pill-btn secondary" style={{ background: 'transparent' }} onClick={() => setShowRejectModal(false)}>Cancel</button>
+                            <button className="admin-pill-btn danger" onClick={handleRejectSubmit}>Confirm Rejection</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -1150,6 +1314,7 @@ export default function AdminMembers() {
     // Lifted Data States
     const [members, setMembers] = useState([]);
     const [requests, setRequests] = useState([]);
+    const [pendingPostsCount, setPendingPostsCount] = useState(0);
     const [loadingData, setLoadingData] = useState(false);
 
     const getEmailCount = (raw) => {
@@ -1187,6 +1352,54 @@ export default function AdminMembers() {
                     tabRefs.current[newIndex].focus();
                 }
             }, 0);
+        }
+    };
+
+    const cleanupOldPosts = async () => {
+        try {
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            const cutoff = threeMonthsAgo.toISOString();
+
+            // 1. Get old posts with their image_urls
+            const { data: oldPosts, error: fetchError } = await supabase
+                .from('bulletin_posts')
+                .select('id, image_urls')
+                .lt('created_at', cutoff);
+
+            if (fetchError) throw fetchError;
+            if (!oldPosts || oldPosts.length === 0) return;
+
+            console.log(`Cleaning up ${oldPosts.length} old posts...`);
+
+            // 2. Delete images from storage
+            const allFilesToRemove = [];
+            for (const post of oldPosts) {
+                if (post.image_urls && post.image_urls.length > 0) {
+                    post.image_urls.forEach(url => {
+                        const parts = url.split('/');
+                        const filename = parts[parts.length - 1];
+                        if (filename) allFilesToRemove.push(filename);
+                    });
+                }
+            }
+
+            if (allFilesToRemove.length > 0) {
+                const { error: storageError } = await supabase.storage
+                    .from('bulletin_images')
+                    .remove(allFilesToRemove);
+                if (storageError) console.error('Error deleting storage files:', storageError);
+            }
+
+            // 3. Delete database records
+            const { error: deleteError } = await supabase
+                .from('bulletin_posts')
+                .delete()
+                .lt('created_at', cutoff);
+
+            if (deleteError) throw deleteError;
+        } catch (err) {
+            console.error('Cleanup failed:', err);
         }
     };
 
@@ -1250,6 +1463,7 @@ export default function AdminMembers() {
     };
 
     useEffect(() => {
+        cleanupOldPosts();
         async function fetchInitialData() {
             setLoadingData(true);
             const { data: { user } } = await supabase.auth.getUser();
@@ -1341,6 +1555,12 @@ export default function AdminMembers() {
                 refreshRequests={() => fetchRequests()}
             />
         );
+        if (i === 4) return (
+            <PendingPostsTab 
+                selectedCommunity={selectedCommunity} 
+                refreshCounts={setPendingPostsCount}
+            />
+        );
         return null;
     };
 
@@ -1366,6 +1586,7 @@ export default function AdminMembers() {
                         else if (i === 1) count = getEmailCount(grantEmailsRaw);
                         else if (i === 2) count = members.length;
                         else if (i === 3) count = requests.length;
+                        else if (i === 4) count = pendingPostsCount;
 
                         const panelId = `tab-panel-${i}`;
                         const tabId = `tab-btn-${i}`;
@@ -1415,6 +1636,7 @@ export default function AdminMembers() {
                         else if (i === 1) count = getEmailCount(grantEmailsRaw);
                         else if (i === 2) count = members.length;
                         else if (i === 3) count = requests.length;
+                        else if (i === 4) count = pendingPostsCount;
 
                         const isOpen = accordionOpen === i;
                         const regionId = `accordion-panel-${i}`;

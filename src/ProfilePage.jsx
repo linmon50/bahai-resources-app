@@ -28,15 +28,8 @@ export default function ProfilePage({ session }) {
     setMsg({ text: '', type: '' });
     try {
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          memberships(
-            communities(
-              name
-            )
-          )
-        `)
+        .from('directory_view')
+        .select('*')
         .eq('user_id', targetUserId)
         .single();
 
@@ -55,7 +48,7 @@ export default function ProfilePage({ session }) {
           .order('created_at', { ascending: false });
         
         if (!expError && expData) {
-           setExperiences(expData.filter(e => isOwnProfile || e.is_visible));
+           setExperiences(expData);
         }
       }
 

@@ -8,6 +8,7 @@ import ResetPassword from "./ResetPassword";
 import EditProfilePage from "./EditProfilePage";
 import ProfilePage from "./ProfilePage";
 import DirectoryPage from "./DirectoryPage";
+import BulletinBoard from "./BulletinBoard";
 
 function JoinCommunity() {
   const [code, setCode] = useState("");
@@ -182,12 +183,7 @@ export default function App() {
               element={
                 session
                   ? (hasMembership
-                    ? (
-                      <div style={{ padding: "2rem", textAlign: 'center', marginTop: '3rem' }}>
-                        <h2>Welcome to Bahai Resources!</h2>
-                        <p>You are successfully logged in and ready to contribute to your community.</p>
-                      </div>
-                    )
+                    ? <BulletinBoard session={session} isAdmin={isAdmin} />
                     : (
                       <div style={{ padding: "2rem" }}>
                         <JoinCommunity />
@@ -209,6 +205,7 @@ export default function App() {
             <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" replace />} />
+            <Route path="/bulletin" element={(session && hasMembership) ? <BulletinBoard session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
 
             {/* Public: password reset link from email */}
             <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />

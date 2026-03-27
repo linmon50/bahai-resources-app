@@ -1,16 +1,74 @@
 I thought of another idea for down the road -- event planning. This is how I imagine it would work:
 
 - All users can create an event planning session
-- Event planning let's users assign tasks by dragging and dropping or by using a pull-down/ search function on each action item to search for the user that would be assigned that task
+- Event planning let's users assign tasks by using a pull-down/ search function on each action item to search for the user that would be assigned that task
 - Each action item has a title, user assigned, notes, date and time the action item was created, and a progress box saying how far along the task is from being completed
 - Documents can be uploaded in date upload order for notes, resources and meeting minutes
 - Only the user that created the event planning session can delete it or an admin
-- Only the users that have been invited to plan the event may make any changes
-- Only the event planning creator can invite other users to plan
+- Only the users that have been invited to plan the event or an admin may make any changes
+- Only the event planning creator or admin can invite other users to plan
 - Users do not have to be part of the planning event to be assigned action items but they do have to be allowed to to see and edit any action items assigned to them
 - Any member that was invited to event plan can add action items or documents
 - Users can message back and forth either as a group or one on one
 - When a task gets assigned to a user and completed, then it will be added to that user's experience list on their public profile page. The user may hide that experience if they wish.
+- When the event is closed it can be archived including uploaded documents and links. Or users can simply choose what is and isn't archived.
+- Users can choose to run the event again with the same tasks with all personal data striped from the previous round like assigned users.
+
+
+Experience roles: 
+- Devotional host
+- Children's class teacher
+- Junior youth animator
+- Ruhi book 1 tutor
+- Ruhi book 2 tutor
+- Ruhi book 3 tutor
+- Ruhi book 4 tutor
+- Ruhi book 5 tutor
+- Ruhi book 6 tutor
+- Ruhi book 7 tutor
+- Ruhi book 8 tutor
+- Ruhi book 9 tutor
+- Ruhi book 10 tutor
+- Ruhi book 11 tutor
+- Ruhi book 12 tutor
+- Local spiritual assembly member
+- Huqúqu'lláh representative
+- Councellor
+- Auxiliary board member
+- Auxiliary board member assistant
+- Statisics officer
+- Area teaching committee
+- Task forces and special committees (specify)
+- Other (specify)
+
+Talents and abilities:
+- Musical instrument
+- Singing
+- Dancing
+- Acting
+- Directing
+- Art
+- Cooking/ Food prep
+- Photography
+- Videography
+- Graphic design
+- Copy/ printing
+- Audio/ visual equipment
+- Speaking
+- Other (specify)
+
+Materials:
+- Art supplies
+- Hospitality supplies
+- Cooking supplies
+- Decorations
+- Furniture
+- Baha'i books
+- Unused Ruhi books
+- Pamphlets and teaching materials
+- Space for events
+- Space for out of town visitors
+- Audio/ visual equipment
 
 
 

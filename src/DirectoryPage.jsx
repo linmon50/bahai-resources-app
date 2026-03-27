@@ -16,15 +16,8 @@ export default function DirectoryPage({ session }) {
     try {
       // RLS automatically limits this to users in the same community (or global admins)
       const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          memberships(
-            communities(
-              name
-            )
-          )
-        `);
+        .from('directory_view')
+        .select('*');
 
       if (error) throw error;
       setProfiles(data || []);
