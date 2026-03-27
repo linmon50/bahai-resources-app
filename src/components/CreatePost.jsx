@@ -117,20 +117,16 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
   };
 
   return (
-    <div className="create-post-card" style={{ 
-      background: 'rgba(255, 255, 255, 0.15)', 
-      backdropFilter: 'blur(18px)',
-      webkitBackdropFilter: 'blur(18px)',
-      padding: '2.5rem', 
-      borderRadius: '20px', 
-      border: '1px solid rgba(151, 247, 233, 0.45)',
-      marginBottom: '2.5rem'
+    <div className="glass-panel" style={{ 
+      padding: '2rem', 
+      marginBottom: '3rem',
+      position: 'relative'
     }}>
       {/* Guidelines Header */}
       <div style={{ 
         marginBottom: '1.5rem', 
         padding: '1rem', 
-        background: 'rgba(0, 0, 0, 0.2)', 
+        background: 'var(--dark-panel-bg)', 
         borderRadius: '8px', 
         border: '1px solid rgba(151, 247, 233, 0.2)' 
       }}>

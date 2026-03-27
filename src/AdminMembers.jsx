@@ -1099,7 +1099,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                             <p style={{ margin: '0.5rem 0' }}><strong>Email:</strong> {viewingRequest.email}</p>
                             <p style={{ margin: '0.5rem 0' }}><strong>Zip Code:</strong> {viewingRequest.zip_code}</p>
                             <p style={{ margin: '0.5rem 0' }}><strong>Community:</strong> {viewingRequest.community_name || <em style={{ color: "#97f7e9" }}>General Request</em>}</p>
-                            <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                            <div className="glass-panel" style={{ marginTop: '1.5rem', padding: '1.5rem', border: '1px solid rgba(151, 247, 233, 0.2)' }}>
                                 <strong style={{ color: '#ffffff' }}>Message:</strong>
                                 <p style={{ whiteSpace: 'pre-wrap', marginTop: '0.75rem', maxHeight: '200px', overflowY: 'auto', color: '#ffffff', fontSize: '0.95rem' }}>
                                     {viewingRequest.message || <em style={{ color: "#97f7e9" }}>No introductory message provided.</em>}
@@ -1122,7 +1122,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                             </button>
                             <button
                                 onClick={() => setViewingRequest(null)}
-                                className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}
+                                className="admin-pill-btn secondary"
                             >
                                 Close
                             </button>
@@ -1213,11 +1213,9 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {posts.map(post => (
-                        <div key={post.id} style={{ 
-                            background: 'rgba(255, 255, 255, 0.05)', 
+                        <div key={post.id} className="glass-panel" style={{ 
                             padding: '1.5rem', 
-                            borderRadius: '12px',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                            background: 'rgba(255, 255, 255, 0.08)'
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.8rem' }}>
                                 <div>
@@ -1238,7 +1236,7 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                                     paddingBottom: '0.5rem'
                                 }}>
                                     {post.image_urls.map((url, idx) => (
-                                        <img key={idx} src={url} alt="Submission" style={{ height: '120px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                                        <img key={idx} src={url} alt="Submission" style={{ height: '120px', borderRadius: '8px', border: '1px solid var(--glass-border)', flexShrink: 0 }} />
                                     ))}
                                 </div>
                             )}

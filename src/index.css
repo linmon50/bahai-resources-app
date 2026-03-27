@@ -39,6 +39,23 @@
 
   --navbar-bg: #1f2937;
   --navbar-text: #f9fafb;
+
+  /* Glassmorphism & UI Components */
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(151, 247, 233, 0.45);
+  --glass-blur: blur(18px);
+  --dark-panel-bg: rgba(0, 0, 0, 0.2);
+  --input-bg: rgba(255, 255, 255, 0.20);
+  --input-glow: 0 0 0 4px rgba(151, 247, 233, 0.18);
+  --admin-accent: #97f7e9;
+}
+
+.glass-panel {
+  background-color: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
 }
 
 body {
@@ -747,10 +764,10 @@ form .auth-input-wrapper:last-of-type {
 
 .admin-panel {
   width: 100%;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(151, 247, 233, 0.45);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
   border-top: none;
   border-radius: 0 16px 16px 16px;
   padding: 2.5rem;
@@ -914,20 +931,20 @@ form .auth-input-wrapper:last-of-type {
 .admin-input {
   width: 100%;
   padding: 13px 16px;
-  background-color: rgb(255, 255, 255, 0.20);
-  border: 1px solid #97f7e9;
+  background-color: var(--input-bg);
+  border: 1px solid var(--admin-accent);
   border-radius: 8px;
-  color: white;
+  color: #ffffff;
   font-family: 'Open Sans', system-ui, sans-serif;
   font-size: 1rem;
-  outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
+  outline: none;
 }
 
 .admin-input:focus {
-  border-color: #97f7e9;
-  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.18);
+  border-color: var(--admin-accent);
+  box-shadow: var(--input-glow);
 }
 
 .admin-input::placeholder {
@@ -945,10 +962,10 @@ textarea.admin-input {
   display: inline-block;
   width: auto;
   padding: 13px 24px;
-  background-color: rgba(255, 255, 255, 0.20);
-  border: 1px solid #97f7e9;
+  background-color: var(--input-bg);
+  border: 1px solid var(--admin-accent);
   border-radius: 9999px;
-  color: #97f7e9;
+  color: var(--admin-accent);
   font-family: 'Open Sans', system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 600;
@@ -961,8 +978,8 @@ textarea.admin-input {
 
 .admin-input-btn:focus,
 .admin-input-btn:focus-visible {
-  border-color: #97f7e9;
-  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.18);
+  border-color: var(--admin-accent);
+  box-shadow: var(--input-glow);
 }
 
 .admin-input-btn:hover {
@@ -1177,7 +1194,7 @@ textarea.admin-input {
 }
 
 .admin-table tbody tr {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--dark-panel-bg);
 }
 
 .admin-table tr:last-child td {
@@ -1226,7 +1243,7 @@ textarea.admin-input {
 }
 
 .directory-search-input {
-  border: 2px solid rgba(151, 247, 233, 0.45);
+  border: 2px solid var(--glass-border);
   transition: border-color 0.2s;
 }
 
@@ -1236,8 +1253,8 @@ textarea.admin-input {
 }
 
 .directory-search-input:focus {
-  border-color: #97f7e9 !important;
-  box-shadow: 0 0 0 4px rgba(151, 247, 233, 0.18) !important;
+  border-color: var(--admin-accent) !important;
+  box-shadow: var(--input-glow) !important;
 }
 
 /* ── Directory Member Cards ── */
