@@ -106,7 +106,8 @@ export default function EditProfilePage({ session }) {
     show_experiences: true,
     experience_roles: [],
     talents_and_abilities: [],
-    materials: []
+    materials: [],
+    is_private: false
   });
 
   useEffect(() => {
@@ -140,7 +141,8 @@ export default function EditProfilePage({ session }) {
           show_experiences: data.show_experiences ?? true,
           experience_roles: data.experience_roles || [],
           talents_and_abilities: data.talents_and_abilities || [],
-          materials: data.materials || []
+          materials: data.materials || [],
+          is_private: data.is_private || false
         });
       }
     } catch (err) {
@@ -216,7 +218,7 @@ export default function EditProfilePage({ session }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     
     if (profile.phone) {
       const digits = profile.phone.replace(/\D/g, '');
@@ -257,16 +259,27 @@ export default function EditProfilePage({ session }) {
   return (
     <div style={{ maxWidth: '900px', margin: '2rem auto', padding: '0 1rem', color: 'white' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2rem', margin: 0 }}>Edit Your Profile</h2>
-        <button 
-          type="button"
-          onClick={() => navigate('/profile')} 
-          className="admin-pill-btn danger"
-          style={{ marginTop: 0 }}
-        >
-          Cancel
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <button 
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="admin-pill-btn"
+            style={{ margin: 0, background: '#55c46f', border: 'none', color: '#fff' }}
+          >
+            {saving ? 'Saving...' : 'Save Profile Changes'}
+          </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/profile')} 
+            className="admin-pill-btn danger"
+            style={{ margin: 0 }}
+          >
+            Cancel
+          </button>
+        </div>
       </div>
 
       {msg.text && (
@@ -322,7 +335,13 @@ export default function EditProfilePage({ session }) {
         </div>
 
         {/* BASIC INFO */}
-        <h3 style={{ borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '0.5rem', marginBottom: '1.5rem', color: 'var(--auth-text-light-blue)' }}>Basic Information</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '0.5rem', marginBottom: '1.5rem', color: 'var(--auth-text-light-blue)' }}>
+          <h3 style={{ margin: 0 }}>Basic Information</h3>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'white' }}>
+            <input type="checkbox" name="is_private" checked={profile.is_private} onChange={handleChange} />
+            Keep my profile private (hide from directory)
+          </label>
+        </div>
         <div className="edit-profile-grid" style={{ marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <label style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Display Name</label>
@@ -398,15 +417,26 @@ export default function EditProfilePage({ session }) {
         />
 
         {/* SUBMIT */}
-        <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.2)', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.2)', flexWrap: 'wrap' }}>
           <button 
             type="submit" 
             disabled={saving} 
             className="admin-pill-btn"
+            style={{ margin: 0, background: '#55c46f', border: 'none', color: '#fff' }}
           >
             {saving ? 'Saving...' : 'Save Profile Changes'}
           </button>
+          <button 
+            type="button"
+            onClick={() => navigate('/profile')} 
+            className="admin-pill-btn danger"
+            style={{ margin: 0 }}
+          >
+            Cancel
+          </button>
         </div>
+
+
       </form>
     </div>
   );

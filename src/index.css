@@ -240,7 +240,7 @@ body {
 }
 
 /* ─── Mobile breakpoint ─── */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .app-layout {
     flex-direction: column;
   }
@@ -251,6 +251,7 @@ body {
 
   .navbar {
     flex-direction: row;
+    flex-wrap: wrap;
     width: 100%;
     height: auto;
     justify-content: space-between;
@@ -268,6 +269,15 @@ body {
 
   .navbar-hamburger {
     display: flex;
+    order: 1;
+    margin-bottom: 0px;
+  }
+
+  .navbar-community-switcher {
+    width: 100%;
+    order: 2;
+    padding: 1rem 0 0 0 !important;
+    margin-bottom: 0.5rem !important;
   }
 
   .navbar-links {
@@ -276,9 +286,10 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
-    padding: 0 0 0 2rem;
-    border-top: none;
-    margin-top: 0;
+    padding: 1rem 0 0.5rem 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 0.5rem;
+    order: 3;
   }
 
   .navbar-links--open {
@@ -287,10 +298,10 @@ body {
 
   .nav-link,
   .nav-btn {
-    width: fit-content;
+    width: 100%;
     text-align: left;
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
     font-size: 1rem;
   }
 }
@@ -850,11 +861,11 @@ form .auth-input-wrapper:last-of-type {
 
 /* ── Responsive breakpoints ─────────────────────────────── */
 
-/* At ≤ 1024px: hide tab bar, show accordion */
-@media (max-width: 1024px) {
+/*  At ≤ 1200px: hide desktop tab layout parts, show accordion */
+@media (max-width: 1200px) {
 
   .admin-tabs,
-  .admin-panel {
+  .admin-desktop-only {
     display: none;
   }
 

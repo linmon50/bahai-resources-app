@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import supabase from "./supabaseClient";
+import { useCommunity } from "./context/CommunityContext";
+import CustomSelect from "./components/CustomSelect";
 
 export default function Navbar({ session, isAdmin }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [menuOpen, setMenuOpen] = useState(false);
+    const { communities, activeCommunityId, setActiveCommunityId } = useCommunity();
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -22,6 +25,27 @@ export default function Navbar({ session, isAdmin }) {
         <nav className="navbar" aria-label="Main navigation">
             {/* Logo */}
             <div className="navbar-logo">The Columbus Baha'i<br />Resource App</div>
+
+            {/* Global Community Switcher (only for multiple communities) */}
+            {communities.length > 1 && (
+                <div className="navbar-community-switcher" style={{ padding: "0 1.5rem", marginBottom: "1.5rem" }}>
+                    <label style={{ 
+                        display: 'block', 
+                        fontSize: '0.75rem', 
+                        color: isAdmin ? 'var(--admin-accent)' : 'var(--auth-text-light-blue)', 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.05em',
+                        marginBottom: '0.5rem',
+                        fontWeight: 'bold'
+                    }}>{isAdmin ? "Active Community" : "Your Community"}</label>
+                    <CustomSelect
+                        value={activeCommunityId}
+                        onChange={(e) => setActiveCommunityId(e.target.value)}
+                        options={communities.map(c => ({ value: c.id, label: c.name }))}
+                        style={{ width: '100%' }}
+                    />
+                </div>
+            )}
 
             {/* Hamburger button — visible only on mobile */}
             <button

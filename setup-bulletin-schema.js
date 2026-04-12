@@ -56,13 +56,16 @@ async function updateSchema() {
             ON public.bulletin_posts FOR INSERT 
             WITH CHECK (
               author_id = auth.uid()
-              AND EXISTS (
-                SELECT 1 FROM public.memberships m
-                WHERE m.user_id = auth.uid() 
-                  AND m.community_id = bulletin_posts.community_id
-                  AND m.approved = true
-                  -- Normal users must insert 'pending', Admins can insert any valid status.
-                  AND (m.role = 'admin' OR bulletin_posts.status = 'pending')
+              AND (
+                public.is_global_admin(auth.uid()) 
+                OR EXISTS (
+                  SELECT 1 FROM public.memberships m
+                  WHERE m.user_id = auth.uid() 
+                    AND m.community_id = bulletin_posts.community_id
+                    AND m.approved = true
+                    -- Normal users must insert 'pending', Admins can insert any valid status.
+                    AND (m.role = 'admin' OR bulletin_posts.status = 'pending')
+                )
               )
             );
 

@@ -9,99 +9,21 @@ import EditProfilePage from "./EditProfilePage";
 import ProfilePage from "./ProfilePage";
 import DirectoryPage from "./DirectoryPage";
 import BulletinBoard from "./BulletinBoard";
+import { CommunityProvider } from "./context/CommunityContext";
 
-function JoinCommunity() {
-  const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState(null);
-
-  const handleJoin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMsg(null);
-    try {
-      const cleanCode = code.trim();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) throw new Error("You must be logged in.");
-
-      // 0. Pre-validate the invite code
-      const { data: validationResult, error: valError } = await supabase.rpc(
-        "validate_invite_pre_signup",
-        { p_code: cleanCode, p_email: user.email }
-      );
-
-      if (valError) throw valError;
-
-      if (validationResult === 'invalid') {
-        throw new Error("Invalid invite code. Please check for typos.");
-      } else if (validationResult === 'email_mismatch') {
-        throw new Error("This invite code was generated for a different email address.");
-      } else if (validationResult === 'used') {
-        throw new Error("This invite code has already been used.");
-      } else if (validationResult === 'expired') {
-        throw new Error("This invite code has expired. Please ask an admin for a new one.");
-      }
-
-      // 1. Consume the invite
-      const { error } = await supabase.rpc("consume_invite", { p_code: cleanCode });
-      if (error) throw error;
-      window.location.reload();
-    } catch (err) {
-      setMsg({ text: err.message, isError: true });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+function MembershipRequired() {
   return (
-    <div style={{ maxWidth: '500px', margin: '4rem auto', textAlign: 'center', padding: '2rem', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', backgroundColor: 'var(--bg-card)' }}>
-      <h2 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>Almost There!</h2>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>You are logged in, but you haven't joined a community yet. Enter your invite code below to get started.</p>
-
-      <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ textAlign: 'left' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: 'var(--text-main)' }}>Invite Code</label>
-          <input
-            type="text"
-            value={code}
-            onChange={e => setCode(e.target.value)}
-            placeholder="Enter your community invite code"
-            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box', backgroundColor: 'var(--bg-input)', color: 'var(--text-main)' }}
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '1rem',
-            backgroundColor: 'var(--primary)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-        >
-          {loading ? "Joining..." : "Join Community"}
-        </button>
-      </form>
-
-      {msg && (
-        <div style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          borderRadius: '8px',
-          backgroundColor: msg.isError ? 'var(--error-bg)' : 'var(--success-bg)',
-          color: msg.isError ? 'var(--error-text)' : 'var(--success-text)',
-          border: `1px solid ${msg.isError ? 'var(--error-border)' : 'var(--success-border)'}`
-        }}>
-          {msg.text}
-        </div>
-      )}
+    <div className="glass-panel" style={{ padding: '2rem', maxWidth: '500px', margin: '4rem auto', textAlign: 'center' }}>
+      <h2 style={{ color: 'var(--auth-text-light-blue)', marginBottom: '1.5rem' }}>Membership Required</h2>
+      <p style={{ color: 'white', marginBottom: '1.5rem' }}>Your account is not currently associated with an approved community.</p>
+      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '2rem' }}>If you just signed up, please wait for an administrator to approve your request, or ensure you used a valid invite link.</p>
+      <button 
+        onClick={() => supabase.auth.signOut()} 
+        className="admin-pill-btn danger" 
+        style={{ width: '100%' }}
+      >
+        Sign Out
+      </button>
     </div>
   );
 }
@@ -112,6 +34,7 @@ export default function App() {
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [hasMembership, setHasMembership] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [checkingMembership, setCheckingMembership] = useState(false);
 
   useEffect(() => {
     async function checkAdminStatus(userId) {
@@ -122,40 +45,42 @@ export default function App() {
         return;
       }
 
-      // Detect memberships and admin levels
-      const { data, error } = await supabase
-        .from('memberships')
-        .select('id, admin_level')
-        .eq('user_id', userId);
+      setCheckingMembership(true);
+      try {
+        const { data, error } = await supabase.rpc('get_my_membership_status');
 
-      if (!error && data) {
-        setHasMembership(data.length > 0);
-        const adminRows = data.filter(row => row.admin_level > 0);
-        setIsAdmin(adminRows.length > 0);
-        setIsGlobalAdmin(adminRows.some(row => row.admin_level >= 3));
-      } else {
+        if (error) throw error;
+
+        // data is an array because the function returns a table
+        if (data && data.length > 0) {
+          const status = data[0];
+          setHasMembership(status.has_membership);
+          setIsAdmin(status.is_admin);
+          setIsGlobalAdmin(status.is_global_admin);
+        } else {
+          setHasMembership(false);
+          setIsAdmin(false);
+          setIsGlobalAdmin(false);
+        }
+      } catch (err) {
+        console.error('Error checking membership status:', err);
         setHasMembership(false);
         setIsAdmin(false);
         setIsGlobalAdmin(false);
+      } finally {
+        setCheckingMembership(false);
+        setLoading(false);
       }
     }
 
-    // 1. Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        await checkAdminStatus(session.user.id);
-      }
-      setLoading(false);
-    });
 
-    // 2. Listen for future login/logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         if (session?.user) {
           checkAdminStatus(session.user.id);
         } else {
+          setLoading(false);
           setIsAdmin(false);
           setIsGlobalAdmin(false);
           setHasMembership(false);
@@ -166,18 +91,18 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
+  if (loading || checkingMembership) {
+    return <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>Loading...</div>;
   }
 
   return (
     <Router>
-      <div className="app-layout">
-        {session && <Navbar session={session} isAdmin={isAdmin} />}
+      <CommunityProvider>
+        <div className="app-layout">
+          {session && <Navbar session={session} isAdmin={isAdmin} />}
 
-        <div className="app-content" style={{ marginLeft: session ? undefined : 0 }}>
+          <div className="app-content" style={{ marginLeft: session ? undefined : 0 }}>
           <Routes>
-            {/* Public Home Route (conditional logic for logged in users) */}
             <Route
               path="/"
               element={
@@ -186,7 +111,7 @@ export default function App() {
                     ? <BulletinBoard session={session} isAdmin={isAdmin} />
                     : (
                       <div style={{ padding: "2rem" }}>
-                        <JoinCommunity />
+                        <MembershipRequired />
                       </div>
                     )
                   )
@@ -194,27 +119,24 @@ export default function App() {
               }
             />
 
-            {/* Protected Admin Routes */}
             <Route
               path="/admin/members"
               element={(session && isAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin} /> : <Navigate to="/" replace />}
             />
 
-            {/* Profile and Directory Routes */}
             <Route path="/profile" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/bulletin" element={(session && hasMembership) ? <BulletinBoard session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
 
-            {/* Public: password reset link from email */}
             <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
 
-            {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </div>
+    </CommunityProvider>
     </Router>
   );
 }

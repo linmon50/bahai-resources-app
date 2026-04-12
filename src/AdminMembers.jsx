@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import supabase from "./supabaseClient";
+import CustomSelect from "./components/CustomSelect";
+
+import { useCommunity } from "./context/CommunityContext";
 
 const ROLES = ["member", "admin"];
 const ROLE_OPTIONS = ROLES.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }));
@@ -20,130 +23,7 @@ const levelLabel = (lv) => ADMIN_LEVELS.find(a => a.value === lv)?.label || "Unk
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
-function CustomSelect({ value, onChange, options, disabled, className, style, labelId }) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [focusedIndex, setFocusedIndex] = useState(-1);
-    const containerRef = useRef(null);
-    const listRef = useRef(null);
-
-    const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
-    const selectedIndex = options.findIndex(o => String(o.value) === String(value));
-
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    useEffect(() => {
-        if (isOpen) setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
-    }, [isOpen]);
-
-    useEffect(() => {
-        if (isOpen && listRef.current && focusedIndex >= 0) {
-            const item = listRef.current.children[focusedIndex];
-            if (item) item.scrollIntoView({ block: "nearest" });
-        }
-    }, [focusedIndex, isOpen]);
-
-    const handleKeyDown = (e) => {
-        if (disabled) return;
-        switch (e.key) {
-            case "Enter":
-            case " ":
-                e.preventDefault();
-                if (isOpen && focusedIndex >= 0) {
-                    onChange({ target: { value: options[focusedIndex].value } });
-                    setIsOpen(false);
-                } else {
-                    setIsOpen(true);
-                }
-                break;
-            case "ArrowDown":
-                e.preventDefault();
-                if (!isOpen) { setIsOpen(true); break; }
-                setFocusedIndex(i => Math.min(i + 1, options.length - 1));
-                break;
-            case "ArrowUp":
-                e.preventDefault();
-                setFocusedIndex(i => Math.max(i - 1, 0));
-                break;
-            case "Escape":
-                e.preventDefault();
-                setIsOpen(false);
-                break;
-            case "Tab":
-                setIsOpen(false);
-                break;
-            default:
-                break;
-        }
-    };
-
-    return (
-        <div ref={containerRef} className={`custom-select-container ${className || ""}`} style={{ position: "relative", ...style }}>
-            <div
-                role="combobox"
-                aria-haspopup="listbox"
-                aria-expanded={isOpen}
-                aria-labelledby={labelId}
-                aria-disabled={disabled}
-                tabIndex={disabled ? -1 : 0}
-                className="admin-input custom-select-trigger"
-                onClick={() => !disabled && setIsOpen(!isOpen)}
-                onKeyDown={handleKeyDown}
-                style={{
-                    cursor: disabled ? "not-allowed" : "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    opacity: disabled ? 0.6 : 1,
-                    userSelect: "none",
-                    outline: "none",
-                }}
-            >
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {selectedOption ? selectedOption.label : "Select..."}
-                </span>
-                <span aria-hidden="true" style={{
-                    transform: isOpen ? "rotate(180deg)" : "none",
-                    transition: "transform 0.2s ease",
-                    fontSize: "0.8rem",
-                    color: "rgba(255,255,255,0.7)",
-                    marginLeft: "10px"
-                }}>▼</span>
-            </div>
-
-            {isOpen && !disabled && (
-                <ul
-                    ref={listRef}
-                    role="listbox"
-                    aria-labelledby={labelId}
-                    className="custom-select-dropdown"
-                >
-                    {options.map((opt, idx) => (
-                        <li
-                            key={opt.value}
-                            role="option"
-                            aria-selected={String(value) === String(opt.value)}
-                            className={`custom-select-option ${String(value) === String(opt.value) ? "selected" : ""} ${idx === focusedIndex ? "focused" : ""}`}
-                            onClick={() => {
-                                onChange({ target: { value: opt.value } });
-                                setIsOpen(false);
-                            }}
-                        >
-                            {opt.label}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
-}
+// ─── Shared Components moved to separate files ────────────────────────
 
 
 function CommunitySelect({ communities, value, onChange }) {
@@ -216,17 +96,32 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
     };
 
     const handleCleanup = async () => {
-        if (!window.confirm("Delete all expired and unused invites from the database? This cannot be undone.")) return;
+        if (!window.confirm("Delete all expired and legacy invites (with no expiration) from the database? This cannot be undone.")) return;
         setCleaning(true);
         setStatusMsg("");
         setErrorMsg("");
-        const { data, error } = await supabase.rpc("cleanup_expired_invites");
-        if (error) {
-            setErrorMsg(`❌ Cleanup failed: ${error.message}`);
-        } else {
-            setStatusMsg(`✅ Cleanup successful. ${data || 0} expired invites removed.`);
+        
+        try {
+            // 1. Standard cleanup via RPC (for truly expired ones)
+            const { data: rpcCount, error: rpcError } = await supabase.rpc("cleanup_expired_invites");
+            if (rpcError) throw rpcError;
+
+            // 2. Manual cleanup of legacy NULL expiration invites
+            const { count: nullCount, error: nullError } = await supabase
+                .from("invites")
+                .delete({ count: 'exact' })
+                .is("expires_at", null);
+            
+            if (nullError) throw nullError;
+
+            const totalDeleted = (rpcCount || 0) + (nullCount || 0);
+            setStatusMsg(`✅ Cleanup successful. ${totalDeleted} invites removed (${rpcCount || 0} expired, ${nullCount || 0} legacy NULL).`);
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            setErrorMsg(`❌ Cleanup failed: ${err.message}`);
+        } finally {
+            setCleaning(false);
         }
-        setCleaning(false);
     };
 
     const handleGenerate = async (e) => {
@@ -1142,26 +1037,65 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectingPost, setRejectingPost] = useState(null);
     const [rejectionReason, setRejectionReason] = useState("");
+    const [fetchError, setFetchError] = useState(null);
+    const modalRef = useRef(null);
 
     const fetchPending = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('bulletin_posts')
-            .select(`
-                *,
-                author:profiles(display_name, email)
-            `)
-            .eq('community_id', selectedCommunity)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: true });
+        setFetchError(null);
+        console.log("Fetching pending posts for community:", selectedCommunity);
         
-        if (!error) setPosts(data || []);
-        if (refreshCounts) refreshCounts(data ? data.length : 0);
-        setLoading(false);
+        try {
+            const { data, error } = await supabase
+                .from('bulletin_posts')
+                .select(`
+                    *,
+                    author:profiles(display_name, contact_email)
+                `)
+                .eq('community_id', selectedCommunity)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: true });
+            
+            if (error) {
+                console.error("Supabase Error fetching pending posts:", error);
+                setFetchError(error.message);
+            } else {
+                console.log("Successfully fetched pending posts:", data?.length || 0);
+                setPosts(data || []);
+                if (refreshCounts) refreshCounts(data ? data.length : 0);
+            }
+        } catch (err) {
+            console.error("Unexpected error in fetchPending:", err);
+            setFetchError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        if (selectedCommunity) fetchPending();
+        if (!selectedCommunity) return;
+        
+        fetchPending();
+
+        const channel = supabase.channel(`bulletin_changes_${selectedCommunity}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'bulletin_posts',
+                    filter: `community_id=eq.${selectedCommunity}`
+                },
+                (payload) => {
+                    console.log('Realtime update received:', payload);
+                    fetchPending();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [selectedCommunity]);
 
     const handleApprove = async (id) => {
@@ -1201,12 +1135,21 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
 
     return (
         <div className="admin-tab-container">
-            <h3 style={{ 
-                color: "#ffffff", 
-                marginBottom: "1.5rem", 
-                fontWeight: 600, 
-                fontSize: "1.35rem" 
-            }}>Bulletin Board Moderation Queue</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "1.5rem" }}>
+                <h3 style={{ 
+                    color: "#ffffff", 
+                    margin: 0, 
+                    fontWeight: 600, 
+                    fontSize: "1.35rem" 
+                }}>Bulletin Board Moderation Queue</h3>
+            </div>
+            
+            {fetchError && (
+                <div className="glass-panel danger" style={{ padding: '1rem', marginBottom: '1.5rem', background: 'rgba(255, 71, 87, 0.1)', border: '1px solid #ff4757' }}>
+                    <p style={{ color: '#ff4757', margin: 0 }}><strong>Query Error:</strong> {fetchError}</p>
+                    <p style={{ color: '#ff4757', fontSize: '0.8rem', marginTop: '0.5rem' }}>Check your browser console for more details.</p>
+                </div>
+            )}
             
             {posts.length === 0 ? (
                 <p style={{ color: "#97f7e9" }}>No pending posts for this community.</p>
@@ -1220,7 +1163,7 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.8rem' }}>
                                 <div>
                                     <strong style={{ display: 'block', fontSize: '1.1rem' }}>{post.author?.display_name || 'No Display Name'}</strong>
-                                    <span style={{ fontSize: '0.85rem', color: '#97f7e9' }}>{post.author?.email}</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#97f7e9' }}>{post.author?.contact_email}</span>
                                 </div>
                                 <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{new Date(post.created_at).toLocaleString()}</span>
                             </div>
@@ -1270,11 +1213,25 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                 </div>
             )}
 
-            {showRejectModal && (
-                <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-                    <div className="admin-modal" style={{ maxWidth: '500px', width: '100%', background: '#1a1d21', padding: '2rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-                        <h2 style={{ marginBottom: '0.5rem', color: '#ffffff' }}>Reject Submission</h2>
-                        <p style={{ color: '#a0a0a0', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Explain why this post doesn't align with the community guidelines. The author will see this reason.</p>
+            {showRejectModal && createPortal(
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(112, 212, 219, 1) 0%, rgba(49, 101, 168, 1) 52%, rgba(84, 0, 140, 0.95) 100%)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000 }}>
+                    <div 
+                        ref={modalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="reject-modal-title"
+                        tabIndex="-1"
+                        className="admin-panel" 
+                        style={{ padding: '2.5rem', maxWidth: '550px', width: '90%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', position: 'relative' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 id="reject-modal-title" style={{ margin: 0, color: "#ffffff", fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: "1.35rem" }}>Reject Submission</h3>
+                            <button onClick={() => setShowRejectModal(false)} style={{ background: 'none', border: 'none', fontSize: '2rem', cursor: 'pointer', color: 'white', lineHeight: 1 }}>×</button>
+                        </div>
+                        
+                        <p style={{ color: '#ffffff', marginBottom: '1.5rem', fontSize: '1.05rem', lineHeight: '1.6' }}>
+                            Explain why this post doesn't align with the community guidelines. The author will see this reason.
+                        </p>
                         
                         <textarea 
                             className="admin-input"
@@ -1282,27 +1239,39 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                             onChange={(e) => setRejectionReason(e.target.value)}
                             placeholder="e.g. This post contains content that doesn't align with our community guidelines on Baha'i principles..."
                             rows={5}
-                            style={{ width: '100%', marginBottom: '1.5rem', resize: 'none' }}
+                            style={{ 
+                                width: '100%', 
+                                marginBottom: '2rem', 
+                                resize: 'none',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                border: '1px solid rgba(151, 247, 233, 0.2)',
+                                padding: '1rem',
+                                color: '#ffffff',
+                                fontSize: '0.95rem'
+                            }}
                             autoFocus
                         />
                         
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                            <button className="admin-pill-btn secondary" style={{ background: 'transparent' }} onClick={() => setShowRejectModal(false)}>Cancel</button>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                            <button className="admin-pill-btn secondary" onClick={() => setShowRejectModal(false)}>Cancel</button>
                             <button className="admin-pill-btn danger" onClick={handleRejectSubmit}>Confirm Rejection</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
 }
 
 // ─── Main Page Component ──────────────────────────────────────────────────────
+export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
+    const { communities, activeCommunityId, setActiveCommunityId } = useCommunity();
+    const [isGlobalAdmin, setIsGlobalAdmin] = useState(propIsGlobalAdmin || false);
 
-export default function AdminMembers() {
-    const [communities, setCommunities] = useState([]);
-    const [selectedCommunity, setSelectedCommunity] = useState("");
-    const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
+    useEffect(() => {
+        setIsGlobalAdmin(propIsGlobalAdmin);
+    }, [propIsGlobalAdmin]);
     const [activeTab, setActiveTab] = useState(0);
     // Accordion: which tab is expanded on mobile (can be same as activeTab or null)
     const [accordionOpen, setAccordionOpen] = useState(0);
@@ -1402,16 +1371,28 @@ export default function AdminMembers() {
     };
 
     const fetchMembers = async (cid) => {
-        const targetCid = cid || selectedCommunity;
+        const targetCid = cid || activeCommunityId;
         if (!targetCid) return;
         const { data } = await supabase.rpc("get_community_members", { p_community_id: targetCid });
         setMembers(data || []);
     };
 
     const fetchRequests = async (cid) => {
-        const targetCid = cid || selectedCommunity;
+        const targetCid = cid || activeCommunityId;
+        if (!targetCid) return;
         const { data } = await supabase.rpc("get_invite_requests", { p_community_id: targetCid });
         setRequests(data || []);
+    };
+
+    const fetchPendingCount = async (cid) => {
+        const targetCid = cid || activeCommunityId;
+        if (!targetCid) return;
+        const { count } = await supabase
+            .from('bulletin_posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('community_id', targetCid)
+            .eq('status', 'pending');
+        setPendingPostsCount(count || 0);
     };
 
     const handleDenySync = (deniedEmails) => {
@@ -1462,62 +1443,22 @@ export default function AdminMembers() {
 
     useEffect(() => {
         cleanupOldPosts();
-        async function fetchInitialData() {
-            setLoadingData(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { setLoadingData(false); return; }
-
-            // 1. Determine if user is global admin
-            const { data: userIsGlobalAdmin } = await supabase.rpc("is_global_admin", { uid: user.id });
-            setIsGlobalAdmin(!!userIsGlobalAdmin);
-
-            // 2. Fetch communities based on admin level
-            let communityList = [];
-            if (userIsGlobalAdmin) {
-                const { data } = await supabase.from("communities").select("id, name").order("name");
-                communityList = data || [];
-            } else {
-                const { data } = await supabase
-                    .from("memberships")
-                    .select("community_id, communities ( id, name )")
-                    .eq("user_id", user.id)
-                    .gt("admin_level", 0);
-
-                // Map out the communities from the join
-                communityList = (data || [])
-                    .map(m => m.communities)
-                    .filter(Boolean)
-                    .sort((a, b) => a.name.localeCompare(b.name));
-
-                // Ensure uniqueness
-                communityList = Array.from(new Map(communityList.map(c => [c.id, c])).values());
-            }
-
-            setCommunities(communityList);
-            if (communityList.length > 0 && !selectedCommunity) {
-                const firstId = communityList[0].id;
-                setSelectedCommunity(firstId);
-                fetchMembers(firstId);
-                fetchRequests(firstId);
-            }
-            setLoadingData(false);
-        }
-        fetchInitialData();
     }, []);
 
     useEffect(() => {
-        if (selectedCommunity) {
-            fetchMembers(selectedCommunity);
-            fetchRequests(selectedCommunity);
+        if (activeCommunityId) {
+            fetchMembers(activeCommunityId);
+            fetchRequests(activeCommunityId);
+            fetchPendingCount(activeCommunityId);
         }
-    }, [selectedCommunity]);
+    }, [activeCommunityId]);
 
     // Renders the content for a given tab index
     const renderTabContent = (i) => {
         if (i === 0) return (
             <InviteTab
                 communities={communities}
-                selectedCommunity={selectedCommunity}
+                selectedCommunity={activeCommunityId}
                 isGlobalAdmin={isGlobalAdmin}
                 emailsRaw={inviteEmailsRaw}
                 setEmailsRaw={setInviteEmailsRaw}
@@ -1528,16 +1469,16 @@ export default function AdminMembers() {
         if (i === 1) return (
             <GrantAccessTab
                 communities={communities}
-                selectedCommunity={selectedCommunity}
+                selectedCommunity={activeCommunityId}
                 isGlobalAdmin={isGlobalAdmin}
                 emailsRaw={grantEmailsRaw}
                 setEmailsRaw={setGrantEmailsRaw}
-                onSuccess={() => fetchRequests(selectedCommunity)}
+                onSuccess={() => fetchRequests(activeCommunityId)}
             />
         );
         if (i === 2) return (
             <ManageMembersTab
-                selectedCommunity={selectedCommunity}
+                selectedCommunity={activeCommunityId}
                 isGlobalAdmin={isGlobalAdmin}
                 members={members}
                 refreshMembers={() => fetchMembers()}
@@ -1548,14 +1489,14 @@ export default function AdminMembers() {
                 onApprove={handleApprove}
                 onDeny={handleDenySync}
                 isGlobalAdmin={isGlobalAdmin}
-                selectedCommunity={selectedCommunity}
+                selectedCommunity={activeCommunityId}
                 requests={requests}
                 refreshRequests={() => fetchRequests()}
             />
         );
         if (i === 4) return (
             <PendingPostsTab 
-                selectedCommunity={selectedCommunity} 
+                selectedCommunity={activeCommunityId} 
                 refreshCounts={setPendingPostsCount}
             />
         );
@@ -1567,7 +1508,7 @@ export default function AdminMembers() {
             <div className="admin-header-container">
                 <h1 className="admin-title">Member Management</h1>
                 <div className="admin-community-select-wrapper">
-                    <CommunitySelect communities={communities} value={selectedCommunity} onChange={setSelectedCommunity} />
+                    <CommunitySelect communities={communities} value={activeCommunityId} onChange={setActiveCommunityId} />
                 </div>
             </div>
 
@@ -1617,7 +1558,7 @@ export default function AdminMembers() {
                     id={`tab-panel-${activeTab}`}
                     role="tabpanel"
                     aria-labelledby={`tab-btn-${activeTab}`}
-                    className="admin-panel"
+                    className="admin-panel admin-desktop-only"
                     tabIndex={0}
                 >
                     {renderTabContent(activeTab)}

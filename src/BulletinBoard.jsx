@@ -1,61 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import supabase from './supabaseClient';
+import { useCommunity } from "./context/CommunityContext";
 import CreatePost from './components/CreatePost';
 
 export default function BulletinBoard({ session, isAdmin }) {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [mySubmissions, setMySubmissions] = useState([]);
-  const [community, setCommunity] = useState(null);
   const [error, setError] = useState(null);
   const [selectedGallery, setSelectedGallery] = useState({ index: 0, images: [] });
   const [showCreatePost, setShowCreatePost] = useState(false);
-
-
-  useEffect(() => {
-    fetchUserCommunity();
-    fetchMySubmissions();
-  }, [session]);
+  const { activeCommunityId, communityDetails } = useCommunity();
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (selectedGallery.images.length === 0) return;
-      if (e.key === 'ArrowRight') {
-        setSelectedGallery(prev => ({ ...prev, index: (prev.index + 1) % prev.images.length }));
-      } else if (e.key === 'ArrowLeft') {
-        setSelectedGallery(prev => ({ ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }));
-      } else if (e.key === 'Escape') {
-        setSelectedGallery({ index: 0, images: [] });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedGallery]);
-
-  const fetchUserCommunity = async () => {
-    try {
-      // Find the first approved community the user belongs to
-      const { data, error } = await supabase
-        .from('memberships')
-        .select('community_id, communities(name, id)')
-        .eq('user_id', session.user.id)
-        .eq('approved', true)
-        .limit(1)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setCommunity(data.communities);
-        fetchPosts(data.community_id);
-      }
-    } catch (err) {
-      console.error("Error fetching community:", err);
-      setError("Could not determine your community membership.");
+    if (activeCommunityId) {
+      setLoading(true);
+      fetchPosts();
+      fetchMySubmissions();
+    } else {
       setLoading(false);
     }
-  };
+  }, [activeCommunityId, session]);
 
   const fetchMySubmissions = async () => {
+    if (!session?.user?.id) return;
     try {
       const { data } = await supabase
         .from('bulletin_posts')
@@ -69,7 +37,8 @@ export default function BulletinBoard({ session, isAdmin }) {
     }
   };
 
-  const fetchPosts = async (communityId) => {
+  const fetchPosts = async () => {
+    if (!activeCommunityId) return;
     try {
       const { data, error } = await supabase
         .from('bulletin_posts')
@@ -77,7 +46,7 @@ export default function BulletinBoard({ session, isAdmin }) {
           *,
           author:profiles(display_name, avatar_url)
         `)
-        .eq('community_id', communityId)
+        .eq('community_id', activeCommunityId)
         .eq('status', 'approved')
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
@@ -92,7 +61,7 @@ export default function BulletinBoard({ session, isAdmin }) {
   };
 
   const handlePostCreated = () => {
-    if (community) fetchPosts(community.id);
+    fetchPosts();
     fetchMySubmissions();
   };
 
@@ -111,6 +80,21 @@ export default function BulletinBoard({ session, isAdmin }) {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (selectedGallery.images.length === 0) return;
+      if (e.key === 'ArrowRight') {
+        setSelectedGallery(prev => ({ ...prev, index: (prev.index + 1) % prev.images.length }));
+      } else if (e.key === 'ArrowLeft') {
+        setSelectedGallery(prev => ({ ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }));
+      } else if (e.key === 'Escape') {
+        setSelectedGallery({ index: 0, images: [] });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedGallery]);
+
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>Loading Bulletin Board...</div>;
   if (error) return <div style={{ padding: '2rem', textAlign: 'center', color: '#ff4444' }}>{error}</div>;
 
@@ -118,7 +102,7 @@ export default function BulletinBoard({ session, isAdmin }) {
     <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '0 1rem', color: 'white' }}>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2.5rem', marginBottom: '0.5rem', color: 'var(--auth-text-light-blue)' }}>
-          {community?.name} Bulletin Board
+          {communityDetails?.name} Bulletin Board
         </h2>
         <p style={{ color: '#ffffff' }}>Community announcements, news, and shared moments.</p>
       </div>
@@ -136,11 +120,11 @@ export default function BulletinBoard({ session, isAdmin }) {
       {showCreatePost && (
         <CreatePost 
           session={session} 
-          communityId={community?.id} 
+          communityId={activeCommunityId} 
           isAdmin={isAdmin} 
           onPostCreated={() => {
             handlePostCreated();
-            setShowCreatePost(false); // Close after successful post
+            setShowCreatePost(false);
           }} 
         />
       )}

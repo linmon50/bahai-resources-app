@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import supabase from '../supabaseClient';
 import { compressImage } from '../utils/imageUtils';
 
@@ -9,6 +9,33 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Draft persistence keys
+  const DRAFT_CONTENT_KEY = `bulletin_draft_content_${communityId}_${session?.user?.id}`;
+  const DRAFT_LINK_KEY = `bulletin_draft_link_${communityId}_${session?.user?.id}`;
+
+  // Load draft on mount
+  useEffect(() => {
+    if (!communityId || !session?.user?.id) return;
+    const savedContent = localStorage.getItem(DRAFT_CONTENT_KEY);
+    const savedLink = localStorage.getItem(DRAFT_LINK_KEY);
+    if (savedContent) setContent(savedContent);
+    if (savedLink) setLinkUrl(savedLink);
+  }, [communityId, session?.user?.id]);
+
+  // Save draft on change
+  useEffect(() => {
+    if (!communityId || !session?.user?.id) return;
+    // Only save if there's actually something to save
+    if (content || linkUrl) {
+      localStorage.setItem(DRAFT_CONTENT_KEY, content);
+      localStorage.setItem(DRAFT_LINK_KEY, linkUrl);
+    } else {
+      // If cleared manually, also clear storage
+      localStorage.removeItem(DRAFT_CONTENT_KEY);
+      localStorage.removeItem(DRAFT_LINK_KEY);
+    }
+  }, [content, linkUrl, communityId, session?.user?.id]);
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
@@ -101,6 +128,10 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
       setLinkUrl('');
       images.forEach(img => URL.revokeObjectURL(img.previewUrl));
       setImages([]);
+
+      // Clear draft storage
+      localStorage.removeItem(DRAFT_CONTENT_KEY);
+      localStorage.removeItem(DRAFT_LINK_KEY);
       setMsg({ 
         text: isAdmin ? 'Post published!' : 'Post submitted for review! An admin will check it soon.', 
         type: 'success' 

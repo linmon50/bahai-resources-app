@@ -112,6 +112,9 @@ export default function Auth() {
                     data: { display_name: cleanEmail.split('@')[0] } // Default display name
                 }
             });
+            
+            // 0.5 Save invite code to sessionStorage so App.jsx can consume it after session refresh
+            sessionStorage.setItem('pending_invite_code', cleanCode);
 
             if (signUpError) {
                 const msg = signUpError.message?.toLowerCase() || "";
@@ -134,13 +137,6 @@ export default function Auth() {
                     const { error: signInError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
                     if (signInError) throw signInError;
                 }
-            }
-
-            // 2. Consume Invite (Now that we are definitely logged in, and we know the code is valid)
-            const { error: consumeError } = await supabase.rpc("consume_invite", { p_code: cleanCode });
-            if (consumeError) {
-                // If invite error, tell them, but they ARE logged in now.
-                throw consumeError;
             }
 
             navigate("/");
