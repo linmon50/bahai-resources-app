@@ -1,23 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from './supabaseClient';
+import { useCommunity } from './context/CommunityContext';
+import { getAvatarColor, getInitials } from './utils/avatarUtils';
 
 export default function DirectoryPage({ session }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const { activeCommunityId, communityDetails } = useCommunity();
 
   useEffect(() => {
-    fetchDirectory();
-  }, []);
+    if (activeCommunityId) {
+      setLoading(true);
+      fetchDirectory();
+    } else {
+      setProfiles([]);
+      setLoading(false);
+    }
+  }, [activeCommunityId]);
 
   const fetchDirectory = async () => {
     try {
-      // RLS automatically limits this to users in the same community (or global admins)
+      // 1. Get approved memberships for the active community
+      const { data: memberRows, error: memberErr } = await supabase
+        .from('memberships')
+        .select('user_id')
+        .eq('community_id', activeCommunityId)
+        .eq('approved', true);
+
+      if (memberErr) throw memberErr;
+      const userIds = memberRows.map(m => m.user_id);
+
+      if (userIds.length === 0) {
+        setProfiles([]);
+        return;
+      }
+
+      // 2. Fetch profiles from directory_view for those user IDs
       const { data, error } = await supabase
         .from('directory_view')
-        .select('*');
+        .select('*')
+        .in('user_id', userIds);
 
       if (error) throw error;
       setProfiles(data || []);
@@ -70,7 +95,9 @@ export default function DirectoryPage({ session }) {
   return (
     <div style={{ maxWidth: '1000px', margin: '2rem auto', padding: '0 1rem', color: 'white' }}>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--auth-text-light-blue)' }}>Community Directory</h2>
+        <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--auth-text-light-blue)' }}>
+          {communityDetails?.name ? `${communityDetails.name} Directory` : 'Community Directory'}
+        </h2>
         <p style={{ color: 'white' }}>Search for members by name, contact info, skills, or available resources.</p>
       </div>
 
@@ -117,22 +144,37 @@ export default function DirectoryPage({ session }) {
                     }
                   }}
                 >
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', background: '#333', border: '2px solid var(--auth-text-light-blue)', marginBottom: '1rem' }}>
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--auth-text-light-blue)', marginBottom: '1rem' }}>
                     {p.avatar_url ? (
                       <img src={p.avatar_url} alt={p.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '0.8rem' }}>No Image</div>
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: getAvatarColor(p.display_name),
+                        color: '#fff',
+                        fontWeight: 'bold',
+                        fontSize: '1.5rem',
+                        borderRadius: '50%'
+                      }}>
+                        {getInitials(p.display_name)}
+                      </div>
                     )}
                   </div>
                   <h3 style={{ margin: '0 0 0.5rem 0', color: 'white' }}>{p.display_name}</h3>
                   
                   {p.memberships?.length > 0 && (
                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'center', marginBottom: '0.8rem' }}>
-                       {p.memberships.map((cm, idx) => cm.communities?.name && (
-                         <span key={idx} style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                           {cm.communities.name}
-                         </span>
-                       ))}
+                       {[...p.memberships]
+                         .sort((a, b) => (a.communities?.name || "").localeCompare(b.communities?.name || ""))
+                         .map((cm, idx) => cm.communities?.name && (
+                           <span key={idx} style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                             {cm.communities.name}
+                           </span>
+                         ))}
                      </div>
                   )}
                   

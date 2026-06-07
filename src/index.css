@@ -101,7 +101,13 @@ body {
   display: flex;
   flex-direction: row;
   min-height: 100vh;
-  background: url('/Images/Background4.jpg') center center / cover no-repeat fixed;
+  background: url('/Images/Dark Background.png') center center / cover no-repeat fixed;
+}
+
+/* Fix black calendar icon in dark inputs */
+::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
 }
 
 .app-content {
@@ -109,7 +115,401 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-left: 270px;
+  margin-left: 310px;
+  z-index: 100;
+  padding-top: 4.5rem; /* Reduced by another 10% from 5rem */
+  transition: padding-top 0.2s ease;
+}
+
+@media (max-width: 1200px) {
+  .app-content {
+    padding-top: 0;
+  }
+}
+
+/* ─── Top Profile Nav ─── */
+.profile-top-nav {
+  position: absolute;
+  top: 1.75rem;
+  right: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.desktop-only {
+  display: flex;
+}
+
+@media (max-width: 1200px) {
+  .profile-top-nav {
+    display: none; /* Hide the absolute header entirely on mobile */
+  }
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+.nav-icon-group {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.nav-icon-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.nav-v-separator {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.profile-dropdown-container {
+  position: relative;
+}
+
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.profile-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #a80973 0%, #6366f1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  line-height: 1.2;
+}
+
+.profile-role {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+  margin-top: 0.15rem;
+}
+
+.profile-chevron {
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+  margin-left: 0.25rem;
+}
+
+.profile-chevron.open {
+  transform: rotate(180deg);
+}
+
+.profile-dropdown-menu {
+  top: calc(100% + 10px);
+  width: 220px;
+  right: 0 !important;
+  left: auto !important;
+  padding: 0.4rem;
+}
+
+.profile-dropdown-menu .custom-select-option {
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.profile-dropdown-menu a,
+.profile-dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  color: white;
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.profile-dropdown-menu a:hover,
+.profile-dropdown-menu button:hover {
+  color: #97f7e9;
+}
+
+.profile-dropdown-menu .menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0.3rem 0.5rem;
+}
+
+/* ─── Notification Menu ─────────────────────────────────────────────────── */
+
+.notification-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notification-trigger {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-sizing: content-box;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  background: #3265c2;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(151, 247, 233, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
+}
+
+@media (max-width: 600px) {
+  .notification-dropdown {
+    position: fixed;
+    top: 60px;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+    z-index: 10000;
+  }
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.notification-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+.notification-mark-all {
+  background: none;
+  border: none;
+  color: #97f7e9;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+
+.notification-mark-all:hover {
+  opacity: 0.8;
+}
+
+.notification-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.notification-empty {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+}
+
+.notification-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.notification-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.notification-item.unread {
+  background: rgba(151, 247, 233, 0.05);
+}
+
+.notification-item.unread:hover {
+  background: rgba(151, 247, 233, 0.08);
+}
+
+.notification-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #09d1d6 0%, #6366f1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.notification-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-text {
+  margin: 0 0 0.3rem 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+
+.notification-text strong {
+  color: #97f7e9;
+  font-weight: 600;
+}
+
+.notification-time {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  position: absolute;
+  right: 1.25rem;
+  top: 1.25rem;
+  transition: opacity 0.2s;
+}
+
+.notification-item:hover .notification-dot {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.notification-delete-btn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.notification-item:hover .notification-delete-btn {
+  opacity: 1;
+}
+
+.notification-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .notification-delete-btn {
+    opacity: 0.6;
+  }
 }
 
 /* ─── Navbar ──────────────────────────────────────────────────────────── */
@@ -119,9 +519,9 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  width: 240px;
+  width: 280px;
   height: 100vh;
-  padding: 2.5rem 1.5rem;
+  padding: 2.5rem 2.25rem 2.5rem 1.5rem;
   box-sizing: border-box;
   background-color: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(18px);
@@ -155,18 +555,25 @@ body {
 
 /* ─── Nav link pill ─── */
 .nav-link {
-  display: inline-block;
-  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
   color: white;
   text-decoration: none;
   font-family: system-ui, -apple-system, sans-serif;
-  font-size: 1rem;
-  font-weight: 400;
-  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.7rem 1.25rem;
   border-radius: 9999px;
-  transition: background-color 0.15s ease;
-  text-align: center;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
   white-space: nowrap;
+}
+
+.nav-link svg {
+  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .nav-link:hover {
@@ -187,6 +594,13 @@ body {
   border: none;
   cursor: pointer;
   width: fit-content;
+}
+
+.nav-divider {
+  width: 85%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0.5rem 0 0.5rem 1rem;
 }
 
 /* ─── Hamburger button (hidden on desktop) ─── */
@@ -239,6 +653,18 @@ body {
   transform: translateY(-7px) rotate(-45deg);
 }
 
+/* ─── Mobile Bell & Actions ─── */
+.navbar-mobile-actions {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-bell {
+  color: white;
+  padding: 0.5rem;
+}
+
 /* ─── Mobile breakpoint ─── */
 @media (max-width: 1200px) {
   .app-layout {
@@ -260,6 +686,7 @@ body {
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     position: relative;
+    z-index: 1001;
   }
 
   .navbar-logo {
@@ -267,10 +694,15 @@ body {
     font-size: 1.3rem;
   }
 
-  .navbar-hamburger {
+  .navbar-mobile-actions {
     display: flex;
     order: 1;
+  }
+
+  .navbar-hamburger {
+    display: flex;
     margin-bottom: 0px;
+    margin-left: 0.5rem;
   }
 
   .navbar-community-switcher {
@@ -334,7 +766,7 @@ a {
   display: flex;
   min-height: 100vh;
   width: 100vw;
-  background: url('/Images/Background4.jpg') center center / cover no-repeat fixed;
+  background: url('/Images/Dark Background.png') center center / cover no-repeat fixed;
 }
 
 .auth-left {
@@ -700,6 +1132,9 @@ form .auth-input-wrapper:last-of-type {
 }
 
 .admin-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   background: rgba(255, 255, 255, 0.01);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -712,7 +1147,7 @@ form .auth-input-wrapper:last-of-type {
   cursor: pointer;
   padding: 0.65rem 1.25rem;
   border-radius: 10px 10px 0 0;
-  transition: background 0.2s, color 0.2s;
+  transition: all 0.2s;
   margin-right: 4px;
   white-space: nowrap;
   flex-shrink: 0;
@@ -943,7 +1378,7 @@ form .auth-input-wrapper:last-of-type {
   width: 100%;
   padding: 13px 16px;
   background-color: var(--input-bg);
-  border: 1px solid var(--admin-accent);
+  border: 1px solid rgba(151, 247, 233, 0.25);
   border-radius: 8px;
   color: #ffffff;
   font-family: 'Open Sans', system-ui, sans-serif;
@@ -952,6 +1387,7 @@ form .auth-input-wrapper:last-of-type {
   box-sizing: border-box;
   outline: none;
 }
+
 
 .admin-input:focus {
   border-color: var(--admin-accent);
@@ -1009,10 +1445,12 @@ textarea.admin-input {
   margin: 0;
   padding: 0.5rem 0;
   list-style: none;
-  background: #7493c2;
+  background: #3265c2;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(151, 247, 233, 0.45);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(151, 247, 233, 0.25);
   max-height: 250px;
   overflow-y: auto;
 }
@@ -1026,11 +1464,12 @@ textarea.admin-input {
 }
 
 .custom-select-option:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(151, 247, 233, 0.12);
 }
 
 .custom-select-option.selected {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(151, 247, 233, 0.25);
+  color: #97f7e9;
   font-weight: 600;
 }
 
@@ -1170,10 +1609,30 @@ textarea.admin-input {
   border-radius: 10px;
   border: 1px solid rgba(123, 218, 224, 0.89);
   margin-top: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(151, 247, 233, 0.3) transparent;
+}
+
+.admin-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.admin-table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(151, 247, 233, 0.3);
+  border-radius: 10px;
+}
+
+.admin-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(151, 247, 233, 0.5);
 }
 
 .admin-table {
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   background-color: rgb(255, 255, 255, 0.1);
 }
@@ -1248,6 +1707,7 @@ textarea.admin-input {
   .profile-grid {
     grid-template-columns: 1fr;
   }
+
   .edit-profile-grid {
     grid-template-columns: 1fr;
   }
@@ -1260,7 +1720,8 @@ textarea.admin-input {
 
 .directory-search-input::placeholder {
   color: white;
-  opacity: 1; /* Override Firefox default opacity */
+  opacity: 1;
+  /* Override Firefox default opacity */
 }
 
 .directory-search-input:focus {
@@ -1270,7 +1731,7 @@ textarea.admin-input {
 
 /* ── Directory Member Cards ── */
 .directory-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1.5rem;
@@ -1293,3 +1754,687 @@ textarea.admin-input {
   background: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Post Actions — Likes & Comments
+   ══════════════════════════════════════════════════════════════ */
+
+.post-actions-wrapper {
+  margin-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.75rem;
+}
+
+/* ── Action bar (like + comment buttons) ── */
+.post-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-family: 'Open Sans', system-ui, sans-serif;
+  font-weight: 500;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  user-select: none;
+}
+
+.post-action-btn:hover:not(:disabled) {
+  background: rgba(151, 247, 233, 0.1);
+  border-color: rgba(151, 247, 233, 0.35);
+  color: #ffffff;
+}
+
+.post-action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Liked state — glowing cyan */
+.post-action-btn.liked {
+  background: rgba(151, 247, 233, 0.12);
+  border-color: rgba(151, 247, 233, 0.45);
+  color: #97f7e9;
+  box-shadow: 0 0 12px rgba(151, 247, 233, 0.2);
+}
+
+/* Active (comments open) state */
+.post-action-btn.active {
+  background: rgba(151, 247, 233, 0.08);
+  border-color: rgba(151, 247, 233, 0.3);
+  color: #97f7e9;
+}
+
+.action-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.action-chevron {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-left: 0.1rem;
+}
+
+.back-link {
+  background: none;
+  border: none;
+  color: var(--auth-text-light-blue);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: opacity 0.2s, transform 0.2s;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  opacity: 0.8;
+  transform: translateX(-3px);
+}
+
+/* ── Comment section panel ── */
+.comment-section {
+  margin-top: 0.75rem;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: expandDown 0.2s ease-out;
+}
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.comment-loading,
+.comment-empty {
+  padding: 1rem 1.25rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+/* ── Comment list ── */
+.comment-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Single comment item ── */
+.comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s;
+  position: relative;
+}
+
+.comment-item:last-child {
+  border-bottom: none;
+}
+
+.comment-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Reveal delete button on hover */
+.comment-item:hover .comment-delete-btn {
+  opacity: 1;
+}
+
+/* ── Comment avatar ── */
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(151, 247, 233, 0.15);
+  border: 1px solid rgba(151, 247, 233, 0.2);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s;
+}
+
+.comment-avatar:hover {
+  border-color: rgba(151, 247, 233, 0.5);
+}
+
+.comment-avatar-fallback {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #97f7e9;
+}
+
+/* ── Comment body ── */
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.comment-author {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #97f7e9;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.comment-author:hover {
+  text-decoration: underline;
+}
+
+.comment-time {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.comment-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* ── Comment delete button ── */
+.comment-delete-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.comment-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* ── Comment like button ── */
+.comment-like-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s ease;
+  user-select: none;
+  margin-left: -0.3rem; /* Align flush left with text */
+}
+
+.comment-like-btn:hover:not(:disabled) {
+  background: rgba(151, 247, 233, 0.1);
+  color: #ffffff;
+}
+
+.comment-like-btn.liked {
+  color: #97f7e9;
+  background: rgba(151, 247, 233, 0.12);
+}
+
+.comment-like-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ── Comment input row ── */
+.comment-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.comment-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(151, 247, 233, 0.25) !important;
+  border-radius: 9999px !important;
+  color: #ffffff !important;
+  font-size: 0.88rem;
+  padding: 0.45rem 1rem !important;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+
+.comment-input:focus {
+  border-color: rgba(151, 247, 233, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(151, 247, 233, 0.12) !important;
+}
+
+.comment-input::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.comment-submit-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(151, 247, 233, 0.15);
+  border: 1px solid rgba(151, 247, 233, 0.35);
+  color: #97f7e9;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.18s, box-shadow 0.18s;
+}
+
+.comment-submit-btn:hover:not(:disabled) {
+  background: rgba(151, 247, 233, 0.28);
+  box-shadow: 0 0 10px rgba(151, 247, 233, 0.2);
+}
+
+.comment-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── Comment Edit UI ── */
+.comment-actions {
+  display: flex;
+  gap: 0.4rem;
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+/* comment-actions is now always visible for mobile accessibility */
+
+.comment-action-btn-small {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.comment-action-btn-small:hover {
+  color: #3b82f6; /* Blue hover effect */
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.comment-edit-form {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.comment-edit-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--auth-text-light-blue) !important;
+  border-radius: 8px;
+  color: white;
+  padding: 0.6rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  outline: none;
+}
+
+.comment-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.comment-edit-save,
+.comment-edit-cancel {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.comment-edit-save {
+  background: var(--auth-button-green);
+  color: white;
+}
+
+.comment-edit-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.comment-edit-save:hover,
+.comment-edit-cancel:hover {
+  opacity: 0.8;
+}
+
+/* ── Edit Post Image Removal ── */
+.edit-img-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.edit-img-remove:hover {
+  background: #dc2626;
+}
+
+/* ============================================================
+   Planning Sessions
+   ============================================================ */
+
+/* ── Session directory card ─────────────────────────────────────── */
+
+.session-card {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1.35rem 1.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  outline: none;
+}
+
+.session-card:hover,
+.session-card:focus-visible {
+  border-color: rgba(151, 247, 233, 0.7);
+  box-shadow: 0 0 24px 0 rgba(151, 247, 233, 0.15);
+  transform: translateY(-1px);
+}
+
+/* ── Planning stat blocks (in session header) ───────────────────── */
+
+.planning-stat {
+  text-align: center;
+  min-width: 64px;
+}
+
+.planning-stat-number {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: white;
+}
+
+.planning-stat-label {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.25rem;
+}
+
+/* ── Task table ─────────────────────────────────────────────────── */
+
+.task-table {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  color: white;
+}
+
+.task-table thead tr {
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(151, 247, 233, 0.2);
+}
+
+.task-table thead th {
+  padding: 0.7rem 0.75rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.task-table td {
+  padding: 0.7rem 0.75rem;
+  vertical-align: middle;
+}
+
+.task-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s;
+}
+
+.task-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.task-row:last-child {
+  border-bottom: none;
+}
+
+/* ── Inline edit input (used inside task rows & ComboBox) ─────── */
+
+.task-inline-input {
+  height: 34px;
+  line-height: normal;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(151, 247, 233, 0.25);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.88rem;
+  font-family: inherit;
+  padding: 0 0.65rem;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.admin-input.dense {
+  height: 34px;
+  line-height: normal;
+  padding: 0 0.65rem;
+  font-size: 0.88rem;
+  border-radius: 6px;
+}
+
+.task-inline-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.task-inline-input:focus {
+  border-color: rgba(151, 247, 233, 0.6);
+  box-shadow: 0 0 0 3px rgba(151, 247, 233, 0.12);
+}
+
+.task-inline-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.access-name-cell {
+  padding-left: 0.75rem !important;
+  padding-right: 0.25rem !important;
+}
+
+/* Align headers for columns with inputs (Role, Assigned To, Status) 
+   to the internal text of the input rather than just the border. */
+.task-table th.align-to-input {
+  padding-left: calc(0.75rem + 0.65rem + 1px);
+}
+
+.task-inline-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── ComboBox dropdown ──────────────────────────────────────────── */
+
+.combobox-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+  background: #3265c2;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  max-height: 250px;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(151, 247, 233, 0.25);
+}
+
+.combobox-group-label {
+  padding: 0.35rem 0.9rem 0.2rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(151, 247, 233, 0.6);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.combobox-option {
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: #ffffff;
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+
+.combobox-option:hover,
+.combobox-option.focused {
+  background: rgba(151, 247, 233, 0.12);
+  color: #ffffff;
+}
+
+.combobox-option.selected {
+  background: rgba(151, 247, 233, 0.25);
+  color: #97f7e9;
+  font-weight: 600;
+}
+
+.combobox-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.3rem 0;
+  pointer-events: none;
+}
+
+/* ── Admin table wrapper (reused in Access tab) ─────────────────── */
+
+.admin-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(151, 247, 233, 0.2);
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(151, 247, 233, 0.3) transparent;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  color: white;
+}
+
+.admin-table thead tr {
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(151, 247, 233, 0.2);
+}
+
+.admin-table thead th {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.admin-table td {
+  padding: 0.7rem 1rem;
+  vertical-align: middle;
+}

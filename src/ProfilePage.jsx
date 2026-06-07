@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import supabase from './supabaseClient';
+import { getAvatarColor, getInitials } from './utils/avatarUtils';
 
 export default function ProfilePage({ session }) {
   const { userId } = useParams();
@@ -68,7 +69,7 @@ export default function ProfilePage({ session }) {
          <div style={{ background: 'var(--error-bg)', color: 'var(--error-text)', border: '1px solid var(--error-border)', padding: '1rem', borderRadius: '8px', maxWidth: '600px', margin: '0 auto' }}>
            {msg.text || "Unable to load profile."}
          </div>
-         <button onClick={() => navigate('/')} style={{ marginTop: '1.5rem', background: 'transparent', border: '1px solid white', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer' }}>Return Home</button>
+         <button onClick={() => navigate('/')} style={{ marginTop: '1.5rem', background: 'transparent', border: '1px solid white', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer' }}>Return to Bulletin Board</button>
        </div>
      );
   }
@@ -90,22 +91,37 @@ export default function ProfilePage({ session }) {
         background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(18px)', 
         padding: '2rem', borderRadius: '16px', border: '1px solid rgba(151, 247, 233, 0.3)' 
       }}>
-        <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', background: '#333', border: '3px solid var(--auth-text-light-blue)', flexShrink: 0 }}>
+        <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--auth-text-light-blue)', flexShrink: 0 }}>
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt={profile.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>No Image</div>
+            <div style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: getAvatarColor(profile.display_name),
+              color: '#fff',
+              fontWeight: 'bold',
+              fontSize: '2.5rem',
+              borderRadius: '50%'
+            }}>
+              {getInitials(profile.display_name)}
+            </div>
           )}
         </div>
         <div style={{ flex: 1 }}>
           <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2.5rem', margin: '0 0 0.5rem 0' }}>{profile.display_name}</h2>
           {profile.memberships?.length > 0 && (
              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-               {profile.memberships.map((cm, idx) => cm.communities?.name && (
-                 <span key={idx} style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                   {cm.communities.name}
-                 </span>
-               ))}
+               {[...profile.memberships]
+                 .sort((a, b) => (a.communities?.name || "").localeCompare(b.communities?.name || ""))
+                 .map((cm, idx) => cm.communities?.name && (
+                   <span key={idx} style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                     {cm.communities.name}
+                   </span>
+                 ))}
              </div>
           )}
           {isOwnProfile && (

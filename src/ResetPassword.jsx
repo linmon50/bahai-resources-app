@@ -1,12 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import supabase from "./supabaseClient";
 import { useNavigate } from "react-router-dom";
+
+// We created a generic Field component in Auth.jsx, but since it's not exported,
+// we'll inline a minimal version here or just use the same auth-input-wrapper styling.
 
 export default function ResetPassword() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [message, setMessage] = useState({ text: "", isError: true });
     const [loading, setLoading] = useState(false);
+    const [showPass, setShowPass] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const navigate = useNavigate();
 
     const handleReset = async (e) => {
@@ -25,13 +30,20 @@ export default function ResetPassword() {
         setMessage({ text: "", isError: true });
 
         try {
-            // Supabase automatically restores the session from the URL hash
-            // when the user clicks the reset link in their email.
             const { error } = await supabase.auth.updateUser({ password });
             if (error) throw error;
 
-            setMessage({ text: "Password updated successfully! Redirecting...", isError: false });
-            setTimeout(() => navigate("/"), 2000);
+            setMessage({ text: "Password updated successfully!", isError: false });
+            
+            // For security, explicitly sign the user out after setting the new password.
+            // Clear the recovery state flag and do a hard reload to clean the React tree.
+            sessionStorage.removeItem("isRecoveringPassword");
+            await supabase.auth.signOut();
+            
+            setTimeout(() => {
+                window.location.href = "/";
+            }, 1500);
+
         } catch (err) {
             setMessage({ text: err.message || "Failed to update password.", isError: true });
         } finally {
@@ -39,112 +51,94 @@ export default function ResetPassword() {
         }
     };
 
-    const [showPass, setShowPass] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
-
     return (
-        <div style={styles.container}>
-            <h2 style={styles.heading}>Set New Password</h2>
-            <p style={styles.subtext}>Choose a strong password for your account.</p>
+        <div className="auth-page">
+            {/* Left Box: Image */}
+            <div className="auth-left">
+                <img 
+                  src="/Images/Background Image Detail.jpg" 
+                  alt="Decorative Mandala Detail" 
+                  className="auth-sidebar-img"
+                />
+            </div>
 
-            <form onSubmit={handleReset} style={styles.form}>
-                <div style={styles.inputGroup}>
-                    <label style={styles.label}>New Password</label>
-                    <div style={{ position: "relative" }}>
-                        <input
-                            type={showPass ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            placeholder="At least 8 characters"
-                            style={{ ...styles.input, width: "100%", boxSizing: "border-box", paddingRight: "2.5rem" }}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPass(!showPass)}
-                            style={styles.eyeButton}
-                            title={showPass ? "Hide password" : "Show password"}
-                        >
-                            {showPass ? "🔒" : "👁️"}
-                        </button>
-                    </div>
-                </div>
-                <div style={styles.inputGroup}>
-                    <label style={styles.label}>Confirm New Password</label>
-                    <div style={{ position: "relative" }}>
-                        <input
-                            type={showConfirm ? "text" : "password"}
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            placeholder="Re-enter your new password"
-                            style={{ ...styles.input, width: "100%", boxSizing: "border-box", paddingRight: "2.5rem" }}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowConfirm(!showConfirm)}
-                            style={styles.eyeButton}
-                            title={showConfirm ? "Hide password" : "Show password"}
-                        >
-                            {showConfirm ? "🔒" : "👁️"}
-                        </button>
-                    </div>
-                </div>
-                <button type="submit" disabled={loading} style={styles.button}>
-                    {loading ? "Updating..." : "Update Password"}
-                </button>
-            </form>
+            {/* Right Box: Form */}
+            <div className="auth-right">
+                <div className="auth-card">
+                    <h1 className="auth-title-cursive">Welcome to</h1>
+                    <h2 className="auth-title-serif">The Columbus Baha’i<br/>Resource App</h2>
+                    <h3 className="auth-subtitle">SET NEW PASSWORD</h3>
+                    <p className="auth-instructions">Choose a strong password for your account.</p>
 
-            {message.text && (
-                <p style={{ ...styles.message, color: message.isError ? "#d9534f" : "#27ae60" }}>
-                    {message.text}
-                </p>
-            )}
+                    <form onSubmit={handleReset} style={{ display: "flex", flexDirection: "column", margin: 0 }}>
+                        <div className="auth-input-wrapper">
+                            <label>New Password</label>
+                            <input
+                                type={showPass ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                placeholder="At least 8 characters"
+                                style={{ paddingRight: "2.5rem" }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPass(!showPass)}
+                                className="auth-eye-btn"
+                                title={showPass ? "Hide password" : "Show password"}
+                            >
+                                {showPass ? (
+                                    <img src="/Images/Dark Design Open Eye.png" alt="" aria-hidden="true" style={{ width: "24px", height: "auto" }} />
+                                ) : (
+                                    <img src="/Images/Dark Design Closed Eye.png" alt="" aria-hidden="true" style={{ width: "24px", height: "auto" }} />
+                                )}
+                            </button>
+                        </div>
+                        
+                        <div className="auth-input-wrapper">
+                            <label>Confirm New Password</label>
+                            <input
+                                type={showConfirm ? "text" : "password"}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                placeholder="Re-enter your new password"
+                                style={{ paddingRight: "2.5rem" }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirm(!showConfirm)}
+                                className="auth-eye-btn"
+                                title={showConfirm ? "Hide password" : "Show password"}
+                            >
+                                {showConfirm ? (
+                                    <img src="/Images/Dark Design Open Eye.png" alt="" aria-hidden="true" style={{ width: "24px", height: "auto" }} />
+                                ) : (
+                                    <img src="/Images/Dark Design Closed Eye.png" alt="" aria-hidden="true" style={{ width: "24px", height: "auto" }} />
+                                )}
+                            </button>
+                        </div>
+
+                        <button type="submit" disabled={loading} className="auth-btn-green" style={{ marginTop: "1rem" }}>
+                            {loading ? "Updating..." : "Update Password"}
+                        </button>
+                    </form>
+
+                    {message.text && (
+                        <div style={{
+                            padding: '1rem',
+                            marginTop: '1rem',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                            backgroundColor: message.isError ? 'var(--error-bg)' : 'var(--success-bg)',
+                            border: '1px solid ' + (message.isError ? 'var(--error-border)' : 'var(--success-border)'),
+                            color: message.isError ? 'var(--error-text)' : 'var(--success-text)'
+                        }}>
+                            {message.text}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
-
-const styles = {
-    container: {
-        maxWidth: "400px",
-        margin: "4rem auto",
-        padding: "2rem",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-        borderRadius: "8px",
-        fontFamily: "system-ui, sans-serif",
-        backgroundColor: "var(--bg-card)"
-    },
-    heading: { textAlign: "center", marginTop: 0, marginBottom: "0.5rem" },
-    subtext: { color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", marginBottom: "1.5rem" },
-    form: { display: "flex", flexDirection: "column", gap: "1rem" },
-    inputGroup: { display: "flex", flexDirection: "column", gap: "0.4rem" },
-    label: { fontSize: "0.9rem", fontWeight: "600", color: "var(--text-main)" },
-    input: { padding: "0.6rem 0.75rem", fontSize: "1rem", borderRadius: "4px", border: "1px solid var(--border-color)", backgroundColor: "var(--bg-input)", color: "var(--text-main)" },
-    button: {
-        padding: "0.75rem",
-        fontSize: "1rem",
-        backgroundColor: "var(--primary)",
-        color: "white",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontWeight: "bold",
-        marginTop: "0.5rem"
-    },
-    message: { marginTop: "1rem", textAlign: "center", fontSize: "0.9rem" },
-    eyeButton: {
-        position: "absolute",
-        right: "0.5rem",
-        top: "50%",
-        transform: "translateY(-50%)",
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        fontSize: "1.1rem",
-        padding: "0.2rem",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--text-muted)"
-    }
-};

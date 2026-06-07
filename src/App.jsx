@@ -7,9 +7,13 @@ import AdminMembers from "./AdminMembers";
 import ResetPassword from "./ResetPassword";
 import EditProfilePage from "./EditProfilePage";
 import ProfilePage from "./ProfilePage";
+import AccountSettings from "./AccountSettings";
 import DirectoryPage from "./DirectoryPage";
 import BulletinBoard from "./BulletinBoard";
+import PlanningSessionsPage from "./PlanningSessionsPage";
+import PlanningSessionDetail from "./PlanningSessionDetail";
 import { CommunityProvider } from "./context/CommunityContext";
+import ProfileDropdown from "./components/ProfileDropdown";
 
 function MembershipRequired() {
   return (
@@ -33,8 +37,9 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [hasMembership, setHasMembership] = useState(false);
+  // loading stays true until we know both session AND membership status
   const [loading, setLoading] = useState(true);
-  const [checkingMembership, setCheckingMembership] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(() => sessionStorage.getItem('isRecoveringPassword') === 'true');
 
   useEffect(() => {
     async function checkAdminStatus(userId) {
@@ -42,11 +47,20 @@ export default function App() {
         setIsAdmin(false);
         setIsGlobalAdmin(false);
         setHasMembership(false);
+        setLoading(false);
         return;
       }
 
-      setCheckingMembership(true);
       try {
+        const pendingInvite = sessionStorage.getItem('pending_invite_code');
+        if (pendingInvite) {
+          const { error: consumeErr } = await supabase.rpc('consume_invite', { p_code: pendingInvite });
+          if (consumeErr) {
+            console.error('Failed to consume invite code:', consumeErr);
+          }
+          sessionStorage.removeItem('pending_invite_code');
+        }
+
         const { data, error } = await supabase.rpc('get_my_membership_status');
 
         if (error) throw error;
@@ -68,22 +82,31 @@ export default function App() {
         setIsAdmin(false);
         setIsGlobalAdmin(false);
       } finally {
-        setCheckingMembership(false);
+        // Only clear loading once the full membership check is done —
+        // this prevents the router from rendering with stale hasMembership=false
         setLoading(false);
       }
     }
 
-
+    let authListenerInitialized = false;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          sessionStorage.setItem('isRecoveringPassword', 'true');
+          setIsRecovering(true);
+        }
+
         setSession(session);
         if (session?.user) {
+          // Only show global loading on the very first auth event to prevent flickers on refreshes
+          if (!authListenerInitialized) setLoading(true);
           checkAdminStatus(session.user.id);
+          authListenerInitialized = true;
         } else {
-          setLoading(false);
           setIsAdmin(false);
           setIsGlobalAdmin(false);
           setHasMembership(false);
+          setLoading(false);
         }
       }
     );
@@ -91,8 +114,25 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading || checkingMembership) {
+  // Safety net: if the auth listener never fires (stale localStorage, network issue, etc.)
+  // clear loading after 8 seconds so the user at least sees the login page.
+  useEffect(() => {
+    const timeout = setTimeout(() => setLoading(false), 8000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  if (loading && !isRecovering) {
     return <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>Loading...</div>;
+  }
+
+  if (isRecovering) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="*" element={<ResetPassword />} />
+        </Routes>
+      </Router>
+    );
   }
 
   return (
@@ -101,7 +141,8 @@ export default function App() {
         <div className="app-layout">
           {session && <Navbar session={session} isAdmin={isAdmin} />}
 
-          <div className="app-content" style={{ marginLeft: session ? undefined : 0 }}>
+          <div className="app-content" style={{ marginLeft: session ? undefined : 0, paddingTop: session ? undefined : 0 }}>
+            {session && <ProfileDropdown session={session} isAdmin={isAdmin} />}
           <Routes>
             <Route
               path="/"
@@ -127,8 +168,11 @@ export default function App() {
             <Route path="/profile" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
+            <Route path="/settings" element={(session && hasMembership) ? <AccountSettings session={session} /> : <Navigate to="/" replace />} />
             <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" replace />} />
             <Route path="/bulletin" element={(session && hasMembership) ? <BulletinBoard session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
+            <Route path="/planning" element={(session && hasMembership) ? <PlanningSessionsPage session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
+            <Route path="/planning/:sessionId" element={(session && hasMembership) ? <PlanningSessionDetail session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
 
             <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
 

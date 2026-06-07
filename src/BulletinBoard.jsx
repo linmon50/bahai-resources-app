@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import supabase from './supabaseClient';
 import { useCommunity } from "./context/CommunityContext";
 import CreatePost from './components/CreatePost';
+import EditPost from './components/EditPost';
+import PostActions from './components/PostActions';
+import { getAvatarColor, getInitials } from './utils/avatarUtils';
+
+const PinIcon = ({ filled }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+    <path d="M12 22v-5"/><path d="M9 8V2h6v6"/><path d="M17 17H7l1-9h8l1 9z"/>
+  </svg>
+);
 
 export default function BulletinBoard({ session, isAdmin }) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [mySubmissions, setMySubmissions] = useState([]);
   const [error, setError] = useState(null);
   const [selectedGallery, setSelectedGallery] = useState({ index: 0, images: [] });
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [isCommunityAdmin, setIsCommunityAdmin] = useState(false);
   const { activeCommunityId, communityDetails } = useCommunity();
 
   useEffect(() => {
@@ -17,10 +30,39 @@ export default function BulletinBoard({ session, isAdmin }) {
       setLoading(true);
       fetchPosts();
       fetchMySubmissions();
+      checkCurrentCommunityAdmin();
     } else {
       setLoading(false);
     }
   }, [activeCommunityId, session]);
+
+  const checkCurrentCommunityAdmin = async () => {
+    if (!session?.user?.id || !activeCommunityId) {
+      setIsCommunityAdmin(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('memberships')
+        .select('role, admin_level')
+        .eq('user_id', session.user.id)
+        .eq('community_id', activeCommunityId)
+        .eq('approved', true)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      const isGlobalAdmin = await supabase.rpc('is_global_admin', { uid: session.user.id });
+      
+      setIsCommunityAdmin(
+        isGlobalAdmin.data === true || 
+        (data && (data.role === 'admin' || data.admin_level > 0))
+      );
+    } catch (err) {
+      console.error("Error checking community admin status:", err);
+      setIsCommunityAdmin(false);
+    }
+  };
 
   const fetchMySubmissions = async () => {
     if (!session?.user?.id) return;
@@ -65,6 +107,14 @@ export default function BulletinBoard({ session, isAdmin }) {
     fetchMySubmissions();
   };
 
+  const handlePostUpdated = (updatedPost) => {
+    // If it was in the main feed
+    setPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, ...updatedPost } : p));
+    // Re-fetch submissions in case it shifted status (e.g. rejected -> pending)
+    fetchMySubmissions();
+    setEditingPostId(null);
+  };
+
   const handleDelete = async (postId) => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
     try {
@@ -77,6 +127,31 @@ export default function BulletinBoard({ session, isAdmin }) {
       fetchMySubmissions();
     } catch (err) {
       alert("Error deleting post: " + err.message);
+    }
+  };
+
+  const handleTogglePin = async (post) => {
+    try {
+      const { error } = await supabase
+        .from('bulletin_posts')
+        .update({ is_pinned: !post.is_pinned })
+        .eq('id', post.id);
+
+      if (error) throw error;
+      
+      // Optimistic/Local update
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !post.is_pinned } : p)
+        .sort((a, b) => {
+          // Re-sort locally to preserve order
+          if (a.is_pinned !== b.is_pinned) return b.is_pinned ? 1 : -1;
+          return new Date(b.created_at) - new Date(a.created_at);
+        })
+      );
+    } catch (err) {
+      console.error("Error toggling pin:", err);
+      alert("Permission denied or server error. You must be an admin of this community to pin posts.");
+      // Refresh to sync with server
+      fetchPosts();
     }
   };
 
@@ -121,7 +196,7 @@ export default function BulletinBoard({ session, isAdmin }) {
         <CreatePost 
           session={session} 
           communityId={activeCommunityId} 
-          isAdmin={isAdmin} 
+          isAdmin={isCommunityAdmin} 
           onPostCreated={() => {
             handlePostCreated();
             setShowCreatePost(false);
@@ -135,15 +210,17 @@ export default function BulletinBoard({ session, isAdmin }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {mySubmissions.map(sub => (
               <div key={sub.id} style={{ 
-                background: 'rgba(255, 255, 255, 0.03)', 
+                background: 'rgba(255, 255, 255, 0.1)', 
                 borderRadius: '12px', 
                 padding: '1rem',
                 border: `1px solid ${sub.status === 'pending' ? 'rgba(252, 211, 77, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                flexDirection: editingPostId === sub.id ? 'column' : 'row',
+                justifyContent: editingPostId === sub.id ? 'flex-start' : 'space-between',
+                alignItems: editingPostId === sub.id ? 'flex-start' : 'center',
+                gap: editingPostId === sub.id ? '1rem' : '0'
               }}>
-                <div style={{ flex: 1 }}>
+                <div style={editingPostId === sub.id ? { width: '100%' } : { flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <span style={{ 
                       fontSize: '0.7rem', 
@@ -182,13 +259,33 @@ export default function BulletinBoard({ session, isAdmin }) {
                     </div>
                   )}
                 </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button 
-                  onClick={() => handleDelete(sub.id)}
-                  className="admin-pill-btn danger"
-                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-                >
-                  Remove
-                </button>
+                    onClick={() => setEditingPostId(editingPostId === sub.id ? null : sub.id)}
+                    className={`admin-pill-btn ${editingPostId === sub.id ? 'secondary' : 'blue'}`}
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
+                  >
+                    {editingPostId === sub.id ? 'Cancel' : 'Edit'}
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(sub.id)}
+                    className="admin-pill-btn danger"
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
+                  >
+                    Remove
+                  </button>
+                </div>
+                {editingPostId === sub.id && (
+                  <div style={{ width: '100%', marginTop: '1rem' }}>
+                    <EditPost 
+                      post={sub} 
+                      session={session} 
+                      isAdmin={isCommunityAdmin} 
+                      onSave={handlePostUpdated}
+                      onCancel={() => setEditingPostId(null)}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -203,25 +300,41 @@ export default function BulletinBoard({ session, isAdmin }) {
         ) : (
           posts.map(post => (
             <div key={post.id} style={{ 
-              background: 'rgba(255, 255, 255, 0.08)', 
+              background: 'rgba(255, 255, 255, 0.1)', 
               borderRadius: '16px', 
               padding: '1.5rem',
               border: post.is_pinned ? '2px solid #fcd34d' : '1px solid rgba(255,255,255,0.1)',
               position: 'relative'
             }}>
               {post.is_pinned && (
-                <div style={{ position: 'absolute', top: '-12px', left: '20px', background: '#fcd34d', color: '#000', padding: '2px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                <div style={{ position: 'absolute', top: '-12px', left: '20px', background: '#fcd34d', color: '#000', padding: '2px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', zIndex: 5 }}>
                   PINNED ANNOUNCEMENT
                 </div>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                <div 
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer' }}
+                  onClick={() => navigate(`/profile/${post.author_id}`)}
+                >
                   <div style={{ width: '45px', height: '45px', borderRadius: '50%', overflow: 'hidden', background: '#333' }}>
                     {post.author?.avatar_url ? (
                       <img src={post.author.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}></div>
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: getAvatarColor(post.author?.display_name),
+                        color: '#fff',
+                        fontWeight: 'bold',
+                        fontSize: '1rem',
+                        borderRadius: '50%'
+                      }}>
+                        {getInitials(post.author?.display_name)}
+                      </div>
                     )}
                   </div>
                   <div>
@@ -230,16 +343,55 @@ export default function BulletinBoard({ session, isAdmin }) {
                   </div>
                 </div>
 
-                {(isAdmin || post.author_id === session.user.id) && (
-                  <button 
-                    onClick={() => handleDelete(post.id)}
-                    className="admin-pill-btn danger"
-                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-                  >
-                    Delete
-                  </button>
+                {(isCommunityAdmin || post.author_id === session.user.id) && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {post.author_id === session.user.id && (
+                      <button 
+                        onClick={() => setEditingPostId(editingPostId === post.id ? null : post.id)}
+                        className={`admin-pill-btn ${editingPostId === post.id ? 'secondary' : 'blue'}`}
+                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
+                      >
+                        {editingPostId === post.id ? 'Cancel' : 'Edit'}
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleDelete(post.id)}
+                      className="admin-pill-btn danger"
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
+                    >
+                      Delete
+                    </button>
+                    {isCommunityAdmin && (
+                      <button 
+                        onClick={() => handleTogglePin(post)}
+                        className="admin-pill-btn"
+                        style={{ 
+                          padding: '0.4rem 0.8rem', 
+                          fontSize: '0.8rem', 
+                          margin: 0,
+                          background: post.is_pinned ? 'rgba(252, 211, 77, 0.2)' : 'var(--auth-button-green)',
+                          border: post.is_pinned ? '1px solid #fcd34d' : 'none',
+                          color: post.is_pinned ? '#fcd34d' : 'white'
+                        }}
+                      >
+                        <PinIcon filled={post.is_pinned} /> {post.is_pinned ? 'Unpin' : 'Pin'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
+
+              {editingPostId === post.id && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <EditPost 
+                    post={post} 
+                    session={session} 
+                    isAdmin={isAdmin} 
+                    onSave={handlePostUpdated}
+                    onCancel={() => setEditingPostId(null)}
+                  />
+                </div>
+              )}
 
               <div style={{ fontSize: '1.05rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', marginBottom: '1.5rem' }}>
                 {post.content}
@@ -287,6 +439,9 @@ export default function BulletinBoard({ session, isAdmin }) {
                   ))}
                 </div>
               )}
+
+              {/* Likes & Comments */}
+              <PostActions post={post} session={session} isCommunityAdmin={isCommunityAdmin} />
 
             </div>
           ))

@@ -84,6 +84,10 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
       setMsg({ text: 'Please add some text or an image.', type: 'error' });
       return;
     }
+    if (content.length > 10000) {
+      setMsg({ text: 'Post content is too long.', type: 'error' });
+      return;
+    }
 
     setUploading(true);
     setMsg({ text: 'Uploading your post...', type: 'info' });
@@ -174,6 +178,11 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
       </div>
 
       <form onSubmit={handleSubmit}>
+        {content.length > 10000 && (
+          <div style={{ color: 'black', fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            Post content is over limit by {content.length - 10000} character(s)
+          </div>
+        )}
         <textarea 
           className="admin-input"
           placeholder="Share something with the community..."
@@ -185,7 +194,8 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
             marginBottom: '1rem', 
             resize: 'none', 
             fontSize: '1.1rem',
-            padding: '1rem'
+            padding: '1rem',
+            border: content.length > 10000 ? '2px solid #ef4444' : undefined
           }}
         />
 
@@ -294,7 +304,7 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
           <button 
             type="submit" 
             className="admin-pill-btn blue" 
-            disabled={uploading}
+            disabled={uploading || content.length > 10000}
             style={{ 
               margin: 0, 
               padding: '0.8rem 1.5rem', 

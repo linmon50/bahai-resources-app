@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 
-export default function CustomSelect({ value, onChange, options, disabled, className, style, labelId }) {
+export default function CustomSelect({ value, onChange, options, disabled, className, style, triggerStyle, labelId, placeholder = "Select...", variant }) {
     const [isOpen, setIsOpen] = useState(false);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const containerRef = useRef(null);
@@ -73,7 +73,7 @@ export default function CustomSelect({ value, onChange, options, disabled, class
                 aria-labelledby={labelId}
                 aria-disabled={disabled}
                 tabIndex={disabled ? -1 : 0}
-                className="admin-input custom-select-trigger"
+                className={`admin-input custom-select-trigger ${variant === 'dense' ? 'dense' : ''}`}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 onKeyDown={handleKeyDown}
                 style={{
@@ -84,10 +84,11 @@ export default function CustomSelect({ value, onChange, options, disabled, class
                     opacity: disabled ? 0.6 : 1,
                     userSelect: "none",
                     outline: "none",
+                    ...triggerStyle
                 }}
             >
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {selectedOption ? selectedOption.label : "Select..."}
+                    {selectedOption ? selectedOption.label : placeholder}
                 </span>
                 <span aria-hidden="true" style={{
                     transform: isOpen ? "rotate(180deg)" : "none",

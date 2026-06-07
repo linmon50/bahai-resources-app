@@ -47,6 +47,17 @@ background-color: #002c44;
   mix-blend-mode: overlay;
   /* The blending mode */
 
+user icon color set:
+light blue: #09d3d6
+red: #d14578
+green: #54c46f
+purple: #b532f9
+yellow: #f2d841
+orange: #ff7f00
+
+
+To make a save check point run this command in the terminal: git add . ; git commit -m "Saved my progress"
+
 New Community Set up:
 - Have a feature on the request an invite form that let's a user create their own community 
 - Communities can be orgainized into categories like ((Faith based: Baha'i, Christian, Muslim)(Civic organizations: Rotary club, Kiwanis club, Lions club)(Non-profit: Food banks, charities, community outreach)(Volunteer event groups: festivals, art fairs, maker events, charity runs)(Community Advocacy Groups: Environmental groups, local housing advocacy, mutual aid networks)) Then if a community is under the same umbrella as another one they can pool their resources, documentation and learnings.
@@ -81,5 +92,19 @@ Calendar / events:
 First Git repository checkpoint run: git reset --hard 64e5397
 To save new checkpoints run: 	git add -A
 				git commit -m "describe what you changed"
+
+Manual Testing Notes
+
+- Might be best to keep the invite codes on the screen until they are manually cleared by an admin.
+
+- Need to do new user onboarding at some point to guide users on how to use the site upon first login.
+
+- Only other users with editor status, admins, or the event creator can invite other users to be editors. 
+
+- Add some functionality for reminding people to RSVP to events with link.
+
+- Add functionality for admins to alert all members or some to important posts. Perhaps a popup after an admin clicks on the pin and then it auto generates an email.
+
+- Add an FAQ section 
 
 

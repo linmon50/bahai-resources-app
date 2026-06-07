@@ -60,6 +60,14 @@ function CheckboxGroupWithDetails({ title, options, values, onChange }) {
               </label>
               {isChecked && (
                 <div style={{ marginTop: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Details</span>
+                    {selectedItem.details.length > 1500 && (
+                      <span style={{ color: 'black', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                        Over limit by {selectedItem.details.length - 1500} character(s)
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     placeholder="Details (optional)"
@@ -69,7 +77,7 @@ function CheckboxGroupWithDetails({ title, options, values, onChange }) {
                       width: '100%',
                       padding: '0.5rem',
                       borderRadius: '4px',
-                      border: '1px solid rgba(151, 247, 233, 0.3)',
+                      border: selectedItem.details.length > 1500 ? '1px solid #ef4444' : '1px solid rgba(151, 247, 233, 0.3)',
                       background: 'rgba(0,0,0,0.2)',
                       color: '#fff',
                       fontSize: '0.9rem'
@@ -91,6 +99,8 @@ export default function EditProfilePage({ session }) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  
+  const DRAFT_KEY = session?.user?.id ? `profile_edit_draft_${session.user.id}` : null;
 
   // Profile Form State
   const [profile, setProfile] = useState({
@@ -128,7 +138,7 @@ export default function EditProfilePage({ session }) {
       }
 
       if (data) {
-        setProfile({
+        const dbProfile = {
           display_name: data.display_name || '',
           bio: data.bio || '',
           avatar_url: data.avatar_url || '',
@@ -143,7 +153,25 @@ export default function EditProfilePage({ session }) {
           talents_and_abilities: data.talents_and_abilities || [],
           materials: data.materials || [],
           is_private: data.is_private || false
-        });
+        };
+
+        // Check for local draft
+        if (DRAFT_KEY) {
+          const savedDraft = localStorage.getItem(DRAFT_KEY);
+          if (savedDraft) {
+            try {
+              const draft = JSON.parse(savedDraft);
+              // Merge draft into DB profile (prefer draft for user-provided fields)
+              setProfile({ ...dbProfile, ...draft });
+            } catch (e) {
+              setProfile(dbProfile);
+            }
+          } else {
+            setProfile(dbProfile);
+          }
+        } else {
+          setProfile(dbProfile);
+        }
       }
     } catch (err) {
       console.error("Error fetching profile", err);
@@ -152,6 +180,12 @@ export default function EditProfilePage({ session }) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (DRAFT_KEY && !loading) {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(profile));
+    }
+  }, [profile, DRAFT_KEY, loading]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -224,10 +258,24 @@ export default function EditProfilePage({ session }) {
       const digits = profile.phone.replace(/\D/g, '');
       if (digits.length > 0 && digits.length !== 10) {
         setMsg({ text: 'Please enter a valid 10-digit phone number, or leave it blank.', type: 'error' });
-        // Scroll to top so the user sees the error message
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
+    }
+
+    // New Character Limit Validations
+    const isOverLimit = 
+      profile.display_name.length > 100 ||
+      profile.bio.length > 10000 ||
+      profile.contact_preferences.length > 500 ||
+      profile.experience_roles.some(r => r.details.length > 1500) ||
+      profile.talents_and_abilities.some(t => t.details.length > 1500) ||
+      profile.materials.some(m => m.details.length > 1500);
+
+    if (isOverLimit) {
+      setMsg({ text: 'Please fix the fields that are over their character limits.', type: 'error' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
 
     setSaving(true);
@@ -242,6 +290,12 @@ export default function EditProfilePage({ session }) {
         }, { onConflict: 'user_id' });
 
       if (error) throw error;
+      
+      // Clear draft on success
+      if (DRAFT_KEY) {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+
       setMsg({ text: 'Profile saved successfully!', type: 'success' });
       
       // Optionally navigate to view profile page
@@ -344,20 +398,52 @@ export default function EditProfilePage({ session }) {
         </div>
         <div className="edit-profile-grid" style={{ marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Display Name</label>
-            <input name="display_name" value={profile.display_name} onChange={handleChange} required className="admin-input" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label style={{ fontWeight: 'bold' }}>Display Name</label>
+              {profile.display_name.length > 100 && (
+                <span style={{ color: 'black', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                  Over limit by {profile.display_name.length - 100} character(s)
+                </span>
+              )}
+            </div>
+            <input 
+              name="display_name" 
+              value={profile.display_name} 
+              onChange={handleChange} 
+              required 
+              className="admin-input" 
+              style={{ border: profile.display_name.length > 100 ? '1px solid #ef4444' : undefined }}
+            />
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-             <label style={{ fontWeight: 'bold' }}>About Me (Bio)</label>
+             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+               <label style={{ fontWeight: 'bold' }}>About Me (Bio)</label>
+               {profile.bio.length > 10000 && (
+                 <span style={{ color: 'black', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                   Over limit by {profile.bio.length - 10000} character(s)
+                 </span>
+               )}
+             </div>
              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                <input type="checkbox" name="show_bio" checked={profile.show_bio} onChange={handleChange} />
                Visible to Community
              </label>
            </div>
-           <textarea name="bio" value={profile.bio} onChange={handleChange} className="admin-input" rows={4} style={{ resize: 'vertical', fontFamily: 'inherit' }} />
+           <textarea 
+             name="bio" 
+             value={profile.bio} 
+             onChange={handleChange} 
+             className="admin-input" 
+             rows={4} 
+             style={{ 
+               resize: 'vertical', 
+               fontFamily: 'inherit',
+               border: profile.bio.length > 10000 ? '1px solid #ef4444' : undefined
+             }} 
+           />
         </div>
 
         {/* CONTACT INFO */}
@@ -379,8 +465,22 @@ export default function EditProfilePage({ session }) {
             <input name="phone" type="tel" value={profile.phone} onChange={handleChange} className="admin-input" />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gridColumn: '1 / -1' }}>
-            <label style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Contact Preferences</label>
-            <input name="contact_preferences" value={profile.contact_preferences} onChange={handleChange} className="admin-input" placeholder="e.g. Text messages preferred, Do not call after 8PM" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label style={{ fontWeight: 'bold' }}>Contact Preferences</label>
+              {profile.contact_preferences.length > 500 && (
+                <span style={{ color: 'black', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                  Over limit by {profile.contact_preferences.length - 500} character(s)
+                </span>
+              )}
+            </div>
+            <input 
+              name="contact_preferences" 
+              value={profile.contact_preferences} 
+              onChange={handleChange} 
+              className="admin-input" 
+              placeholder="e.g. Text messages preferred, Do not call after 8PM" 
+              style={{ border: profile.contact_preferences.length > 500 ? '1px solid #ef4444' : undefined }}
+            />
           </div>
         </div>
 

@@ -362,7 +362,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                         <h3 style={{ marginTop: 0 }}>Successfully Created!</h3>
                         <p>Copy these codes and send them to the users.</p>
                         <div className="admin-table-wrapper">
-                            <table className="admin-table">
+                            <table className="task-table">
                                 <thead>
                                     <tr>
                                         <th>Email</th>
@@ -373,7 +373,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                 </thead>
                                 <tbody>
                                     {results.map((inv, i) => (
-                                        <tr key={i}>
+                                        <tr key={i} className="task-row">
                                             <td>{inv.email}</td>
                                             <td className="admin-table-code"><strong>{inv.code}</strong></td>
                                             <td>{inv.role}</td>
@@ -578,7 +578,7 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
                 <div className="admin-success-box">
                     <h3 style={{ marginTop: 0 }}>Results</h3>
                     <div className="admin-table-wrapper">
-                        <table className="admin-table">
+                        <table className="task-table">
                             <thead>
                                 <tr>
                                     <th>Email</th>
@@ -587,7 +587,7 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
                             </thead>
                             <tbody>
                                 {results.map((r, i) => (
-                                    <tr key={i}>
+                                    <tr key={i} className="task-row">
                                         <td>{r.email}</td>
                                         <td style={{ color: "#ffffff" }}>
                                             {r.message}
@@ -712,10 +712,10 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
             ) : (
                 <>
                     {members.length === 0 ? (
-                        <p style={{ color: "#a0a0a0" }}>No members found for this community.</p>
+                        <p style={{ color: "#97f7e9" }}>No members found for this community.</p>
                     ) : (
                         <div className="admin-table-wrapper">
-                            <table className="admin-table">
+                            <table className="task-table">
                                 <thead>
                                     <tr>
                                         <th>Email</th>
@@ -728,7 +728,7 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
                                 </thead>
                                 <tbody>
                                     {members.map(m => (
-                                        <tr key={m.user_id}>
+                                        <tr key={m.user_id} className="task-row">
                                             <td>{m.email}</td>
                                             <td>{m.display_name || <em style={{ color: "#97f7e9" }}>No profile</em>}</td>
                                             <td>{m.joined_at ? new Date(m.joined_at).toLocaleDateString() : 'N/A'}</td>
@@ -739,6 +739,7 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
                                                             value={editRole} 
                                                             onChange={e => { setEditRole(e.target.value); setEditLevel(e.target.value === "admin" ? 1 : 0); }} 
                                                             options={ROLE_OPTIONS} 
+                                                            variant="dense"
                                                         />
                                                     </td>
                                                     <td style={{ minWidth: "220px" }}>
@@ -746,6 +747,7 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
                                                             value={editLevel} 
                                                             onChange={e => setEditLevel(parseInt(e.target.value, 10))} 
                                                             options={levelOptions} 
+                                                            variant="dense"
                                                         />
                                                     </td>
                                                     <td>
@@ -865,7 +867,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
         setProcessing(false);
     };
 
-    if (loading) return <p>Loading requests...</p>;
+    if (loading) return <p style={{ color: "#97f7e9", padding: "1rem" }}>Loading requests...</p>;
 
     return (
         <div>
@@ -906,10 +908,10 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
             </div>
 
             {requests.length === 0 ? (
-                <p style={{ color: "#a0a0a0" }}>No pending invite requests.</p>
+                <p style={{ color: "#97f7e9" }}>No pending invite requests.</p>
             ) : (
                 <div className="admin-table-wrapper">
-                    <table className="admin-table">
+                    <table className="task-table">
                         <thead>
                             <tr>
                                 <th style={{ width: "40px" }}>
@@ -926,11 +928,11 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                 <th>Requested At</th>
                                 <th>Message</th>
                                 <th>Actions</th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody>
                             {requests.map(r => (
-                                <tr key={r.id}>
+                                <tr key={r.id} className="task-row">
                                     <td>
                                         <input
                                             type="checkbox"
@@ -1268,10 +1270,49 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
 export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
     const { communities, activeCommunityId, setActiveCommunityId } = useCommunity();
     const [isGlobalAdmin, setIsGlobalAdmin] = useState(propIsGlobalAdmin || false);
+    const [isCommunityAdmin, setIsCommunityAdmin] = useState(false);
+    const [authLoading, setAuthLoading] = useState(true);
 
     useEffect(() => {
         setIsGlobalAdmin(propIsGlobalAdmin);
     }, [propIsGlobalAdmin]);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            if (!activeCommunityId) {
+                setAuthLoading(false);
+                return;
+            }
+            setAuthLoading(true);
+            try {
+                // Global admin check
+                const { data: globalCheck } = await supabase.rpc('is_global_admin', { uid: (await supabase.auth.getUser()).data.user.id });
+                if (globalCheck) {
+                    setIsCommunityAdmin(true);
+                    setAuthLoading(false);
+                    return;
+                }
+
+                // Community admin check
+                const { data, error } = await supabase
+                    .from('memberships')
+                    .select('role, admin_level')
+                    .eq('user_id', (await supabase.auth.getUser()).data.user.id)
+                    .eq('community_id', activeCommunityId)
+                    .eq('approved', true)
+                    .single();
+
+                setIsCommunityAdmin(data && (data.role === 'admin' || data.admin_level > 0));
+            } catch (err) {
+                console.error("Auth check error:", err);
+                setIsCommunityAdmin(false);
+            } finally {
+                setAuthLoading(false);
+            }
+        };
+        checkAuth();
+    }, [activeCommunityId, propIsGlobalAdmin]);
+
     const [activeTab, setActiveTab] = useState(0);
     // Accordion: which tab is expanded on mobile (can be same as activeTab or null)
     const [accordionOpen, setAccordionOpen] = useState(0);
