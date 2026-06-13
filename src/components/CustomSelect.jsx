@@ -5,6 +5,8 @@ export default function CustomSelect({ value, onChange, options, disabled, class
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const containerRef = useRef(null);
     const listRef = useRef(null);
+    const selectId = useRef(Math.random().toString(36).substring(2, 9)).current;
+    const listboxId = `listbox-${selectId}`;
 
     const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
     const selectedIndex = options.findIndex(o => String(o.value) === String(value));
@@ -71,6 +73,8 @@ export default function CustomSelect({ value, onChange, options, disabled, class
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
                 aria-labelledby={labelId}
+                aria-controls={listboxId}
+                aria-activedescendant={isOpen && focusedIndex >= 0 ? `opt-${selectId}-${focusedIndex}` : undefined}
                 aria-disabled={disabled}
                 tabIndex={disabled ? -1 : 0}
                 className={`admin-input custom-select-trigger ${variant === 'dense' ? 'dense' : ''}`}
@@ -103,12 +107,14 @@ export default function CustomSelect({ value, onChange, options, disabled, class
                 <ul
                     ref={listRef}
                     role="listbox"
+                    id={listboxId}
                     aria-labelledby={labelId}
                     className="custom-select-dropdown"
                 >
                     {options.map((opt, idx) => (
                         <li
                             key={opt.value}
+                            id={`opt-${selectId}-${idx}`}
                             role="option"
                             aria-selected={String(value) === String(opt.value)}
                             className={`custom-select-option ${String(value) === String(opt.value) ? "selected" : ""} ${idx === focusedIndex ? "focused" : ""}`}

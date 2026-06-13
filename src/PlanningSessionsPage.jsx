@@ -339,8 +339,12 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                 <input type="checkbox" checked={form.is_hidden}
                                     onChange={e => setForm(f => ({ ...f, is_hidden: e.target.checked }))}
                                     style={{ width: '16px', height: '16px', accentColor: 'var(--auth-text-light-blue)' }} />
-                                <span style={{ color: 'white', fontSize: '0.9rem' }}>
-                                    🔒 Hidden — only invited members can see this session
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'white', fontSize: '0.9rem' }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                    Hidden — only invited members can see this session
                                 </span>
                             </label>
 
@@ -398,8 +402,12 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 600, color: 'white' }}>{s.title}</h3>
                                             <StatusBadge status={s.status} />
                                             {s.is_hidden && (
-                                                <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '1px 8px', color: 'rgba(255,255,255,0.5)' }}>
-                                                    🔒 Private
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.72rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '1px 8px', color: 'rgba(255,255,255,0.5)' }}>
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                                    </svg>
+                                                    Private
                                                 </span>
                                             )}
                                         </div>

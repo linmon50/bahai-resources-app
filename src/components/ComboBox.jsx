@@ -26,6 +26,8 @@ export default function ComboBox({
     const [focusedIdx, setFocusedIdx] = useState(-1);
     const containerRef = useRef(null);
     const inputRef     = useRef(null);
+    const comboUniqueId = useRef(Math.random().toString(36).substring(2, 9)).current;
+    const listboxId = `combo-list-${comboUniqueId}`;
 
     // Keep inputText in sync when parent updates the value
     useEffect(() => {
@@ -122,6 +124,11 @@ export default function ComboBox({
             <input
                 ref={inputRef}
                 type="text"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showDropdown}
+                aria-controls={listboxId}
+                aria-activedescendant={showDropdown && focusedIdx >= 0 ? `combo-opt-${comboUniqueId}-${focusedIdx}` : undefined}
                 value={inputText}
                 onChange={handleInputChange}
                 onFocus={() => setIsOpen(true)}
@@ -134,7 +141,7 @@ export default function ComboBox({
             />
 
             {showDropdown && (
-                <ul className="combobox-dropdown" role="listbox">
+                <ul id={listboxId} className="combobox-dropdown" role="listbox">
                     {filteredGroups.map((group, gi) => (
                         <React.Fragment key={gi}>
                             {group.label && (
@@ -147,6 +154,7 @@ export default function ComboBox({
                                 return (
                                     <li
                                         key={opt.value}
+                                        id={`combo-opt-${comboUniqueId}-${flatIdx}`}
                                         role="option"
                                         aria-selected={opt.value === userId}
                                         className={[

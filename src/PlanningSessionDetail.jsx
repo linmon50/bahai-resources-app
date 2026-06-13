@@ -43,6 +43,12 @@ const LockIcon = () => (
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
 );
+const PlusIcon = ({ size = 14, color = 'currentColor' }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+);
 const TasksIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/>
@@ -116,8 +122,9 @@ function sortTasks(tasks) {
 
 // ─── TaskRow ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, onAddSubtask, invitedIds, onInvitePrompt, sessionId, onShowContact }) {
+function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, onAddSubtask, invitedIds, onInvitePrompt, sessionId, onShowContact, currentUserId, hasAnyEditableTasks }) {
     const [editing, setEditing] = useState(false);
+    const canEdit = isEditor || (task.assigned_to === currentUserId);
     const [form, setForm] = useState({
         title: task.title,
         assigned_to: task.assigned_to || null,
@@ -185,6 +192,7 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                                 placeholder="Task title"
                                 autoFocus
                                 onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+                                disabled={!isEditor}
                             />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                                 <ComboBox
@@ -193,10 +201,12 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                                     onChange={handleAssigneeChange}
                                     groups={assigneeGroups}
                                     placeholder="Assign to…"
+                                    disabled={!isEditor}
                                 />
                                 <input type="date" className="task-inline-input"
                                     value={form.due_date}
-                                    onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
+                                    onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
+                                    disabled={!isEditor} />
                                 <CustomSelect
                                     value={form.status}
                                     onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
@@ -210,7 +220,7 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                             </div>
 
                             {/* Invite prompt */}
-                            {form.assigned_to && !invitedIds.includes(form.assigned_to) && (
+                            {isEditor && form.assigned_to && !invitedIds.includes(form.assigned_to) && (
                                 <div style={{ background: 'rgba(252,211,77,0.1)', border: '1px solid rgba(252,211,77,0.3)', borderRadius: '8px', padding: '0.6rem 0.9rem', fontSize: '0.82rem', color: '#fcd34d' }}>
                                     <strong>{form.assigned_to_name || 'Selected user'}</strong> isn't invited to this session yet.
                                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
@@ -251,9 +261,9 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {isSubtask && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>↳</span>}
                     <span
-                        style={{ cursor: isEditor ? 'pointer' : 'default', flex: 1 }}
-                        onClick={() => isEditor && setEditing(true)}
-                        title={isEditor ? 'Click to edit' : undefined}
+                        style={{ cursor: canEdit ? 'pointer' : 'default', flex: 1 }}
+                        onClick={() => canEdit && setEditing(true)}
+                        title={canEdit ? 'Click to edit' : undefined}
                     >
                         {task.title}
                     </span>
@@ -286,15 +296,28 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
             <td style={{ whiteSpace: 'nowrap' }}>
                 <StatusBadge status={task.status} />
             </td>
-            {isEditor && (
+            {hasAnyEditableTasks && (
                 <td style={{ whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: '0.3rem' }}>
-                        <button className="admin-pill-btn secondary"
-                            style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
-                            onClick={() => setEditing(true)} title="Edit"><PencilIcon size={12} /></button>
-                        <button className="admin-pill-btn danger"
-                            style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
-                            onClick={handleDelete} title="Delete"><TrashIcon /></button>
+                        {isEditor && !isSubtask && (
+                            <button className="admin-pill-btn"
+                                style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
+                                onClick={() => onAddSubtask(task.id)} 
+                                title="Add Sub-task"
+                            >
+                                <PlusIcon size={12} color="white" />
+                            </button>
+                        )}
+                        {canEdit && (
+                            <button className="admin-pill-btn secondary"
+                                style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
+                                onClick={() => setEditing(true)} title="Edit"><PencilIcon size={12} /></button>
+                        )}
+                        {isEditor && (
+                            <button className="admin-pill-btn danger"
+                                style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
+                                onClick={handleDelete} title="Delete"><TrashIcon /></button>
+                        )}
                     </div>
                 </td>
             )}
@@ -396,6 +419,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     const navigate = useNavigate();
     const { activeCommunityId } = useCommunity();
     const tabRefs = useRef([]);
+    const contactCloseBtnRef = useRef(null);
 
     const [sessionData,  setSessionData]  = useState(null);
     const [tasks,        setTasks]        = useState([]);
@@ -403,8 +427,8 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     const [accessList,   setAccessList]   = useState([]); // session_access rows
     const [loading,      setLoading]      = useState(true);
     const [accessDenied, setAccessDenied] = useState(false);
-    const [activeTab,    setActiveTab]    = useState(1);
-    const [accordionOpen, setAccordionOpen] = useState(1);
+    const [activeTab,    setActiveTab]    = useState(0);
+    const [accordionOpen, setAccordionOpen] = useState(0);
     const [contactPopup, setContactPopup] = useState(null); // profile object
 
     // Permissions
@@ -438,7 +462,6 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     // ── Data fetching ───────────────────────────────────────────────────────
 
     const fetchAll = useCallback(async () => {
-        if (!sessionData) setLoading(true);
         try {
             // 1. Session (no embedded joins — avoids auth-schema traversal issues)
             const { data: sd, error: se } = await supabase
@@ -455,7 +478,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
 
             // 2. Creator profile
             const { data: creatorProfile } = await supabase
-                .from('profiles').select('user_id, display_name, avatar_url').eq('user_id', sd.created_by).maybeSingle();
+                .from('profiles').select('user_id, display_name, avatar_url, contact_email, phone, show_contact_info').eq('user_id', sd.created_by).maybeSingle();
 
             setSessionData({ ...sd, creator: creatorProfile || null });
             setNotes(sd.notes || '');
@@ -512,7 +535,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
             const accessUserIds = accessList.map(a => a.user_id).filter(Boolean);
             const accessProfileMap = {};
             if (accessUserIds.length > 0) {
-                const { data: aup } = await supabase.from('profiles').select('user_id, display_name').in('user_id', accessUserIds);
+                const { data: aup } = await supabase.from('profiles').select('user_id, display_name, contact_email, phone, show_contact_info').in('user_id', accessUserIds);
                 (aup || []).forEach(p => { accessProfileMap[p.user_id] = p; });
             }
             setAccessList(accessList.map(a => ({ ...a, user: accessProfileMap[a.user_id] || null })));
@@ -534,6 +557,35 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     }, [sessionId, session.user.id, isAdmin]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // Escape listener and focus management for Contact Info Popup modal
+    useEffect(() => {
+        if (!contactPopup) return;
+        
+        const previousActiveElement = document.activeElement;
+
+        // Focus the close button when opened
+        const focusTimeout = setTimeout(() => {
+            if (contactCloseBtnRef.current) {
+                contactCloseBtnRef.current.focus();
+            }
+        }, 50);
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setContactPopup(null);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            clearTimeout(focusTimeout);
+            window.removeEventListener('keydown', handleKeyDown);
+            if (previousActiveElement) {
+                previousActiveElement.focus();
+            }
+        };
+    }, [contactPopup]);
 
     // ── Realtime Subscription ───────────────────────────────────────────────
 
@@ -580,6 +632,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     // ── Task helpers ────────────────────────────────────────────────────────
 
     const parentTasks = sortTasks(tasks.filter(t => !t.parent_task_id));
+    const hasAnyEditableTasks = isEditor || tasks.some(t => t.assigned_to === session.user.id);
     const subTaskMap  = tasks.reduce((acc, t) => {
         if (t.parent_task_id) {
             if (!acc[t.parent_task_id]) acc[t.parent_task_id] = [];
@@ -624,10 +677,8 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
 
     // ── Assignee groups for ComboBox ────────────────────────────────────────
 
-    const adminIds      = members.filter(m => m.role === 'admin').map(m => m.user_id);
     const invitedIds    = accessList.map(a => a.user_id)
-        .concat(sessionData?.created_by ? [sessionData.created_by] : [])
-        .concat(adminIds);
+        .concat(sessionData?.created_by ? [sessionData.created_by] : []);
     const invitedMembers = members.filter(m => invitedIds.includes(m.user_id));
     const otherMembers   = members.filter(m => !invitedIds.includes(m.user_id));
 
@@ -816,12 +867,12 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 <th style={{ width: '15%' }}>Assigned To</th>
                                 <th style={{ width: '12%' }}>Due Date</th>
                                 <th style={{ width: '13%' }}>Status</th>
-                                {isEditor && <th style={{ width: '10%' }}></th>}
+                                {hasAnyEditableTasks && <th style={{ width: '10%' }}></th>}
                             </tr>
                         </thead>
                         <tbody>
                             {filteredParents.length === 0 && !addingTask && (
-                                <tr><td colSpan={isEditor ? 5 : 4} style={{ textAlign: 'center', padding: '2.5rem', color: 'rgba(255,255,255,0.35)', fontSize: '0.9rem' }}>
+                                <tr><td colSpan={hasAnyEditableTasks ? 5 : 4} style={{ textAlign: 'center', padding: '2.5rem', color: 'rgba(255,255,255,0.35)', fontSize: '0.9rem' }}>
                                     {taskSearch ? 'No tasks match your search.' : 'No tasks yet. Add one to get started.'}
                                 </td></tr>
                             )}
@@ -837,6 +888,8 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                         onInvitePrompt={handleInviteFromTask}
                                         sessionId={sessionId}
                                         onShowContact={setContactPopup}
+                                        currentUserId={session.user.id}
+                                        hasAnyEditableTasks={hasAnyEditableTasks}
                                     />
 
                                     {/* Sub-tasks */}
@@ -850,6 +903,8 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                             onInvitePrompt={handleInviteFromTask}
                                             sessionId={sessionId}
                                             onShowContact={setContactPopup}
+                                            currentUserId={session.user.id}
+                                            hasAnyEditableTasks={hasAnyEditableTasks}
                                         />
                                     ))}
 
@@ -865,17 +920,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                         />
                                     )}
 
-                                    {/* Add sub-task button */}
-                                    {isEditor && !addingSubFor && (
-                                        <tr>
-                                            <td colSpan={isEditor ? 5 : 4} style={{ paddingLeft: '2.5rem', paddingBottom: '0.4rem' }}>
-                                                <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem', cursor: 'pointer', padding: '0.2rem 0' }}
-                                                    onClick={() => { setAddingSubFor(task.id); setAddingTask(false); }}>
-                                                    ↳ + Add sub-task
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    )}
+                                    {/* Add sub-task button removed (now inline green plus icon) */}
                                 </React.Fragment>
                             ))}
 
@@ -976,44 +1021,42 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
 
         // ── ACCESS TAB ─────────────────────────────────────────────────────
         if (i === 2) {
-            if (!isCreatorOrAdmin) return (
-                <div style={{ textAlign: 'center', padding: '2.5rem', color: 'rgba(255,255,255,0.35)' }}>
-                    Only the session creator and admins can manage access.
-                </div>
-            );
-
             const uninvitedMembers = members.filter(m => !invitedIds.includes(m.user_id) && m.user_id !== sessionData?.created_by);
 
             return (
                 <div>
-                    <h3 style={{ margin: '0 0 1.5rem', color: 'var(--auth-text-light-blue)', fontSize: '1.1rem' }}>Manage Access</h3>
+                    <h3 style={{ margin: '0 0 1.5rem', color: 'var(--auth-text-light-blue)', fontSize: '1.1rem' }}>
+                        {isCreatorOrAdmin ? 'Manage Access' : 'Session Access'}
+                    </h3>
 
                     {/* Invite section */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'flex-end', marginBottom: '2rem' }}>
-                        <div style={{ flex: '1 1 200px' }}>
-                            <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.3rem' }}>Member</label>
-                            <CustomSelect
-                                value={inviteUserId}
-                                onChange={e => setInviteUserId(e.target.value)}
-                                options={uninvitedMembers.map(m => ({ value: m.user_id, label: m.profiles?.display_name || m.user_id }))}
-                                placeholder="+ Invite a community member…"
-                            />
+                    {isCreatorOrAdmin && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'flex-end', marginBottom: '2rem' }}>
+                            <div style={{ flex: '1 1 200px' }}>
+                                <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.3rem' }}>Member</label>
+                                <CustomSelect
+                                    value={inviteUserId}
+                                    onChange={e => setInviteUserId(e.target.value)}
+                                    options={uninvitedMembers.map(m => ({ value: m.user_id, label: m.profiles?.display_name || m.user_id }))}
+                                    placeholder="+ Invite a community member…"
+                                />
+                            </div>
+                            <div style={{ width: '130px' }}>
+                                <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.3rem' }}>Role</label>
+                                <CustomSelect
+                                    value={inviteRole}
+                                    onChange={e => setInviteRole(e.target.value)}
+                                    options={[
+                                        { value: 'viewer', label: 'Viewer' },
+                                        { value: 'editor', label: 'Editor' },
+                                    ]}
+                                />
+                            </div>
+                            <button className="admin-pill-btn" style={{ margin: 0 }} onClick={handleGrantAccess} disabled={!inviteUserId || inviting}>
+                                {inviting ? 'Inviting…' : 'Invite'}
+                            </button>
                         </div>
-                        <div style={{ width: '130px' }}>
-                            <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.3rem' }}>Role</label>
-                            <CustomSelect
-                                value={inviteRole}
-                                onChange={e => setInviteRole(e.target.value)}
-                                options={[
-                                    { value: 'viewer', label: 'Viewer' },
-                                    { value: 'editor', label: 'Editor' },
-                                ]}
-                            />
-                        </div>
-                        <button className="admin-pill-btn" style={{ margin: 0 }} onClick={handleGrantAccess} disabled={!inviteUserId || inviting}>
-                            {inviting ? 'Inviting…' : 'Invite'}
-                        </button>
-                    </div>
+                    )}
 
                     {/* Current access list */}
                     {accessList.length === 0 ? (
@@ -1026,35 +1069,54 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                         <th style={{ width: '35%' }} className="access-name-cell">Member</th>
                                         <th style={{ width: '25%' }} className="align-to-input">Role</th>
                                         <th style={{ width: '20%' }}>Invited</th>
-                                        <th style={{ width: '10%' }}></th>
+                                        {isCreatorOrAdmin && <th style={{ width: '10%' }}></th>}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {accessList.map(a => (
                                         <tr key={a.id} className="task-row">
-                                            <td className="access-name-cell">{a.user?.display_name || a.user_id}</td>
+                                            <td className="access-name-cell">
+                                                <button 
+                                                    onClick={() => setContactPopup(a.user)}
+                                                    style={{ 
+                                                        background: 'none', border: 'none', padding: 0, color: 'inherit', 
+                                                        fontSize: 'inherit', cursor: 'pointer', textDecoration: 'underline',
+                                                        textAlign: 'left'
+                                                    }}
+                                                >
+                                                    {a.user?.display_name || a.user_id}
+                                                </button>
+                                            </td>
                                             <td>
-                                                <CustomSelect
-                                                    value={a.role}
-                                                    onChange={e => handleUpdateRole(a.id, e.target.value)}
-                                                    options={[
-                                                        { value: 'viewer', label: 'Viewer' },
-                                                        { value: 'editor', label: 'Editor' },
-                                                    ]}
-                                                    variant="dense"
-                                                    style={{ maxWidth: '130px' }}
-                                                />
+                                                {isCreatorOrAdmin ? (
+                                                    <CustomSelect
+                                                        value={a.role}
+                                                        onChange={e => handleUpdateRole(a.id, e.target.value)}
+                                                        options={[
+                                                            { value: 'viewer', label: 'Viewer' },
+                                                            { value: 'editor', label: 'Editor' },
+                                                        ]}
+                                                        variant="dense"
+                                                        style={{ maxWidth: '130px' }}
+                                                    />
+                                                ) : (
+                                                    <span style={{ textTransform: 'capitalize', fontSize: '0.9rem' }}>
+                                                        {a.role}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
                                                 {new Date(a.granted_at).toLocaleDateString()}
                                             </td>
-                                            <td style={{ padding: '0.7rem 1rem' }}>
-                                                <button className="admin-pill-btn danger"
-                                                    style={{ padding: '0.2rem 0.65rem', fontSize: '0.75rem', margin: 0 }}
-                                                    onClick={() => handleRevokeAccess(a.id)}>
-                                                    Revoke
-                                                </button>
-                                            </td>
+                                            {isCreatorOrAdmin && (
+                                                <td style={{ padding: '0.7rem 1rem' }}>
+                                                    <button className="admin-pill-btn danger"
+                                                        style={{ padding: '0.2rem 0.65rem', fontSize: '0.75rem', margin: 0 }}
+                                                        onClick={() => handleRevokeAccess(a.id)}>
+                                                        Revoke
+                                                    </button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -1200,6 +1262,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                     <p style={{ margin: '0 0 1rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: '800px', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{sessionData.description}</p>
                                 )}
 
+
                                 {(sessionData.links || []).length > 0 && (
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                         {sessionData.links.map((lk, i) => (
@@ -1213,15 +1276,33 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 )}
                             </div>
 
-                            {/* Action buttons */}
-                            {isCreatorOrAdmin && (
-                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem', justifyContent: 'flex-end' }}>
-                                    <button className="admin-pill-btn secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                                        onClick={() => setEditingHeader(true)}><PencilIcon /> Edit Session</button>
-                                    <button className="admin-pill-btn danger" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                                        onClick={handleDeleteSession}><TrashIcon /> Delete</button>
+                            {/* Action buttons & Creator */}
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.25rem', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div>
+                                    {sessionData.creator && (
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
+                                            Created by:{' '}
+                                            <button 
+                                                onClick={() => setContactPopup(sessionData.creator)}
+                                                style={{ 
+                                                    background: 'none', border: 'none', padding: 0, color: 'inherit', 
+                                                    fontSize: 'inherit', cursor: 'pointer', textDecoration: 'underline'
+                                                }}
+                                            >
+                                                {sessionData.creator.display_name || sessionData.creator.user_id}
+                                            </button>
+                                        </p>
+                                    )}
                                 </div>
-                            )}
+                                {isCreatorOrAdmin && (
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button className="admin-pill-btn secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                                            onClick={() => setEditingHeader(true)}><PencilIcon /> Edit Session</button>
+                                        <button className="admin-pill-btn danger" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                                            onClick={handleDeleteSession}><TrashIcon /> Delete</button>
+                                    </div>
+                                )}
+                            </div>
                         </>
                     )}
                 </div>
@@ -1245,7 +1326,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 {tab === 'Tasks' && (
                                     <span className="admin-tab-badge">{allTaskCount}</span>
                                 )}
-                                {tab === 'Access' && isCreatorOrAdmin && (
+                                {tab === 'Access' && (
                                     <span className="admin-tab-badge">{accessList.length}</span>
                                 )}
                             </span>
@@ -1296,14 +1377,19 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                 >
                     <div 
                         className="admin-panel" 
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="contact-modal-title"
                         style={{ padding: '2rem', maxWidth: '400px', width: '90%', borderRadius: '16px', border: '1px solid rgba(151, 247, 233, 0.35)', position: 'relative' }}
                         onClick={e => e.stopPropagation()}
                     >
                         <button 
+                            ref={contactCloseBtnRef}
                             onClick={() => setContactPopup(null)}
+                            aria-label="Close contact details"
                             style={{ position: 'absolute', top: '1rem', right: '1.2rem', background: 'none', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer', lineHeight: 1 }}
                         >×</button>
-                        <h3 style={{ margin: '0 0 1rem', color: 'var(--auth-text-light-blue)', fontFamily: "'Fredoka', sans-serif" }}>Contact Information</h3>
+                        <h3 id="contact-modal-title" style={{ margin: '0 0 1rem', color: 'var(--auth-text-light-blue)', fontFamily: "'Fredoka', sans-serif" }}>Contact Information</h3>
                         <div style={{ display: 'grid', gap: '1rem' }}>
                             <div>
                                 <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name</label>

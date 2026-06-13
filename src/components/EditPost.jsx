@@ -165,22 +165,24 @@ export default function EditPost({ post, session, onSave, onCancel, isAdmin }) {
             {/* Existing */}
             {existingImages.map((url, idx) => (
               <div key={`existing-${idx}`} style={{ position: 'relative' }}>
-                <img src={url} alt="" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <img src={url} alt={`Existing image ${idx + 1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
                 <button 
                   type="button" 
                   onClick={() => removeExistingImage(idx)}
                   className="edit-img-remove"
+                  aria-label={`Remove existing image ${idx + 1}`}
                 >✕</button>
               </div>
             ))}
             {/* New */}
             {newImages.map((img, idx) => (
               <div key={`new-${idx}`} style={{ position: 'relative' }}>
-                <img src={img.previewUrl} alt="" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '2px solid var(--auth-text-light-blue)' }} />
+                <img src={img.previewUrl} alt={`New image preview ${idx + 1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '2px solid var(--auth-text-light-blue)' }} />
                 <button 
                   type="button" 
                   onClick={() => removeNewImage(idx)}
                   className="edit-img-remove"
+                  aria-label={`Remove new image preview ${idx + 1}`}
                 >✕</button>
                 <div style={{ position: 'absolute', bottom: 2, left: 2, background: 'var(--auth-text-light-blue)', color: 'black', fontSize: '8px', padding: '1px 3px', borderRadius: '2px', fontWeight: 'bold' }}>NEW</div>
               </div>
@@ -189,6 +191,8 @@ export default function EditPost({ post, session, onSave, onCancel, isAdmin }) {
             {existingImages.length + newImages.length < 8 && (
               <label 
                 tabIndex="0"
+                role="button"
+                aria-label="Add image attachment"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();

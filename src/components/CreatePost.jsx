@@ -214,12 +214,13 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
               <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
                 <img 
                   src={img.previewUrl} 
-                  alt="Preview" 
+                  alt={`Upload preview ${idx + 1}`} 
                   style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '10px', border: '2px solid rgba(151, 247, 233, 0.3)' }} 
                 />
                 <button 
                   type="button"
                   onClick={() => removeImage(idx)}
+                  aria-label={`Remove upload preview ${idx + 1}`}
                   style={{
                     position: 'absolute',
                     top: '-8px',

@@ -2399,6 +2399,10 @@ textarea.admin-input {
   scrollbar-color: rgba(151, 247, 233, 0.3) transparent;
 }
 
+.admin-table-wrapper:has(.combobox-dropdown) {
+  overflow: visible;
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -2437,4 +2441,32 @@ textarea.admin-input {
 .admin-table td {
   padding: 0.7rem 1rem;
   vertical-align: middle;
+}
+
+/* ─── WCAG Accessibility Enhancements ─── */
+.comment-edit-input:focus {
+  border-color: var(--auth-text-light-blue) !important;
+  box-shadow: 0 0 0 3px rgba(151, 247, 233, 0.2) !important;
+}
+
+/* Visually hidden skip link, visible only on focus */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: var(--admin-accent);
+  color: #001f30;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-weight: bold;
+  text-decoration: none;
+  z-index: 99999;
+  transition: top 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.skip-link:focus {
+  top: 1rem;
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
 }

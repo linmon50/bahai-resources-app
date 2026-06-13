@@ -7,7 +7,8 @@ export const CommunityProvider = ({ children }) => {
   const [communities, setCommunities] = useState([]);
   const [activeCommunityId, setActiveCommunityId] = useState(localStorage.getItem('active_community_id') || '');
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userMemberships, setUserMemberships] = useState([]);
+  const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -24,7 +25,7 @@ export const CommunityProvider = ({ children }) => {
         const { data: userIsGlobalAdmin } = await supabase.rpc("is_global_admin", { uid: session.user.id });
         
         let combined = [];
-        let hasAdminAccess = !!userIsGlobalAdmin;
+        let membershipsList = [];
         
         if (userIsGlobalAdmin) {
             const { data } = await supabase.from("communities").select("id, name").order("name");
@@ -34,23 +35,23 @@ export const CommunityProvider = ({ children }) => {
             const { data: rows } = await supabase
               .from("memberships")
               .select("community_id, admin_level, communities(id, name)")
-              .eq("user_id", session.user.id);
+              .eq("user_id", session.user.id)
+              .eq("approved", true);
 
             if (rows) {
+                membershipsList = rows;
                 // Filter and sort the communities
                 combined = rows
                     .map(r => r.communities)
                     .filter(Boolean)
                     .sort((a, b) => a.name.localeCompare(b.name));
-                
-                // Determine if they have admin access in ANY community
-                hasAdminAccess = rows.some(r => r.admin_level > 0);
             }
         }
 
         if (mounted) {
           setCommunities(combined);
-          setIsAdmin(hasAdminAccess);
+          setUserMemberships(membershipsList);
+          setIsGlobalAdmin(!!userIsGlobalAdmin);
           
           if (combined.length > 0) {
             const savedId = localStorage.getItem('active_community_id');
@@ -87,6 +88,9 @@ export const CommunityProvider = ({ children }) => {
     localStorage.setItem('active_community_id', id);
   };
 
+  const activeMembership = userMemberships.find(m => m.community_id === activeCommunityId);
+  const currentIsAdmin = isGlobalAdmin || (activeMembership && activeMembership.admin_level > 0);
+
   return (
     <CommunityContext.Provider value={{ 
       communities, 
@@ -94,7 +98,7 @@ export const CommunityProvider = ({ children }) => {
       communityDetails: communities.find(c => c.id === activeCommunityId) || null,
       setActiveCommunityId: handleSetCommunity, 
       loading,
-      isAdmin 
+      isAdmin: currentIsAdmin
     }}>
       {children}
     </CommunityContext.Provider>

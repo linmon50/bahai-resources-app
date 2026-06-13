@@ -12,7 +12,7 @@ import DirectoryPage from "./DirectoryPage";
 import BulletinBoard from "./BulletinBoard";
 import PlanningSessionsPage from "./PlanningSessionsPage";
 import PlanningSessionDetail from "./PlanningSessionDetail";
-import { CommunityProvider } from "./context/CommunityContext";
+import { CommunityProvider, useCommunity } from "./context/CommunityContext";
 import ProfileDropdown from "./components/ProfileDropdown";
 
 function MembershipRequired() {
@@ -138,49 +138,66 @@ export default function App() {
   return (
     <Router>
       <CommunityProvider>
-        <div className="app-layout">
-          {session && <Navbar session={session} isAdmin={isAdmin} />}
-
-          <div className="app-content" style={{ marginLeft: session ? undefined : 0, paddingTop: session ? undefined : 0 }}>
-            {session && <ProfileDropdown session={session} isAdmin={isAdmin} />}
-          <Routes>
-            <Route
-              path="/"
-              element={
-                session
-                  ? (hasMembership
-                    ? <BulletinBoard session={session} isAdmin={isAdmin} />
-                    : (
-                      <div style={{ padding: "2rem" }}>
-                        <MembershipRequired />
-                      </div>
-                    )
-                  )
-                  : <Auth />
-              }
-            />
-
-            <Route
-              path="/admin/members"
-              element={(session && isAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin} /> : <Navigate to="/" replace />}
-            />
-
-            <Route path="/profile" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
-            <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" replace />} />
-            <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
-            <Route path="/settings" element={(session && hasMembership) ? <AccountSettings session={session} /> : <Navigate to="/" replace />} />
-            <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" replace />} />
-            <Route path="/bulletin" element={(session && hasMembership) ? <BulletinBoard session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
-            <Route path="/planning" element={(session && hasMembership) ? <PlanningSessionsPage session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
-            <Route path="/planning/:sessionId" element={(session && hasMembership) ? <PlanningSessionDetail session={session} isAdmin={isAdmin} /> : <Navigate to="/" replace />} />
-
-            <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </div>
-    </CommunityProvider>
+        <AppContent 
+          session={session} 
+          hasMembership={hasMembership} 
+          isGlobalAdmin={isGlobalAdmin} 
+        />
+      </CommunityProvider>
     </Router>
+  );
+}
+
+function AppContent({ session, hasMembership, isGlobalAdmin }) {
+  const { isAdmin: activeCommunityAdmin, loading: communityLoading } = useCommunity();
+
+  if (communityLoading) {
+    return <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>Loading community...</div>;
+  }
+
+  return (
+    <div className="app-layout">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      {session && <Navbar session={session} isAdmin={activeCommunityAdmin} />}
+
+      <main id="main-content" className="app-content" style={{ marginLeft: session ? undefined : 0, paddingTop: session ? undefined : 0 }}>
+        {session && <ProfileDropdown session={session} isAdmin={activeCommunityAdmin} />}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              session
+                ? (hasMembership
+                  ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} />
+                  : (
+                    <div style={{ padding: "2rem" }}>
+                      <MembershipRequired />
+                    </div>
+                  )
+                )
+                : <Auth />
+            }
+          />
+
+          <Route
+            path="/admin/members"
+            element={(session && activeCommunityAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin} /> : <Navigate to="/" replace />}
+          />
+
+          <Route path="/profile" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
+          <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" replace />} />
+          <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" replace />} />
+          <Route path="/settings" element={(session && hasMembership) ? <AccountSettings session={session} /> : <Navigate to="/" replace />} />
+          <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" replace />} />
+          <Route path="/bulletin" element={(session && hasMembership) ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" replace />} />
+          <Route path="/planning" element={(session && hasMembership) ? <PlanningSessionsPage session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" replace />} />
+          <Route path="/planning/:sessionId" element={(session && hasMembership) ? <PlanningSessionDetail session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" replace />} />
+
+          <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
