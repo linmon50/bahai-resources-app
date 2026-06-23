@@ -291,10 +291,12 @@ export default function EditProfilePage({ session }) {
 
       if (error) throw error;
       
-      // Clear draft on success
       if (DRAFT_KEY) {
         localStorage.removeItem(DRAFT_KEY);
       }
+
+      // Notify other components (like ProfileDropdown) that the profile has updated
+      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: profile }));
 
       setMsg({ text: 'Profile saved successfully!', type: 'success' });
       

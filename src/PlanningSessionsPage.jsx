@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import supabase from './supabaseClient';
 import { useCommunity } from './context/CommunityContext';
 import CustomSelect from './components/CustomSelect';
+import CustomDatePicker from './components/CustomDatePicker';
 
 const STATUS_COLORS = {
     active:    { bg: 'rgba(85,196,111,0.18)',   text: '#55c46f', border: 'rgba(85,196,111,0.4)'   },
@@ -25,7 +26,19 @@ function StatusBadge({ status }) {
 
 function formatDateRange(start, end) {
     if (!start && !end) return null;
-    const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const fmt = (d) => {
+        if (!d) return '';
+        const parts = d.split('-');
+        if (parts.length === 3) {
+            const [year, month, day] = parts;
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const mIdx = parseInt(month, 10) - 1;
+            if (mIdx >= 0 && mIdx < 12) {
+                return `${monthNames[mIdx]} ${parseInt(day, 10)}, ${year}`;
+            }
+        }
+        return d;
+    };
     if (start && end) return `${fmt(start)} – ${fmt(end)}`;
     if (start) return `Starts ${fmt(start)}`;
     return `Ends ${fmt(end)}`;
@@ -283,13 +296,17 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                                 <div className="admin-input-group">
                                     <label>Start Date</label>
-                                    <input type="date" className="admin-input"
-                                        value={form.starts_at} onChange={e => setForm(f => ({ ...f, starts_at: e.target.value }))} />
+                                    <CustomDatePicker className="admin-input"
+                                        value={form.starts_at} onChange={e => setForm(f => ({ ...f, starts_at: e.target.value }))}
+                                        placeholder="Start date…"
+                                    />
                                 </div>
                                 <div className="admin-input-group">
                                     <label>End Date</label>
-                                    <input type="date" className="admin-input"
-                                        value={form.ends_at} onChange={e => setForm(f => ({ ...f, ends_at: e.target.value }))} />
+                                    <CustomDatePicker className="admin-input"
+                                        value={form.ends_at} onChange={e => setForm(f => ({ ...f, ends_at: e.target.value }))}
+                                        placeholder="End date…"
+                                    />
                                 </div>
                                 <div className="admin-input-group">
                                     <label>Status</label>

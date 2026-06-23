@@ -5,6 +5,7 @@ import supabase from './supabaseClient';
 import { useCommunity } from './context/CommunityContext';
 import ComboBox from './components/ComboBox';
 import CustomSelect from './components/CustomSelect';
+import CustomDatePicker from './components/CustomDatePicker';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,16 @@ function SessionStatusBadge({ status }) {
 
 function formatDate(d) {
     if (!d) return '';
-    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const parts = d.split('-');
+    if (parts.length === 3) {
+        const [year, month, day] = parts;
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mIdx = parseInt(month, 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+            return `${monthNames[mIdx]} ${parseInt(day, 10)}, ${year}`;
+        }
+    }
+    return d;
 }
 
 function daysLeft(endsAt) {
@@ -203,10 +213,12 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                                     placeholder="Assign to…"
                                     disabled={!isEditor}
                                 />
-                                <input type="date" className="task-inline-input"
+                                <CustomDatePicker className="task-inline-input"
                                     value={form.due_date}
                                     onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                                    disabled={!isEditor} />
+                                    disabled={!isEditor}
+                                    placeholder="Due date…"
+                                />
                                 <CustomSelect
                                     value={form.status}
                                     onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
@@ -374,8 +386,10 @@ function NewTaskRow({ parentTaskId, assigneeGroups, sessionId, onCreated, onCanc
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                         <ComboBox userId={form.assigned_to} userName={form.assigned_to_name || ''}
                             onChange={handleAssigneeChange} groups={assigneeGroups} placeholder="Assign to…" />
-                        <input type="date" className="task-inline-input" value={form.due_date}
-                            onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
+                        <CustomDatePicker className="task-inline-input" value={form.due_date}
+                            onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
+                            placeholder="Due date…"
+                        />
                         <CustomSelect
                             value={form.status}
                             onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
@@ -1169,11 +1183,15 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 style={{ resize: 'vertical' }} />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div><label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}><CalendarIcon /> Start Date</label>
-                                    <input type="date" className="admin-input" value={headerForm.starts_at}
-                                        onChange={e => setHeaderForm(f => ({ ...f, starts_at: e.target.value }))} /></div>
+                                    <CustomDatePicker className="admin-input" value={headerForm.starts_at}
+                                        onChange={e => setHeaderForm(f => ({ ...f, starts_at: e.target.value }))}
+                                        placeholder="Start date…"
+                                    /></div>
                                 <div><label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}><CalendarIcon /> End Date</label>
-                                    <input type="date" className="admin-input" value={headerForm.ends_at}
-                                        onChange={e => setHeaderForm(f => ({ ...f, ends_at: e.target.value }))} /></div>
+                                    <CustomDatePicker className="admin-input" value={headerForm.ends_at}
+                                        onChange={e => setHeaderForm(f => ({ ...f, ends_at: e.target.value }))}
+                                        placeholder="End date…"
+                                    /></div>
                             </div>
 
                             {/* Links editor */}
@@ -1380,7 +1398,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="contact-modal-title"
-                        style={{ padding: '2rem', maxWidth: '400px', width: '90%', borderRadius: '16px', border: '1px solid rgba(151, 247, 233, 0.35)', position: 'relative' }}
+                        style={{ padding: '2rem', maxWidth: '400px', width: '90%', borderRadius: '16px', border: '1px solid rgba(151, 247, 233, 0.35)', position: 'relative', backgroundColor: 'rgba(36, 43, 179, 0.5)' }}
                         onClick={e => e.stopPropagation()}
                     >
                         <button 

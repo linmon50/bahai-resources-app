@@ -7,7 +7,10 @@ import CustomSelect from "./components/CustomSelect";
 // 'login' | 'signup' | 'forgot' | 'forgot_sent'
 export default function Auth() {
     const [view, setView] = useState("login");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
+    const [honeypot, setHoneypot] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [inviteCode, setInviteCode] = useState("");
@@ -46,6 +49,9 @@ export default function Auth() {
         setZipCode("");
         setIntro("");
         setCommunityId("");
+        setFirstName("");
+        setLastName("");
+        setHoneypot("");
         setRequiresPassword(false);
     };
 
@@ -172,6 +178,15 @@ export default function Auth() {
         e.preventDefault();
         setLoading(true);
         setMessage({ text: "", isError: true });
+        
+        if (honeypot) {
+            // Silently swallow bot submission and simulate success
+            setSuccess("Your request has been sent! An admin will review it and follow up via email.");
+            setLoading(false);
+            setTimeout(() => setView("login"), 3000);
+            return;
+        }
+
         try {
             // --- SAFETAIL: Run all checks FIRST (since they are SECURITY DEFINER) ---
 
@@ -245,7 +260,9 @@ export default function Auth() {
                 email,
                 zip_code: zipCode,
                 message: intro,
-                community_id: communityId || null
+                community_id: communityId || null,
+                first_name: firstName,
+                last_name: lastName
             }]);
             if (insertError) throw insertError;
 
@@ -353,6 +370,21 @@ export default function Auth() {
                             <p className="auth-instructions">Tell us where you are located and why you'd like to join one of our communities.</p>
                             
                             <form onSubmit={handleRequestInvite} style={{ display: "flex", flexDirection: "column", margin: 0 }}>
+                                {/* Honeypot field to block spam bots */}
+                                <div style={{ display: "none" }} aria-hidden="true">
+                                    <label htmlFor="field-website-confirm">Confirm Website</label>
+                                    <input
+                                        id="field-website-confirm"
+                                        type="text"
+                                        name="website_confirm"
+                                        value={honeypot}
+                                        onChange={e => setHoneypot(e.target.value)}
+                                        tabIndex="-1"
+                                        autoComplete="off"
+                                    />
+                                </div>
+                                <Field label="First Name" type="text" value={firstName} onChange={setFirstName} />
+                                <Field label="Last Name" type="text" value={lastName} onChange={setLastName} />
                                 <Field label="Email" type="email" value={email} onChange={setEmail} />
                                 <Field label="Zip Code" type="text" value={zipCode} onChange={setZipCode} />
 

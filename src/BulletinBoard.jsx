@@ -433,7 +433,15 @@ export default function BulletinBoard({ session, isAdmin }) {
                       key={idx} 
                       src={url} 
                       alt="" 
-                      style={{ width: '100%', height: post.image_urls.length > 1 ? '200px' : 'auto', objectFit: 'cover', display: 'block', cursor: 'pointer' }} 
+                      style={{ 
+                        width: '100%', 
+                        height: post.image_urls.length > 1 ? '200px' : 'auto', 
+                        maxHeight: post.image_urls.length === 1 ? '500px' : 'none',
+                        objectFit: 'cover', 
+                        objectPosition: 'center',
+                        display: 'block', 
+                        cursor: 'pointer' 
+                      }} 
                       onClick={() => setSelectedGallery({ index: idx, images: post.image_urls })}
                     />
                   ))}

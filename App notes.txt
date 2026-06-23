@@ -95,16 +95,52 @@ To save new checkpoints run: 	git add -A
 
 Manual Testing Notes
 
-- Might be best to keep the invite codes on the screen until they are manually cleared by an admin.
-
-- Need to do new user onboarding at some point to guide users on how to use the site upon first login.
-
-- Only other users with editor status, admins, or the event creator can invite other users to be editors. 
+- Need to do new user onboarding at some point to guide users on how to use the site upon first login. 
 
 - Add some functionality for reminding people to RSVP to events with link.
 
 - Add functionality for admins to alert all members or some to important posts. Perhaps a popup after an admin clicks on the pin and then it auto generates an email.
 
 - Add an FAQ section 
+
+- Add a "request access to other community" form under the Account Settings page
+
+- Add a "create new community" form in the login section. The creator should automatically become an admin. Only global admins can accept a new community.
+
+- Make sure everyone's personal information is locked down and secure. Follow the below steps when setting up the domain. 
+
+3. Key Production Security Steps (For When You Deploy)
+When you are ready to set up your domain and launch the application, here are the most important settings to check:
+
+A. Enforce HTTPS (SSL)
+Ensure your hosting provider (Vercel, Netlify, Cloudflare Pages, etc.) strictly enforces HTTPS. Since users log in with emails and passwords, and query directory details, SSL is required to encrypt this data in transit and prevent session hijacking on public Wi-Fi networks.
+
+B. Enable Email Confirmation in Supabase Auth
+In your Supabase Dashboard under Authentication > Providers > Email:
+
+Turn on Confirm email.
+This forces users to click a link sent to their email address before their account becomes active, preventing someone from signing up using a fake or stolen email address.
+
+C. Database Function Hardening (SQL Search Path)
+Your custom database functions (like get_invite_requests) are configured with SECURITY DEFINER. This means they run with the owner's database privileges.
+
+Best Practice: To prevent search path hijacking (a vulnerability where a malicious user overrides database utilities in SQL), it is recommended to explicitly set the search path for all SECURITY DEFINER functions.
+Example:
+sql
+
+
+CREATE OR REPLACE FUNCTION public.get_invite_requests()
+RETURNS TABLE(...)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public -- Hardens the function from path hijacking
+AS $$ ... $$
+
+(We can apply this hardening query to your database functions anytime you'd like!)
+
+D. Auth Redirect Allowlist
+In your Supabase Dashboard under Authentication > URL Configuration:
+
+Make sure your redirect URLs (where users are sent after resetting their password or confirming their email) only allow your official domain name (e.g., https://yourdomain.com). This prevents "open redirect" vulnerabilities where hackers trick your site into sending users to a phishing page.
 
 

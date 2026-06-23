@@ -87,6 +87,64 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
     const [duplicateEmails, setDuplicateEmails] = useState([]);
     const [registeredEmails, setRegisteredEmails] = useState([]);
     const [checkedEmails, setCheckedEmails] = useState([]);
+    const [pendingInvites, setPendingInvites] = useState([]);
+    const [copiedStates, setCopiedStates] = useState({});
+
+    const fetchPendingInvites = async () => {
+        if (!selectedCommunity) return;
+        try {
+            const { data, error } = await supabase
+                .from("invites")
+                .select("*")
+                .eq("community_id", selectedCommunity)
+                .eq("dismissed", false)
+                .order("created_at", { ascending: false })
+                .order("id", { ascending: true });
+            if (error) throw error;
+            setPendingInvites(data || []);
+        } catch (err) {
+            console.error("Error fetching pending invites:", err.message);
+        }
+    };
+
+    useEffect(() => {
+        fetchPendingInvites();
+    }, [selectedCommunity]);
+
+    const handleCopyCode = (code) => {
+        navigator.clipboard.writeText(code);
+        setCopiedStates(prev => ({ ...prev, [code]: true }));
+        setTimeout(() => {
+            setCopiedStates(prev => ({ ...prev, [code]: false }));
+        }, 2000);
+    };
+
+    const handleToggleEmailSent = async (inviteId, currentVal) => {
+        try {
+            const { error } = await supabase
+                .from("invites")
+                .update({ email_sent: !currentVal })
+                .eq("id", inviteId);
+            if (error) throw error;
+            fetchPendingInvites();
+        } catch (err) {
+            setErrorMsg(`❌ Failed to update invite status: ${err.message}`);
+        }
+    };
+
+    const handleDismissInvite = async (inviteId) => {
+        if (!window.confirm("Are you sure you want to dismiss this invite? This will hide it from the dashboard but keep the record in the database for auditing.")) return;
+        try {
+            const { error } = await supabase
+                .from("invites")
+                .update({ dismissed: true })
+                .eq("id", inviteId);
+            if (error) throw error;
+            fetchPendingInvites();
+        } catch (err) {
+            setErrorMsg(`❌ Failed to dismiss invite: ${err.message}`);
+        }
+    };
 
     const handleContinueWithoutDuplicates = () => {
         setEmailsRaw(checkedEmails.join("\n"));
@@ -116,6 +174,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
 
             const totalDeleted = (rpcCount || 0) + (nullCount || 0);
             setStatusMsg(`✅ Cleanup successful. ${totalDeleted} invites removed (${rpcCount || 0} expired, ${nullCount || 0} legacy NULL).`);
+            fetchPendingInvites();
             if (onSuccess) onSuccess();
         } catch (err) {
             setErrorMsg(`❌ Cleanup failed: ${err.message}`);
@@ -128,6 +187,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
         e.preventDefault();
         setLoading(true);
         setErrorMsg("");
+        setStatusMsg("");
         setResults([]);
         setDuplicateEmails([]);
         setRegisteredEmails([]);
@@ -235,7 +295,9 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
             }
 
             setResults(newInvites);
+            setStatusMsg(`✅ Successfully generated ${newInvites.length} invite code(s).`);
             setEmailsRaw("");
+            fetchPendingInvites();
             if (onSuccess) onSuccess();
         } catch (err) {
             setErrorMsg(err.message || "Failed to generate invites.");
@@ -356,36 +418,115 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                 </div>
             </form>
 
-            {
-                results.length > 0 && (
-                    <div className="admin-success-box">
-                        <h3 style={{ marginTop: 0 }}>Successfully Created!</h3>
-                        <p>Copy these codes and send them to the users.</p>
-                        <div className="admin-table-wrapper">
-                            <table className="task-table">
-                                <thead>
-                                    <tr>
-                                        <th>Email</th>
-                                        <th>Code</th>
-                                        <th>Role</th>
-                                        <th>Level</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {results.map((inv, i) => (
-                                        <tr key={i} className="task-row">
+            {pendingInvites.length > 0 && (
+                <div style={{ marginTop: "2rem" }}>
+                    <h3 style={{
+                        color: "#ffffff",
+                        fontFamily: "'Fredoka', sans-serif",
+                        fontWeight: 600,
+                        fontSize: "1.35rem",
+                        marginBottom: "0.5rem"
+                    }}>
+                        Pending Invites
+                    </h3>
+                    <p style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.9rem", marginBottom: "1rem", lineHeight: "1.4" }}>
+                        Copy the invite code below and paste in an email to the new user. Remember, it's only one invite code per user email. Once sent, mark as sent in the below table. When a user successfully logs in with their invite code (you will know if the status says "Used"), dismiss the table row for that user.
+                    </p>
+                    <div className="admin-table-wrapper">
+                        <table className="task-table">
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Invite Code</th>
+                                    <th>Role</th>
+                                    <th>Level</th>
+                                    <th>Status</th>
+                                    <th>Email Sent?</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pendingInvites.map((inv) => {
+                                    const isExpired = inv.expires_at && new Date(inv.expires_at) < new Date();
+                                    return (
+                                        <tr key={inv.id} className="task-row">
                                             <td>{inv.email}</td>
-                                            <td className="admin-table-code"><strong>{inv.code}</strong></td>
+                                            <td className="admin-table-code" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-start' }}>
+                                                <strong>{inv.code}</strong>
+                                                <button
+                                                    onClick={() => handleCopyCode(inv.code)}
+                                                    className="admin-pill-btn"
+                                                    style={{
+                                                        margin: 0,
+                                                        padding: "0.2rem 0.4rem",
+                                                        fontSize: "0.75rem",
+                                                        background: copiedStates[inv.code] ? "#55c46f" : "rgba(255,255,255,0.1)",
+                                                        border: "1px solid rgba(255,255,255,0.2)",
+                                                        color: "#ffffff",
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        gap: "4px",
+                                                        minWidth: "65px",
+                                                        justifyContent: "center"
+                                                    }}
+                                                    title="Copy invite code"
+                                                >
+                                                    {copiedStates[inv.code] ? (
+                                                        "Copied!"
+                                                    ) : (
+                                                        <>
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                                            </svg>
+                                                            Copy
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </td>
                                             <td>{inv.role}</td>
                                             <td>{levelLabel(inv.admin_level)}</td>
+                                            <td>
+                                                {inv.used_at ? (
+                                                    <span style={{ color: "var(--warning-text)", fontWeight: 600 }}>Used</span>
+                                                ) : isExpired ? (
+                                                    <span style={{ color: "#ef4444", fontWeight: 600 }}>Expired</span>
+                                                ) : (
+                                                    <span style={{ color: "#10b981", fontWeight: 600 }}>Active</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <button
+                                                    onClick={() => handleToggleEmailSent(inv.id, inv.email_sent)}
+                                                    className={`admin-pill-btn ${inv.email_sent ? "success" : "secondary"}`}
+                                                    style={{ 
+                                                        margin: 0, 
+                                                        padding: "0.25rem 0.5rem", 
+                                                        fontSize: "0.8rem",
+                                                        backgroundColor: inv.email_sent ? "#55c46f" : "transparent",
+                                                        border: inv.email_sent ? "none" : "1px solid rgba(255,255,255,0.3)"
+                                                    }}
+                                                >
+                                                    {inv.email_sent ? "Yes" : "No (Mark Sent)"}
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button
+                                                    onClick={() => handleDismissInvite(inv.id)}
+                                                    className="admin-pill-btn danger"
+                                                    style={{ margin: 0, padding: "0.25rem 0.5rem", fontSize: "0.8rem" }}
+                                                >
+                                                    Dismiss
+                                                </button>
+                                            </td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
-                )
-            }
+                </div>
+            )}
         </div>
     );
 }
@@ -922,6 +1063,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                         onChange={() => setSelectedIds(selectedIds.length === requests.length ? [] : requests.map(r => r.id))}
                                     />
                                 </th>
+                                <th>Name</th>
                                 <th>Email</th>
                                 <th>Zip Code</th>
                                 <th>Community</th>
@@ -941,6 +1083,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                             onChange={() => toggleSelect(r.id)}
                                         />
                                     </td>
+                                    <td>{r.first_name || r.last_name ? `${r.first_name || ''} ${r.last_name || ''}`.trim() : <em style={{ color: "rgba(255,255,255,0.4)" }}>N/A</em>}</td>
                                     <td>{r.email}</td>
                                     <td>{r.zip_code}</td>
                                     <td>{r.community_name || <em style={{ color: "#97f7e9" }}>General Request</em>}</td>
@@ -951,7 +1094,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                                 triggerRef.current = e.currentTarget;
                                                 setViewingRequest(r);
                                             }}
-                                            className="admin-pill-btn secondary" style={{ fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
+                                            className="admin-pill-btn secondary" style={{ margin: 0, fontSize: "0.75rem", padding: "0.3rem 0.6rem" }}
                                         >
                                             View Message
                                         </button>
@@ -959,14 +1102,14 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                     <td>
                                         <button
                                             onClick={() => onApprove(r.email)}
-                                            className="admin-pill-btn" style={{ padding: "0.3rem 0.6rem", marginRight: "0.4rem", fontSize: "0.85rem" }}
+                                            className="admin-pill-btn" style={{ margin: 0, padding: "0.3rem 0.6rem", marginRight: "0.4rem", fontSize: "0.85rem" }}
                                         >
                                             Invite
                                         </button>
                                         <button
                                             onClick={() => handleDeny([r.id])}
                                             disabled={processing}
-                                            className="admin-pill-btn danger" style={{ padding: "0.3rem 0.6rem", fontSize: "0.85rem" }}
+                                            className="admin-pill-btn danger" style={{ margin: 0, padding: "0.3rem 0.6rem", fontSize: "0.85rem" }}
                                         >
                                             Deny
                                         </button>
@@ -980,19 +1123,27 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
 
             {/* Request Detail Modal */}
             {viewingRequest && createPortal(
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(112, 212, 219, 1) 0%, rgba(49, 101, 168, 1) 52%, rgba(84, 0, 140, 0.95) 100%)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000 }}>
+                <div 
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000 }}
+                    onClick={() => setViewingRequest(null)}
+                >
                     <div 
                         ref={modalRef}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="modal-title"
                         tabIndex="-1"
-                        className="admin-panel" style={{ padding: '2.5rem', maxWidth: '550px', width: '90%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', position: 'relative' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 id="modal-title" style={{ margin: 0, color: "#ffffff", fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: "1.35rem" }}>Invite Request Detail</h3>
-                            <button onClick={() => setViewingRequest(null)} style={{ background: 'none', border: 'none', fontSize: '2rem', cursor: 'pointer', color: 'white', lineHeight: 1 }}>×</button>
-                        </div>
+                        className="admin-panel" style={{ padding: '2rem', maxWidth: '550px', width: '90%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid rgba(151, 247, 233, 0.35)', position: 'relative', backgroundColor: 'rgba(36, 43, 179, 0.5)' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <button 
+                            onClick={() => setViewingRequest(null)} 
+                            aria-label="Close modal"
+                            style={{ position: 'absolute', top: '1rem', right: '1.2rem', background: 'none', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer', lineHeight: 1 }}
+                        >×</button>
+                        <h3 id="modal-title" style={{ margin: '0 0 1rem', color: 'var(--auth-text-light-blue)', fontFamily: "'Fredoka', sans-serif" }}>Invite Request Detail</h3>
                         <div style={{ marginBottom: '2rem', color: '#ffffff', fontSize: '1.05rem', lineHeight: '1.6' }}>
+                            <p style={{ margin: '0.5rem 0' }}><strong>Name:</strong> {viewingRequest.first_name || viewingRequest.last_name ? `${viewingRequest.first_name || ''} ${viewingRequest.last_name || ''}`.trim() : 'N/A'}</p>
                             <p style={{ margin: '0.5rem 0' }}><strong>Email:</strong> {viewingRequest.email}</p>
                             <p style={{ margin: '0.5rem 0' }}><strong>Zip Code:</strong> {viewingRequest.zip_code}</p>
                             <p style={{ margin: '0.5rem 0' }}><strong>Community:</strong> {viewingRequest.community_name || <em style={{ color: "#97f7e9" }}>General Request</em>}</p>
@@ -1102,12 +1253,29 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
 
     const handleApprove = async (id) => {
         setActioningId(id);
+        const post = posts.find(p => p.id === id);
         const { error } = await supabase
             .from('bulletin_posts')
             .update({ status: 'approved' })
             .eq('id', id);
         
         if (!error) {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (post && post.author_id !== user?.id) {
+                    await supabase
+                        .from('notifications')
+                        .insert({
+                            user_id: post.author_id,
+                            actor_id: user?.id,
+                            type: 'post_approved',
+                            reference_id: id,
+                            metadata: { post_snippet: post.content.substring(0, 50) }
+                        });
+                }
+            } catch (err) {
+                console.error("Error creating post_approved notification:", err);
+            }
             fetchPending();
         }
         setActioningId(null);
@@ -1115,16 +1283,36 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
 
     const handleRejectSubmit = async () => {
         if (!rejectionReason.trim()) return;
-        setActioningId(rejectingPost.id);
+        const post = rejectingPost;
+        setActioningId(post.id);
         const { error } = await supabase
             .from('bulletin_posts')
             .update({ 
                 status: 'rejected',
                 rejection_reason: rejectionReason
             })
-            .eq('id', rejectingPost.id);
+            .eq('id', post.id);
         
         if (!error) {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (post && post.author_id !== user?.id) {
+                    await supabase
+                        .from('notifications')
+                        .insert({
+                            user_id: post.author_id,
+                            actor_id: user?.id,
+                            type: 'post_rejected',
+                            reference_id: post.id,
+                            metadata: { 
+                                post_snippet: post.content.substring(0, 50),
+                                rejection_reason: rejectionReason
+                            }
+                        });
+                }
+            } catch (err) {
+                console.error("Error creating post_rejected notification:", err);
+            }
             setShowRejectModal(false);
             setRejectingPost(null);
             setRejectionReason("");

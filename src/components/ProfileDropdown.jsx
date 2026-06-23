@@ -20,6 +20,22 @@ export default function ProfileDropdown({ session, isAdmin }) {
         if (session?.user?.id) {
             fetchProfile();
         }
+
+        const handleProfileUpdate = (event) => {
+            if (event.detail) {
+                setProfile(prev => ({
+                    ...prev,
+                    display_name: event.detail.display_name,
+                    avatar_url: event.detail.avatar_url
+                }));
+            }
+        };
+
+        window.addEventListener('profileUpdated', handleProfileUpdate);
+
+        return () => {
+            window.removeEventListener('profileUpdated', handleProfileUpdate);
+        };
     }, [session]);
 
     const fetchProfile = async () => {

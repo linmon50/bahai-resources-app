@@ -68,6 +68,10 @@ body {
   overflow-x: hidden;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+}
+
 /* ─── Scrollbar ─── */
 * {
   scrollbar-width: thin;
@@ -2399,8 +2403,11 @@ textarea.admin-input {
   scrollbar-color: rgba(151, 247, 233, 0.3) transparent;
 }
 
-.admin-table-wrapper:has(.combobox-dropdown) {
-  overflow: visible;
+@media (min-width: 768px) {
+  .admin-table-wrapper:has(.combobox-dropdown),
+  .admin-table-wrapper:has(.custom-select-dropdown) {
+    overflow: visible;
+  }
 }
 
 .admin-table {
@@ -2469,4 +2476,126 @@ textarea.admin-input {
   top: 1rem;
   outline: 3px solid #ffffff;
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Custom Date Picker Component Styles
+   ========================================================================== */
+
+.custom-datepicker-container {
+  position: relative;
+  width: 100%;
+}
+
+.custom-datepicker-input-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+}
+
+.custom-datepicker-input-wrapper.admin-input {
+  padding: 13px 16px;
+  box-sizing: border-box;
+  height: 50px;
+}
+
+.custom-datepicker-input-wrapper.task-inline-input {
+  height: 34px;
+  padding: 0 0.65rem;
+  box-sizing: border-box;
+}
+
+.custom-datepicker-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 2000; /* Float above other content and tables */
+  width: 280px;
+  background: #3265c2;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(151, 247, 233, 0.25);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.8), 0 8px 18px -6px rgba(0, 0, 0, 0.8);
+  animation: datepickerFadeIn 0.15s ease-out;
+}
+
+@keyframes datepickerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.datepicker-nav-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.datepicker-nav-btn:hover {
+  background: rgba(151, 247, 233, 0.15);
+  border-color: rgba(151, 247, 233, 0.4);
+  color: #97f7e9;
+}
+
+.datepicker-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.datepicker-day {
+  background: none;
+  border: 1px solid transparent;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.datepicker-day:hover:not(:disabled) {
+  background: rgba(151, 247, 233, 0.15);
+  border-color: rgba(151, 247, 233, 0.35);
+  color: #97f7e9;
+}
+
+.datepicker-day.selected {
+  background: rgba(151, 247, 233, 0.3) !important;
+  border: 1px solid #97f7e9 !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(151, 247, 233, 0.2);
+}
+
+.datepicker-day.empty {
+  color: rgba(255, 255, 255, 0.15) !important;
+  cursor: default;
+}
+
+.datepicker-clear-btn:hover {
+  color: #f87171 !important;
+}
+
+/* Ensure the calendar dropdown is visible and not clipped by table wrappers on desktop */
+@media (min-width: 768px) {
+  .admin-table-wrapper:has(.custom-datepicker-dropdown) {
+    overflow: visible !important;
+  }
 }

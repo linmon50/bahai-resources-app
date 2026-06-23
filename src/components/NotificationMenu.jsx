@@ -138,6 +138,8 @@ export default function NotificationMenu({ session }) {
             case 'post_comment':
             case 'comment_like':
             case 'membership_approved':
+            case 'post_approved':
+            case 'post_rejected':
                 navigate('/');
                 break;
             default:
@@ -197,6 +199,29 @@ export default function NotificationMenu({ session }) {
                 return <span><strong>{actorName}</strong> liked your comment.</span>;
             case 'membership_approved':
                 return <span><strong>{actorName}</strong> approved your membership!</span>;
+            case 'post_approved':
+                if (meta.post_snippet) {
+                    return (
+                        <span>
+                            Your post submission <em>"{meta.post_snippet}..."</em> has been <strong>approved</strong>.
+                        </span>
+                    );
+                }
+                return <span>Your post submission has been approved.</span>;
+            case 'post_rejected':
+                if (meta.post_snippet) {
+                    return (
+                        <span>
+                            Your post submission <em>"{meta.post_snippet}..."</em> has been <strong>rejected</strong>.
+                            {meta.rejection_reason && (
+                                <span style={{ display: 'block', fontSize: '0.825rem', opacity: 0.85, marginTop: '2px', borderLeft: '2px solid rgba(239, 68, 68, 0.4)', paddingLeft: '6px' }}>
+                                    Reason: {meta.rejection_reason}
+                                </span>
+                            )}
+                        </span>
+                    );
+                }
+                return <span>Your post submission has been rejected.</span>;
             default:
                 return <span>You have a new notification from <strong>{actorName}</strong>.</span>;
         }
