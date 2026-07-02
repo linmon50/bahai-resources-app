@@ -1505,18 +1505,19 @@ textarea.admin-input {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background-color: var(--auth-button-green);
+  background-color: rgba(85, 196, 111, 0.15);
+  border: 2px solid #55c46f;
   color: #ffffff;
-  border: none;
   border-radius: 9999px;
   margin-top: 15px;
-  padding: 0.9rem 1.5rem;
+  padding: calc(0.9rem - 2px) calc(1.5rem - 2px);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
   width: fit-content;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .admin-pill-btn.full-width {
@@ -1528,9 +1529,16 @@ textarea.admin-input {
 }
 
 .admin-pill-btn:hover:not(:disabled) {
-  background-color: var(--auth-button-green-hover);
+  background-color: rgba(85, 196, 111, 0.35);
+  border-color: #55c46f;
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(8, 148, 71, 0.4);
+  box-shadow: 0 4px 14px rgba(85, 196, 111, 0.25);
+}
+
+.admin-pill-btn:active:not(:disabled) {
+  background-color: transparent !important;
+  border-color: #55c46f !important;
+  transform: translateY(0);
 }
 
 .admin-pill-btn:focus-visible {
@@ -1545,32 +1553,68 @@ textarea.admin-input {
 }
 
 .admin-pill-btn.danger {
-  background-color: #d14678;
+  background-color: rgba(209, 70, 120, 0.15);
+  border: 2px solid #d14678;
 }
 
 .admin-pill-btn.danger:hover:not(:disabled) {
-  background-color: #b53c66;
-  box-shadow: 0 4px 14px rgba(209, 70, 120, 0.45);
+  background-color: rgba(209, 70, 120, 0.35);
+  border-color: #d14678;
+  box-shadow: 0 4px 14px rgba(209, 70, 120, 0.3);
+}
+
+.admin-pill-btn.danger:active:not(:disabled) {
+  background-color: transparent !important;
+  border-color: #d14678 !important;
 }
 
 .admin-pill-btn.secondary {
-  background-color: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.15);
+  border: 2px solid #ffffff;
   color: #ffffff;
 }
 
 .admin-pill-btn.secondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.2);
-  box-shadow: none;
+  background-color: rgba(255, 255, 255, 0.35);
+  border-color: #ffffff;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+}
+
+.admin-pill-btn.secondary:active:not(:disabled) {
+  background-color: transparent !important;
+  border-color: #ffffff !important;
 }
 
 .admin-pill-btn.blue {
-  background-color: var(--auth-button-blue);
+  background-color: rgba(9, 209, 214, 0.15);
+  border: 2px solid #09d1d6;
 }
 
 .admin-pill-btn.blue:hover:not(:disabled) {
-  background-color: var(--auth-button-blue-hover);
-  box-shadow: 0 4px 14px rgba(39, 131, 193, 0.45);
+  background-color: rgba(9, 209, 214, 0.35);
+  border-color: #09d1d6;
+  box-shadow: 0 4px 14px rgba(9, 209, 214, 0.3);
+}
+
+.admin-pill-btn.blue:active:not(:disabled) {
+  background-color: transparent !important;
+  border-color: #09d1d6 !important;
+}
+
+.admin-pill-btn.success {
+  background-color: rgba(85, 196, 111, 0.15);
+  border: 2px solid #55c46f;
+}
+
+.admin-pill-btn.success:hover:not(:disabled) {
+  background-color: rgba(85, 196, 111, 0.35);
+  border-color: #55c46f;
+  box-shadow: 0 4px 14px rgba(85, 196, 111, 0.25);
+}
+
+.admin-pill-btn.success:active:not(:disabled) {
+  background-color: transparent !important;
+  border-color: #55c46f !important;
 }
 
 /* ── Status / alert boxes ───────────────────────────────── */

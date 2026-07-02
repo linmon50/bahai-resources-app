@@ -355,7 +355,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                 Remove &amp; Continue ({checkedEmails.length} remaining)
                             </button>
                         )}
-                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
+                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary">
                             Cancel
                         </button>
                     </div>
@@ -386,7 +386,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                             </button>
                         )}
                         {duplicateEmails.length === 0 && (
-                            <button type="button" onClick={() => { setDuplicateEmails([]); setRegisteredEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
+                            <button type="button" onClick={() => { setDuplicateEmails([]); setRegisteredEmails([]); }} className="admin-pill-btn secondary">
                                 Cancel
                             </button>
                         )}
@@ -502,9 +502,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                                     style={{ 
                                                         margin: 0, 
                                                         padding: "0.25rem 0.5rem", 
-                                                        fontSize: "0.8rem",
-                                                        backgroundColor: inv.email_sent ? "#55c46f" : "transparent",
-                                                        border: inv.email_sent ? "none" : "1px solid rgba(255,255,255,0.3)"
+                                                        fontSize: "0.8rem"
                                                     }}
                                                 >
                                                     {inv.email_sent ? "Yes" : "No (Mark Sent)"}
@@ -684,7 +682,7 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
                                 Remove &amp; Continue ({checkedEmails.length} remaining)
                             </button>
                         )}
-                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
+                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary">
                             Cancel
                         </button>
                     </div>
