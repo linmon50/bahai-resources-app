@@ -68,10 +68,10 @@ const AccessIcon = () => (
 const STATUS_COLORS = {
     not_started: { bg: 'rgba(255,255,255,0.12)', text: 'rgba(255,255,255,0.6)', border: 'rgba(255,255,255,0.2)' },
     in_progress:  { bg: 'rgba(252,211,77,0.18)',  text: '#fcd34d',              border: 'rgba(252,211,77,0.4)' },
-    done:         { bg: 'rgba(85,196,111,0.18)',  text: '#55c46f',              border: 'rgba(85,196,111,0.4)' },
+    done:         { bg: 'rgba(71,178,96,0.18)',  text: '#47b260',              border: 'rgba(71,178,96,0.4)' },
 };
 const SESSION_STATUS_COLORS = {
-    active:    { bg: 'rgba(85,196,111,0.18)',   text: '#55c46f', border: 'rgba(85,196,111,0.4)'    },
+    active:    { bg: 'rgba(71,178,96,0.18)',   text: '#47b260', border: 'rgba(71,178,96,0.4)'    },
     completed: { bg: 'rgba(9,209,214,0.18)',     text: '#09d1d6', border: 'rgba(9,209,214,0.4)'    },
     archived:  { bg: 'rgba(255,255,255,0.08)',   text: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.2)' },
 };
@@ -958,7 +958,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                     <span>Showing {filteredParents.length} task{filteredParents.length !== 1 ? 's' : ''}</span>
                     <span>● Not Started</span>
                     <span style={{ color: '#fcd34d' }}>● In Progress</span>
-                    <span style={{ color: '#55c46f' }}>● Done</span>
+                    <span style={{ color: '#47b260' }}>● Done</span>
                 </div>
             </div>
         );
@@ -1235,7 +1235,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
                                 <div style={{ flex: '1 1 300px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-                                        <h1 style={{ margin: 0, fontFamily: "'Fredoka', sans-serif", fontSize: '2.2rem', color: 'white', lineHeight: 1.1 }}>
+                                        <h1 className="admin-title" style={{ margin: 0, lineHeight: 1.1 }}>
                                             {sessionData.title}
                                         </h1>
                                         <SessionStatusBadge status={sessionData.status} />

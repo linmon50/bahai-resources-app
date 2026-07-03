@@ -18,8 +18,8 @@
   --auth-bg-color: #002c44;
   --auth-input-bg: #001f30;
   --auth-input-border: var(--auth-text-light-blue);
-  --auth-button-green: #55c46f;
-  --auth-button-green-hover: #45ab5d;
+  --auth-button-green: #47b260;
+  --auth-button-green-hover: #3eb55a;
   --auth-button-blue: #09d1d6;
   --auth-button-blue-hover: #07b8bc;
   --auth-text-light-blue: #97f7e9;
@@ -121,7 +121,7 @@ h1, h2, h3, h4, h5, h6 {
   min-width: 0;
   margin-left: 310px;
   z-index: 100;
-  padding-top: 4.5rem; /* Reduced by another 10% from 5rem */
+  padding-top: 4rem;
   transition: padding-top 0.2s ease;
 }
 
@@ -859,6 +859,18 @@ a {
   color: #ffffff;
 }
 
+@media screen and (max-width: 768px) {
+  .auth-title-cursive {
+    font-size: 2.1rem;
+  }
+  .auth-title-serif {
+    font-size: 1.8rem;
+  }
+  .auth-subtitle {
+    font-size: 1.15rem;
+  }
+}
+
 /* --- Form Fields --- */
 .auth-input-wrapper {
   display: flex;
@@ -933,7 +945,7 @@ form .auth-input-wrapper:last-of-type {
   /* Pill shape */
   padding: 12px 32px;
   font-size: .95rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
   margin: 0 auto calc(1.5rem + 3px);
@@ -954,7 +966,7 @@ form .auth-input-wrapper:last-of-type {
   padding: 14px 20px;
   font-size: .95rem;
   /* Slightly larger base */
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
   width: 100%;
@@ -973,6 +985,7 @@ form .auth-input-wrapper:last-of-type {
   border: none;
   padding: 0;
   font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
   display: block;
   text-align: center;
@@ -998,6 +1011,7 @@ form .auth-input-wrapper:last-of-type {
   padding: 0;
   cursor: pointer;
   font-size: 0.95rem;
+  font-weight: 600;
   margin-left: 0.25rem;
 }
 
@@ -1071,7 +1085,7 @@ form .auth-input-wrapper:last-of-type {
 .member-mgmt-container {
   min-height: 100vh;
   width: 100%;
-  padding: 3.5rem 2rem 4rem 1.5rem;
+  padding: 2rem 2rem 4rem 1.5rem;
   box-sizing: border-box;
   color: white;
   display: flex;
@@ -1089,10 +1103,10 @@ form .auth-input-wrapper:last-of-type {
 
 .admin-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 600;
   margin: 0 0 1.5rem;
-  color: #ffffff;
+  color: var(--auth-text-light-blue);
   letter-spacing: 0.01em;
 }
 
@@ -1505,19 +1519,18 @@ textarea.admin-input {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background-color: rgba(85, 196, 111, 0.15);
-  border: 2px solid #55c46f;
+  background-color: var(--auth-button-green);
   color: #ffffff;
+  border: none;
   border-radius: 9999px;
   margin-top: 15px;
-  padding: calc(0.9rem - 2px) calc(1.5rem - 2px);
+  padding: 0.9rem 1.5rem;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
   width: fit-content;
   text-decoration: none;
-  box-sizing: border-box;
 }
 
 .admin-pill-btn.full-width {
@@ -1529,16 +1542,9 @@ textarea.admin-input {
 }
 
 .admin-pill-btn:hover:not(:disabled) {
-  background-color: rgba(85, 196, 111, 0.35);
-  border-color: #55c46f;
+  background-color: var(--auth-button-green-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(85, 196, 111, 0.25);
-}
-
-.admin-pill-btn:active:not(:disabled) {
-  background-color: transparent !important;
-  border-color: #55c46f !important;
-  transform: translateY(0);
+  box-shadow: 0 4px 14px rgba(8, 148, 71, 0.4);
 }
 
 .admin-pill-btn:focus-visible {
@@ -1553,68 +1559,32 @@ textarea.admin-input {
 }
 
 .admin-pill-btn.danger {
-  background-color: rgba(209, 70, 120, 0.15);
-  border: 2px solid #d14678;
+  background-color: #d14678;
 }
 
 .admin-pill-btn.danger:hover:not(:disabled) {
-  background-color: rgba(209, 70, 120, 0.35);
-  border-color: #d14678;
-  box-shadow: 0 4px 14px rgba(209, 70, 120, 0.3);
-}
-
-.admin-pill-btn.danger:active:not(:disabled) {
-  background-color: transparent !important;
-  border-color: #d14678 !important;
+  background-color: #b53c66;
+  box-shadow: 0 4px 14px rgba(209, 70, 120, 0.45);
 }
 
 .admin-pill-btn.secondary {
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 2px solid #ffffff;
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #ffffff;
 }
 
 .admin-pill-btn.secondary:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.35);
-  border-color: #ffffff;
-  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
-}
-
-.admin-pill-btn.secondary:active:not(:disabled) {
-  background-color: transparent !important;
-  border-color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 .admin-pill-btn.blue {
-  background-color: rgba(9, 209, 214, 0.15);
-  border: 2px solid #09d1d6;
+  background-color: var(--auth-button-blue);
 }
 
 .admin-pill-btn.blue:hover:not(:disabled) {
-  background-color: rgba(9, 209, 214, 0.35);
-  border-color: #09d1d6;
-  box-shadow: 0 4px 14px rgba(9, 209, 214, 0.3);
-}
-
-.admin-pill-btn.blue:active:not(:disabled) {
-  background-color: transparent !important;
-  border-color: #09d1d6 !important;
-}
-
-.admin-pill-btn.success {
-  background-color: rgba(85, 196, 111, 0.15);
-  border: 2px solid #55c46f;
-}
-
-.admin-pill-btn.success:hover:not(:disabled) {
-  background-color: rgba(85, 196, 111, 0.35);
-  border-color: #55c46f;
-  box-shadow: 0 4px 14px rgba(85, 196, 111, 0.25);
-}
-
-.admin-pill-btn.success:active:not(:disabled) {
-  background-color: transparent !important;
-  border-color: #55c46f !important;
+  background-color: var(--auth-button-blue-hover);
+  box-shadow: 0 4px 14px rgba(39, 131, 193, 0.45);
 }
 
 /* ── Status / alert boxes ───────────────────────────────── */

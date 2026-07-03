@@ -176,7 +176,7 @@ export default function BulletinBoard({ session, isAdmin }) {
   return (
     <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '0 1rem', color: 'white' }}>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2.5rem', marginBottom: '0.5rem', color: 'var(--auth-text-light-blue)' }}>
+        <h2 className="admin-title" style={{ marginBottom: '0.5rem' }}>
           {communityDetails?.name} Bulletin Board
         </h2>
         <p style={{ color: '#ffffff' }}>Community announcements, news, and shared moments.</p>

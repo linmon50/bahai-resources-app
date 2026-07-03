@@ -316,14 +316,14 @@ export default function EditProfilePage({ session }) {
     <div style={{ maxWidth: '900px', margin: '2rem auto', padding: '0 1rem', color: 'white' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2rem', margin: 0 }}>Edit Your Profile</h2>
+        <h2 className="admin-title" style={{ margin: '0 0 1rem 0' }}>Edit Your Profile</h2>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <button 
             type="button"
             onClick={handleSubmit}
             disabled={saving}
             className="admin-pill-btn"
-            style={{ margin: 0, background: '#55c46f', border: 'none', color: '#fff' }}
+            style={{ margin: 0, background: '#47b260', border: 'none', color: '#fff' }}
           >
             {saving ? 'Saving...' : 'Save Profile Changes'}
           </button>
@@ -524,7 +524,7 @@ export default function EditProfilePage({ session }) {
             type="submit" 
             disabled={saving} 
             className="admin-pill-btn"
-            style={{ margin: 0, background: '#55c46f', border: 'none', color: '#fff' }}
+            style={{ margin: 0, background: '#47b260', border: 'none', color: '#fff' }}
           >
             {saving ? 'Saving...' : 'Save Profile Changes'}
           </button>

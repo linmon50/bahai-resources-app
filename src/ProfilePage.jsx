@@ -91,7 +91,7 @@ export default function ProfilePage({ session }) {
         background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(18px)', 
         padding: '2rem', borderRadius: '16px', border: '1px solid rgba(151, 247, 233, 0.3)' 
       }}>
-        <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--auth-text-light-blue)', flexShrink: 0 }}>
+        <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', border: 'none', flexShrink: 0 }}>
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt={profile.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
@@ -112,7 +112,7 @@ export default function ProfilePage({ session }) {
           )}
         </div>
         <div style={{ flex: 1 }}>
-          <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2.5rem', margin: '0 0 0.5rem 0' }}>{profile.display_name}</h2>
+          <h2 className="admin-title" style={{ margin: '0 0 0.5rem 0', color: '#ffffff' }}>{profile.display_name}</h2>
           {profile.memberships?.length > 0 && (
              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                {[...profile.memberships]

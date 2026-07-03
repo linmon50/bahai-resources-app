@@ -6,7 +6,7 @@ import CustomSelect from './components/CustomSelect';
 import CustomDatePicker from './components/CustomDatePicker';
 
 const STATUS_COLORS = {
-    active:    { bg: 'rgba(85,196,111,0.18)',   text: '#55c46f', border: 'rgba(85,196,111,0.4)'   },
+    active:    { bg: 'rgba(71,178,96,0.18)',   text: '#47b260', border: 'rgba(71,178,96,0.4)'   },
     completed: { bg: 'rgba(9,209,214,0.18)',     text: '#09d1d6', border: 'rgba(9,209,214,0.4)'    },
     archived:  { bg: 'rgba(255,255,255,0.08)',   text: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.2)' },
 };
@@ -263,7 +263,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                         <h3 style={{ margin: 0, fontFamily: "'Fredoka', sans-serif", fontSize: '1.4rem', color: 'var(--auth-text-light-blue)' }}>
                             New Planning Session
                         </h3>
-                        <span style={{ fontSize: '0.72rem', color: draftSaved ? '#55c46f' : 'rgba(255,255,255,0.25)', transition: 'color 0.4s ease', userSelect: 'none' }}>
+                        <span style={{ fontSize: '0.72rem', color: draftSaved ? '#47b260' : 'rgba(255,255,255,0.25)', transition: 'color 0.4s ease', userSelect: 'none' }}>
                             {draftSaved ? '✓ Draft saved' : 'Draft auto-saved'}
                         </span>
                     </div>

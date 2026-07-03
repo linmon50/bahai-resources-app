@@ -118,7 +118,7 @@ export default function AccountSettings({ session }) {
   return (
     <div style={{ width: '100%', maxWidth: '700px', margin: '2rem auto', padding: '0 1rem', color: 'white', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2rem', margin: 0 }}>Account Settings</h2>
+        <h2 className="admin-title" style={{ margin: 0 }}>Account Settings</h2>
       </div>
 
       <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
@@ -182,7 +182,7 @@ export default function AccountSettings({ session }) {
               type="submit" 
               disabled={emailLoading} 
               className="admin-pill-btn"
-              style={{ background: '#55c46f', border: 'none', color: '#fff' }}
+              style={{ background: '#47b260', border: 'none', color: '#fff' }}
             >
               {emailLoading ? 'Updating...' : 'Update Email'}
             </button>
@@ -233,7 +233,7 @@ export default function AccountSettings({ session }) {
                 onClick={() => setShowNewPassword(!showNewPassword)}
                 style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
-                {showNewPassword ? <EyeOffIcon /> : <EyeIcon />}
+                {showNewPassword ? <EyeIcon /> : <EyeOffIcon />}
               </button>
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function AccountSettings({ session }) {
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >
-                {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                {showConfirmPassword ? <EyeIcon /> : <EyeOffIcon />}
               </button>
             </div>
           </div>
@@ -265,7 +265,7 @@ export default function AccountSettings({ session }) {
               type="submit" 
               disabled={passwordLoading} 
               className="admin-pill-btn"
-              style={{ background: '#55c46f', border: 'none', color: '#fff' }}
+              style={{ background: '#47b260', border: 'none', color: '#fff' }}
             >
               {passwordLoading ? 'Updating...' : 'Update Password'}
             </button>

@@ -295,7 +295,7 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
             {msg && (
               <span style={{ 
                 fontSize: '0.9rem', 
-                color: msg.type === 'error' ? '#ef4444' : (msg.type === 'info' ? '#97f7e9' : '#55c46f'),
+                color: msg.type === 'error' ? '#ef4444' : (msg.type === 'info' ? '#97f7e9' : '#47b260'),
                 fontWeight: '500'
               }}>
                 {msg.text}

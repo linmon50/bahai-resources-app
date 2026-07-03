@@ -62,7 +62,7 @@ export default function Navbar({ session, isAdmin }) {
     return (
         <nav className="navbar" aria-label="Main navigation">
             {/* Logo */}
-            <div className="navbar-logo">The Columbus Baha'i<br />Resource App</div>
+            <div className="navbar-logo">The Baha'i<br />Resource App</div>
 
             {/* Global Community Switcher (only for multiple communities) */}
             {communities.length > 1 && (

@@ -66,7 +66,7 @@ export default function ResetPassword() {
             <div className="auth-right">
                 <div className="auth-card">
                     <h1 className="auth-title-cursive">Welcome to</h1>
-                    <h2 className="auth-title-serif">The Columbus Baha’i<br/>Resource App</h2>
+                    <h2 className="auth-title-serif">The Baha’i<br/>Resource App</h2>
                     <h3 className="auth-subtitle">SET NEW PASSWORD</h3>
                     <p className="auth-instructions">Choose a strong password for your account.</p>
 

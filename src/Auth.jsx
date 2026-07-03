@@ -301,7 +301,7 @@ export default function Auth() {
                     {view === "login" && (
                         <>
                             <h1 className="auth-title-cursive">Welcome to</h1>
-                            <h2 className="auth-title-serif">The Columbus Baha’i<br/>Resource App</h2>
+                            <h2 className="auth-title-serif">The Baha’i<br/>Resource App</h2>
                             
                             <h3 className="auth-subtitle">LOGIN</h3>
                             
@@ -330,7 +330,7 @@ export default function Auth() {
                     {view === "signup" && (
                         <>
                             <h1 className="auth-title-cursive">Welcome to</h1>
-                            <h2 className="auth-title-serif">The Columbus Baha’i<br/>Resource App</h2>
+                            <h2 className="auth-title-serif">The Baha’i<br/>Resource App</h2>
                             
                             <h3 className="auth-subtitle">CREATE ACCOUNT</h3>
                             
@@ -363,7 +363,7 @@ export default function Auth() {
                     {view === "request_invite" && (
                         <>
                             <h1 className="auth-title-cursive">Welcome to</h1>
-                            <h2 className="auth-title-serif">The Columbus Baha’i<br/>Resource App</h2>
+                            <h2 className="auth-title-serif">The Baha’i<br/>Resource App</h2>
                             
                             <h3 className="auth-subtitle">REQUEST INVITE</h3>
                             
@@ -438,7 +438,7 @@ export default function Auth() {
                     {view === "forgot" && (
                         <>
                             <h1 className="auth-title-cursive">Welcome to</h1>
-                            <h2 className="auth-title-serif">The Columbus Baha’i<br/>Resource App</h2>
+                            <h2 className="auth-title-serif">The Baha’i<br/>Resource App</h2>
                             
                             <h3 className="auth-subtitle">RESET</h3>
                             
@@ -462,7 +462,7 @@ export default function Auth() {
                     {view === "forgot_sent" && (
                         <>
                             <h1 className="auth-title-cursive">Welcome to</h1>
-                            <h2 className="auth-title-serif">The Columbus Baha’i<br/>Resource App</h2>
+                            <h2 className="auth-title-serif">The Baha’i<br/>Resource App</h2>
                             
                             <h3 className="auth-subtitle">CHECK EMAIL</h3>
                             

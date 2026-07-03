@@ -95,7 +95,7 @@ export default function DirectoryPage({ session }) {
   return (
     <div style={{ maxWidth: '1000px', margin: '2rem auto', padding: '0 1rem', color: 'white' }}>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--auth-text-light-blue)' }}>
+        <h2 className="admin-title" style={{ marginBottom: '1rem' }}>
           {communityDetails?.name ? `${communityDetails.name} Directory` : 'Community Directory'}
         </h2>
         <p style={{ color: 'white' }}>Search for members by name, contact info, skills, or available resources.</p>
@@ -144,7 +144,7 @@ export default function DirectoryPage({ session }) {
                     }
                   }}
                 >
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--auth-text-light-blue)', marginBottom: '1rem' }}>
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: 'none', marginBottom: '1rem' }}>
                     {p.avatar_url ? (
                       <img src={p.avatar_url} alt={p.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (

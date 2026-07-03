@@ -333,7 +333,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
 
             {errorMsg && <div role="alert" className="admin-error-box">{errorMsg}</div>}
             {statusMsg && (
-                <div role="status" aria-live="polite" className="admin-warning-box" style={{ backgroundColor: "#55c46f", border: "none", color: "#ffffff" }}>
+                <div role="status" aria-live="polite" className="admin-warning-box" style={{ backgroundColor: "#47b260", border: "none", color: "#ffffff" }}>
                     {statusMsg}
                 </div>
             )}
@@ -355,7 +355,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                 Remove &amp; Continue ({checkedEmails.length} remaining)
                             </button>
                         )}
-                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary">
+                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
                             Cancel
                         </button>
                     </div>
@@ -386,7 +386,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                             </button>
                         )}
                         {duplicateEmails.length === 0 && (
-                            <button type="button" onClick={() => { setDuplicateEmails([]); setRegisteredEmails([]); }} className="admin-pill-btn secondary">
+                            <button type="button" onClick={() => { setDuplicateEmails([]); setRegisteredEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
                                 Cancel
                             </button>
                         )}
@@ -460,7 +460,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                                         margin: 0,
                                                         padding: "0.2rem 0.4rem",
                                                         fontSize: "0.75rem",
-                                                        background: copiedStates[inv.code] ? "#55c46f" : "rgba(255,255,255,0.1)",
+                                                        background: copiedStates[inv.code] ? "#47b260" : "rgba(255,255,255,0.1)",
                                                         border: "1px solid rgba(255,255,255,0.2)",
                                                         color: "#ffffff",
                                                         display: "inline-flex",
@@ -502,7 +502,9 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                                     style={{ 
                                                         margin: 0, 
                                                         padding: "0.25rem 0.5rem", 
-                                                        fontSize: "0.8rem"
+                                                        fontSize: "0.8rem",
+                                                        backgroundColor: inv.email_sent ? "#47b260" : "transparent",
+                                                        border: inv.email_sent ? "none" : "1px solid rgba(255,255,255,0.3)"
                                                     }}
                                                 >
                                                     {inv.email_sent ? "Yes" : "No (Mark Sent)"}
@@ -682,7 +684,7 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
                                 Remove &amp; Continue ({checkedEmails.length} remaining)
                             </button>
                         )}
-                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary">
+                        <button type="button" onClick={() => { setDuplicateEmails([]); setCheckedEmails([]); }} className="admin-pill-btn secondary" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#ffffff" }}>
                             Cancel
                         </button>
                     </div>
@@ -841,7 +843,7 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
 
             {error && <div className="admin-error-box">{error}</div>}
             {statusMsg && (
-                <div className="admin-warning-box" style={{ backgroundColor: statusMsg.startsWith("✅") ? "#55c46f" : "#d14678", border: "none", color: "#ffffff" }}>
+                <div className="admin-warning-box" style={{ backgroundColor: statusMsg.startsWith("✅") ? "#47b260" : "#d14678", border: "none", color: "#ffffff" }}>
                     {statusMsg}
                 </div>
             )}
@@ -1024,7 +1026,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
 
             {error && <div className="admin-error-box">{error}</div>}
             {statusMsg && (
-                <div className="admin-warning-box" style={{ backgroundColor: statusMsg.startsWith("✅") ? "#55c46f" : "#d14678", border: "none", color: "#ffffff" }}>
+                <div className="admin-warning-box" style={{ backgroundColor: statusMsg.startsWith("✅") ? "#47b260" : "#d14678", border: "none", color: "#ffffff" }}>
                     {statusMsg}
                 </div>
             )}
@@ -1384,7 +1386,7 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                                     onClick={() => handleApprove(post.id)}
                                     disabled={actioningId === post.id}
                                     className="admin-pill-btn" 
-                                    style={{ background: '#55c46f', border: 'none', color: '#fff' }}
+                                    style={{ background: '#47b260', border: 'none', color: '#fff' }}
                                 >
                                     {actioningId === post.id ? 'Approving...' : 'Approve & Publish'}
                                 </button>
