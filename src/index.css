@@ -2612,4 +2612,14 @@ textarea.admin-input {
   .admin-table-wrapper:has(.custom-datepicker-dropdown) {
     overflow: visible !important;
   }
+}
+
+/* Helper to hide button text on mobile and show only icons */
+.btn-text-desktop {
+  display: inline;
+}
+@media (max-width: 768px) {
+  .btn-text-desktop {
+    display: none !important;
+  }
 }

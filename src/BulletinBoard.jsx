@@ -265,14 +265,14 @@ export default function BulletinBoard({ session, isAdmin }) {
                     className={`admin-pill-btn ${editingPostId === sub.id ? 'secondary' : 'blue'}`}
                     style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
                   >
-                    {editingPostId === sub.id ? 'Cancel' : 'Edit'}
+                    {editingPostId === sub.id ? <span>❌<span className="btn-text-desktop"> Cancel</span></span> : <span>✏️<span className="btn-text-desktop"> Edit</span></span>}
                   </button>
                   <button 
                     onClick={() => handleDelete(sub.id)}
                     className="admin-pill-btn danger"
                     style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
                   >
-                    Remove
+                    <span>🗑️<span className="btn-text-desktop"> Remove</span></span>
                   </button>
                 </div>
                 {editingPostId === sub.id && (
@@ -317,7 +317,7 @@ export default function BulletinBoard({ session, isAdmin }) {
                   style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer' }}
                   onClick={() => navigate(`/profile/${post.author_id}`)}
                 >
-                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', overflow: 'hidden', background: '#333' }}>
+                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
                     {post.author?.avatar_url ? (
                       <img src={post.author.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -351,7 +351,7 @@ export default function BulletinBoard({ session, isAdmin }) {
                         className={`admin-pill-btn ${editingPostId === post.id ? 'secondary' : 'blue'}`}
                         style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
                       >
-                        {editingPostId === post.id ? 'Cancel' : 'Edit'}
+                        {editingPostId === post.id ? <span>❌<span className="btn-text-desktop"> Cancel</span></span> : <span>✏️<span className="btn-text-desktop"> Edit</span></span>}
                       </button>
                     )}
                     <button 
@@ -359,7 +359,7 @@ export default function BulletinBoard({ session, isAdmin }) {
                       className="admin-pill-btn danger"
                       style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
                     >
-                      Delete
+                      <span>🗑️<span className="btn-text-desktop"> Delete</span></span>
                     </button>
                     {isCommunityAdmin && (
                       <button 
@@ -374,7 +374,7 @@ export default function BulletinBoard({ session, isAdmin }) {
                           color: post.is_pinned ? '#fcd34d' : 'white'
                         }}
                       >
-                        <PinIcon filled={post.is_pinned} /> {post.is_pinned ? 'Unpin' : 'Pin'}
+                        <span><PinIcon filled={post.is_pinned} /> <span className="btn-text-desktop">{post.is_pinned ? 'Unpin' : 'Pin'}</span></span>
                       </button>
                     )}
                   </div>
