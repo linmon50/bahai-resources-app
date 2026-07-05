@@ -313,7 +313,7 @@ export default function EditProfilePage({ session }) {
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading profile...</div>;
 
   return (
-    <div style={{ maxWidth: '900px', margin: '2rem auto', padding: '0 1rem', color: 'white' }}>
+    <div style={{ maxWidth: '900px', width: '100%', boxSizing: 'border-box', margin: '2rem auto', padding: '0 1.5rem', color: 'white' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h2 className="admin-title" style={{ margin: '0 0 1rem 0' }}>Edit Your Profile</h2>
