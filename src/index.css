@@ -2622,4 +2622,11 @@ textarea.admin-input {
   .btn-text-desktop {
     display: none !important;
   }
+}
+
+.btn-icon {
+  vertical-align: middle;
+}
+.btn-icon + .btn-text-desktop {
+  margin-left: 4px;
 }
