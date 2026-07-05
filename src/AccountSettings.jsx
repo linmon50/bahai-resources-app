@@ -122,7 +122,7 @@ export default function AccountSettings({ session }) {
       </div>
 
       <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <h3 style={{ color: 'var(--auth-text-light-blue)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1.5rem', marginTop: 0 }}>
+        <h3 style={{ color: '#ffffff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1.5rem', marginTop: 0 }}>
           Change Email Address
         </h3>
         
@@ -198,7 +198,7 @@ export default function AccountSettings({ session }) {
       </div>
 
       <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <h3 style={{ color: 'var(--auth-text-light-blue)', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1.5rem', marginTop: 0 }}>
+        <h3 style={{ color: '#ffffff', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1.5rem', marginTop: 0 }}>
           Change Password
         </h3>
 

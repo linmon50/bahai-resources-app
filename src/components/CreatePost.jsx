@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import supabase from '../supabaseClient';
 import { compressImage } from '../utils/imageUtils';
+import { notifyAdmins } from '../utils/notifyAdmins';
 
 export default function CreatePost({ session, communityId, onPostCreated, isAdmin }) {
   const [content, setContent] = useState('');
@@ -126,6 +127,16 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
         });
 
       if (error) throw error;
+
+      // Notify community admins about pending post
+      if (!isAdmin) {
+        notifyAdmins({
+          communityId,
+          actorId: session.user.id,
+          type: 'admin_pending_post',
+          metadata: { post_snippet: content.substring(0, 50) },
+        });
+      }
 
       // Reset
       setContent('');

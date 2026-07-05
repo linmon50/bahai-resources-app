@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../supabaseClient';
 import { getInitials, getAvatarColor } from '../utils/avatarUtils';
+import { useCommunity } from '../context/CommunityContext';
 
 const BellIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -24,6 +25,7 @@ const CloseIcon = () => (
 
 export default function NotificationMenu({ session }) {
     const navigate = useNavigate();
+    const { setActiveCommunityId } = useCommunity();
     const [notifications, setNotifications] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -125,6 +127,10 @@ export default function NotificationMenu({ session }) {
         }
         setIsOpen(false);
 
+        if (notification.metadata?.community_id) {
+            setActiveCommunityId(notification.metadata.community_id);
+        }
+
         switch (notification.type) {
             case 'task_assigned':
             case 'session_access':
@@ -141,6 +147,28 @@ export default function NotificationMenu({ session }) {
             case 'post_approved':
             case 'post_rejected':
                 navigate('/');
+                break;
+            case 'admin_pending_post':
+                navigate('/admin/members?tab=pending_posts');
+                break;
+            case 'admin_invite_request':
+                navigate('/admin/members?tab=requests');
+                break;
+            case 'admin_member_invited':
+                navigate('/admin/members?tab=invite');
+                break;
+            case 'admin_access_granted':
+                navigate('/admin/members?tab=grant');
+                break;
+            case 'admin_role_changed':
+            case 'admin_member_removed':
+                navigate('/admin/members?tab=members');
+                break;
+            case 'admin_request_denied':
+                navigate('/admin/members?tab=requests');
+                break;
+            case 'admin_post_moderated':
+                navigate('/admin/members?tab=pending_posts');
                 break;
             default:
                 break;
@@ -222,6 +250,50 @@ export default function NotificationMenu({ session }) {
                     );
                 }
                 return <span>Your post submission has been rejected.</span>;
+            case 'admin_pending_post':
+                return <span>A new post is pending review in <strong>{meta.community_name}</strong>.</span>;
+            case 'admin_invite_request':
+                return (
+                    <span>
+                        <strong>{meta.requester_name || 'Someone'}</strong> ({meta.requester_email}) requested to join <strong>{meta.community_name}</strong>.
+                    </span>
+                );
+            case 'admin_member_invited':
+                return (
+                    <span>
+                        <strong>{actorName}</strong> invited {meta.email_count} member(s) to <strong>{meta.community_name}</strong>.
+                    </span>
+                );
+            case 'admin_access_granted':
+                return (
+                    <span>
+                        <strong>{actorName}</strong> granted access to {meta.email_count} member(s) in <strong>{meta.community_name}</strong>.
+                    </span>
+                );
+            case 'admin_role_changed':
+                return (
+                    <span>
+                        <strong>{actorName}</strong> changed <strong>{meta.member_name}</strong>'s role to {meta.new_role} in <strong>{meta.community_name}</strong>.
+                    </span>
+                );
+            case 'admin_member_removed':
+                return (
+                    <span>
+                        <strong>{actorName}</strong> removed <strong>{meta.member_name}</strong> from <strong>{meta.community_name}</strong>.
+                    </span>
+                );
+            case 'admin_request_denied':
+                return (
+                    <span>
+                        <strong>{actorName}</strong> denied {meta.denied_count} invite request(s) in <strong>{meta.community_name}</strong>.
+                    </span>
+                );
+            case 'admin_post_moderated':
+                return (
+                    <span>
+                        <strong>{actorName}</strong> {meta.action} a post in <strong>{meta.community_name}</strong>.
+                    </span>
+                );
             default:
                 return <span>You have a new notification from <strong>{actorName}</strong>.</span>;
         }

@@ -260,7 +260,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
             {showCreate && (
                 <div className="glass-panel" style={{ width: '100%', maxWidth: '900px', padding: '2rem', marginBottom: '2rem', boxSizing: 'border-box' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ margin: 0, fontFamily: "'Fredoka', sans-serif", fontSize: '1.4rem', color: 'var(--auth-text-light-blue)' }}>
+                        <h3 style={{ margin: 0, fontFamily: "'Arboria', sans-serif", fontWeight: 'bold', fontSize: '1.4rem', color: 'white' }}>
                             New Planning Session
                         </h3>
                         <span style={{ fontSize: '0.72rem', color: draftSaved ? '#47b260' : 'rgba(255,255,255,0.25)', transition: 'color 0.4s ease', userSelect: 'none' }}>

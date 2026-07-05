@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import supabase from "./supabaseClient";
 import { useNavigate } from "react-router-dom";
 import CustomSelect from "./components/CustomSelect";
+import { notifyAdmins } from './utils/notifyAdmins';
 
 // Which "view" we are showing
 // 'login' | 'signup' | 'forgot' | 'forgot_sent'
@@ -187,6 +188,12 @@ export default function Auth() {
             return;
         }
 
+        if (!communityId) {
+            setError("Please select a community to request an invite.");
+            setLoading(false);
+            return;
+        }
+
         try {
             // --- SAFETAIL: Run all checks FIRST (since they are SECURITY DEFINER) ---
 
@@ -265,6 +272,14 @@ export default function Auth() {
                 last_name: lastName
             }]);
             if (insertError) throw insertError;
+
+            // Notify community admins about the new invite request
+            notifyAdmins({
+                communityId: communityId || null,
+                actorId: null,
+                type: 'admin_invite_request',
+                metadata: { requester_name: `${firstName} ${lastName}`.trim(), requester_email: email },
+            });
 
             if (requiresPassword) {
                 // Because they are now logged in, they will be instantly redirected by App.jsx
@@ -394,7 +409,7 @@ export default function Auth() {
                                         value={communityId}
                                         onChange={e => setCommunityId(e.target.value)}
                                         labelId="community-label"
-                                        placeholder="Not Sure / General Request"
+                                        placeholder="Select a community..."
                                         options={[
                                             ...(matchedCommunities.length > 0
                                                 ? matchedCommunities.map(c => ({ value: c.id, label: `📍 ${c.name}` }))

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import supabase from "./supabaseClient";
 import CustomSelect from "./components/CustomSelect";
 
 import { useCommunity } from "./context/CommunityContext";
+import { notifyAdmins } from './utils/notifyAdmins';
 
 const ROLES = ["member", "admin"];
 const ROLE_OPTIONS = ROLES.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }));
@@ -299,6 +301,14 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
             setEmailsRaw("");
             fetchPendingInvites();
             if (onSuccess) onSuccess();
+
+            // Notify other community admins
+            notifyAdmins({
+                communityId: selectedCommunity,
+                actorId: user.id,
+                type: 'admin_member_invited',
+                metadata: { email_count: emailArray.length, emails: emailArray.join(', ') },
+            });
         } catch (err) {
             setErrorMsg(err.message || "Failed to generate invites.");
         } finally {
@@ -312,8 +322,8 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                 <div className="invite-tab-header">
                     <h3 style={{
                         color: "#ffffff",
-                        fontFamily: "'Fredoka', sans-serif",
-                        fontWeight: 600,
+                        fontFamily: "'Arboria', sans-serif",
+                        fontWeight: 'bold',
                         fontSize: "1.35rem",
                         margin: 0
                     }}>
@@ -422,8 +432,8 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                 <div style={{ marginTop: "2rem" }}>
                     <h3 style={{
                         color: "#ffffff",
-                        fontFamily: "'Fredoka', sans-serif",
-                        fontWeight: 600,
+                        fontFamily: "'Arboria', sans-serif",
+                        fontWeight: 'bold',
                         fontSize: "1.35rem",
                         marginBottom: "0.5rem"
                     }}>
@@ -451,38 +461,40 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                     return (
                                         <tr key={inv.id} className="task-row">
                                             <td>{inv.email}</td>
-                                            <td className="admin-table-code" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-start' }}>
-                                                <strong>{inv.code}</strong>
-                                                <button
-                                                    onClick={() => handleCopyCode(inv.code)}
-                                                    className="admin-pill-btn"
-                                                    style={{
-                                                        margin: 0,
-                                                        padding: "0.2rem 0.4rem",
-                                                        fontSize: "0.75rem",
-                                                        background: copiedStates[inv.code] ? "#47b260" : "rgba(255,255,255,0.1)",
-                                                        border: "1px solid rgba(255,255,255,0.2)",
-                                                        color: "#ffffff",
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                        gap: "4px",
-                                                        minWidth: "65px",
-                                                        justifyContent: "center"
-                                                    }}
-                                                    title="Copy invite code"
-                                                >
-                                                    {copiedStates[inv.code] ? (
-                                                        "Copied!"
-                                                    ) : (
-                                                        <>
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                                                            </svg>
-                                                            Copy
-                                                        </>
-                                                    )}
-                                                </button>
+                                            <td className="admin-table-code">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-start' }}>
+                                                    <strong>{inv.code}</strong>
+                                                    <button
+                                                        onClick={() => handleCopyCode(inv.code)}
+                                                        className="admin-pill-btn"
+                                                        style={{
+                                                            margin: 0,
+                                                            padding: "0.2rem 0.4rem",
+                                                            fontSize: "0.75rem",
+                                                            background: copiedStates[inv.code] ? "#47b260" : "rgba(255,255,255,0.1)",
+                                                            border: "1px solid rgba(255,255,255,0.2)",
+                                                            color: "#ffffff",
+                                                            display: "inline-flex",
+                                                            alignItems: "center",
+                                                            gap: "4px",
+                                                            minWidth: "65px",
+                                                            justifyContent: "center"
+                                                        }}
+                                                        title="Copy invite code"
+                                                    >
+                                                        {copiedStates[inv.code] ? (
+                                                            "Copied!"
+                                                        ) : (
+                                                            <>
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                                                </svg>
+                                                                Copy
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
                                             </td>
                                             <td>{inv.role}</td>
                                             <td>{levelLabel(inv.admin_level)}</td>
@@ -648,6 +660,19 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
         setResults(grantResults);
         setEmailsRaw("");
         if (onSuccess) onSuccess();
+
+        // Notify other community admins
+        const successCount = grantResults.filter(r => r.status === 'ok').length;
+        if (successCount > 0) {
+            const { data: { user } } = await supabase.auth.getUser();
+            notifyAdmins({
+                communityId: selectedCommunity,
+                actorId: user?.id,
+                type: 'admin_access_granted',
+                metadata: { email_count: successCount, emails: grantResults.filter(r => r.status === 'ok').map(r => r.email).join(', ') },
+            });
+        }
+
         setLoading(false);
     };
 
@@ -656,8 +681,8 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
             <div style={{ marginBottom: "1.5rem" }}>
                 <h3 style={{
                     color: "#ffffff",
-                    fontFamily: "'Fredoka', sans-serif",
-                    fontWeight: 600,
+                    fontFamily: "'Arboria', sans-serif",
+                    fontWeight: 'bold',
                     fontSize: "1.35rem",
                     margin: 0
                 }}>
@@ -800,6 +825,15 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
             setStatusMsg(`✅ Updated ${member.email}. Admin levels have been synchronized.`);
             setEditingId(null);
             refreshMembers();
+
+            // Notify other community admins
+            const { data: { user } } = await supabase.auth.getUser();
+            notifyAdmins({
+                communityId: selectedCommunity,
+                actorId: user?.id,
+                type: 'admin_role_changed',
+                metadata: { member_name: member.display_name || member.email, new_role: editRole },
+            });
         }
         setSaving(false);
     }
@@ -818,6 +852,15 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
         } else {
             setStatusMsg(`✅ Access revoked for ${member.email}.`);
             refreshMembers();
+
+            // Notify other community admins
+            const { data: { user } } = await supabase.auth.getUser();
+            notifyAdmins({
+                communityId: selectedCommunity,
+                actorId: user?.id,
+                type: 'admin_member_removed',
+                metadata: { member_name: member.display_name || member.email },
+            });
         }
     }
 
@@ -832,8 +875,8 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
             <div style={{ marginBottom: "1.5rem" }}>
                 <h3 style={{
                     color: "#ffffff",
-                    fontFamily: "'Fredoka', sans-serif",
-                    fontWeight: 600,
+                    fontFamily: "'Arboria', sans-serif",
+                    fontWeight: 'bold',
                     fontSize: "1.35rem",
                     margin: 0
                 }}>
@@ -999,6 +1042,15 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
             const deniedEmails = requests.filter(r => ids.includes(r.id)).map(r => r.email);
             onDeny(deniedEmails);
 
+            // Notify other community admins
+            const { data: { user } } = await supabase.auth.getUser();
+            notifyAdmins({
+                communityId: selectedCommunity,
+                actorId: user?.id,
+                type: 'admin_request_denied',
+                metadata: { denied_count: ids.length },
+            });
+
             refreshRequests();
             setSelectedIds([]);
             if (viewingRequest && ids.includes(viewingRequest.id)) {
@@ -1015,8 +1067,8 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
             <div style={{ marginBottom: "1.5rem" }}>
                 <h3 style={{
                     color: "#ffffff",
-                    fontFamily: "'Fredoka', sans-serif",
-                    fontWeight: 600,
+                    fontFamily: "'Arboria', sans-serif",
+                    fontWeight: 'bold',
                     fontSize: "1.35rem",
                     margin: 0
                 }}>
@@ -1031,7 +1083,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                 </div>
             )}
 
-            <div style={{ marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+            <div style={{ marginBottom: "1rem", display: "flex", gap: "1rem 0.5rem", flexWrap: "wrap" }}>
                 <button
                     disabled={selectedIds.length === 0}
                     onClick={handleBatchApprove}
@@ -1100,19 +1152,21 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                         </button>
                                     </td>
                                     <td>
-                                        <button
-                                            onClick={() => onApprove(r.email)}
-                                            className="admin-pill-btn" style={{ margin: 0, padding: "0.3rem 0.6rem", marginRight: "0.4rem", fontSize: "0.85rem" }}
-                                        >
-                                            Invite
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeny([r.id])}
-                                            disabled={processing}
-                                            className="admin-pill-btn danger" style={{ margin: 0, padding: "0.3rem 0.6rem", fontSize: "0.85rem" }}
-                                        >
-                                            Deny
-                                        </button>
+                                        <div style={{ display: "flex", gap: "0.75rem 0.4rem", flexWrap: "wrap" }}>
+                                            <button
+                                                onClick={() => onApprove(r.email)}
+                                                className="admin-pill-btn" style={{ margin: 0, padding: "0.3rem 0.6rem", fontSize: "0.85rem" }}
+                                            >
+                                                Invite
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeny([r.id])}
+                                                disabled={processing}
+                                                className="admin-pill-btn danger" style={{ margin: 0, padding: "0.3rem 0.6rem", fontSize: "0.85rem" }}
+                                            >
+                                                Deny
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -1141,7 +1195,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                             aria-label="Close modal"
                             style={{ position: 'absolute', top: '1rem', right: '1.2rem', background: 'none', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer', lineHeight: 1 }}
                         >×</button>
-                        <h3 id="modal-title" style={{ margin: '0 0 1rem', color: 'var(--auth-text-light-blue)', fontFamily: "'Fredoka', sans-serif" }}>Invite Request Detail</h3>
+                        <h3 id="modal-title" style={{ margin: '0 0 1rem', color: 'var(--auth-text-light-blue)', fontFamily: "'Arboria', sans-serif", fontWeight: 'bold' }}>Invite Request Detail</h3>
                         <div style={{ marginBottom: '2rem', color: '#ffffff', fontSize: '1.05rem', lineHeight: '1.6' }}>
                             <p style={{ margin: '0.5rem 0' }}><strong>Name:</strong> {viewingRequest.first_name || viewingRequest.last_name ? `${viewingRequest.first_name || ''} ${viewingRequest.last_name || ''}`.trim() : 'N/A'}</p>
                             <p style={{ margin: '0.5rem 0' }}><strong>Email:</strong> {viewingRequest.email}</p>
@@ -1154,7 +1208,7 @@ function InviteRequestsTab({ onApprove, onDeny, isGlobalAdmin, selectedCommunity
                                 </p>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '1rem 0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                             <button
                                 onClick={() => { onApprove(viewingRequest.email); setViewingRequest(null); }}
                                 className="admin-pill-btn"
@@ -1260,8 +1314,10 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
             .eq('id', id);
         
         if (!error) {
+            let currentUser = null;
             try {
                 const { data: { user } } = await supabase.auth.getUser();
+                currentUser = user;
                 if (post && post.author_id !== user?.id) {
                     await supabase
                         .from('notifications')
@@ -1276,6 +1332,15 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
             } catch (err) {
                 console.error("Error creating post_approved notification:", err);
             }
+
+            // Notify other community admins
+            notifyAdmins({
+                communityId: selectedCommunity,
+                actorId: currentUser?.id,
+                type: 'admin_post_moderated',
+                metadata: { action: 'approved', post_snippet: post.content.substring(0, 50) },
+            });
+
             fetchPending();
         }
         setActioningId(null);
@@ -1294,8 +1359,10 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
             .eq('id', post.id);
         
         if (!error) {
+            let currentUser = null;
             try {
                 const { data: { user } } = await supabase.auth.getUser();
+                currentUser = user;
                 if (post && post.author_id !== user?.id) {
                     await supabase
                         .from('notifications')
@@ -1313,6 +1380,15 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
             } catch (err) {
                 console.error("Error creating post_rejected notification:", err);
             }
+
+            // Notify other community admins
+            notifyAdmins({
+                communityId: selectedCommunity,
+                actorId: currentUser?.id,
+                type: 'admin_post_moderated',
+                metadata: { action: 'rejected', post_snippet: post.content.substring(0, 50) },
+            });
+
             setShowRejectModal(false);
             setRejectingPost(null);
             setRejectionReason("");
@@ -1381,7 +1457,7 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                                 </div>
                             )}
                             
-                            <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ display: 'flex', gap: '1rem 0.75rem', flexWrap: 'wrap' }}>
                                 <button 
                                     onClick={() => handleApprove(post.id)}
                                     disabled={actioningId === post.id}
@@ -1415,7 +1491,7 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                         style={{ padding: '2.5rem', maxWidth: '550px', width: '90%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', position: 'relative' }}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 id="reject-modal-title" style={{ margin: 0, color: "#ffffff", fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: "1.35rem" }}>Reject Submission</h3>
+                            <h3 id="reject-modal-title" style={{ margin: 0, color: "#ffffff", fontFamily: "'Arboria', sans-serif", fontWeight: 'bold', fontSize: "1.35rem" }}>Reject Submission</h3>
                             <button onClick={() => setShowRejectModal(false)} style={{ background: 'none', border: 'none', fontSize: '2rem', cursor: 'pointer', color: 'white', lineHeight: 1 }}>×</button>
                         </div>
                         
@@ -1442,7 +1518,7 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                             autoFocus
                         />
                         
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem 0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
                             <button className="admin-pill-btn secondary" onClick={() => setShowRejectModal(false)}>Cancel</button>
                             <button className="admin-pill-btn danger" onClick={handleRejectSubmit}>Confirm Rejection</button>
                         </div>
@@ -1457,6 +1533,8 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
 // ─── Main Page Component ──────────────────────────────────────────────────────
 export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
     const { communities, activeCommunityId, setActiveCommunityId } = useCommunity();
+    const [searchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
     const [isGlobalAdmin, setIsGlobalAdmin] = useState(propIsGlobalAdmin || false);
     const [isCommunityAdmin, setIsCommunityAdmin] = useState(false);
     const [authLoading, setAuthLoading] = useState(true);
@@ -1501,9 +1579,32 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
         checkAuth();
     }, [activeCommunityId, propIsGlobalAdmin]);
 
-    const [activeTab, setActiveTab] = useState(0);
+    const getInitialTab = () => {
+        if (tabParam === 'invite') return 0;
+        if (tabParam === 'grant') return 1;
+        if (tabParam === 'members') return 2;
+        if (tabParam === 'requests') return 3;
+        if (tabParam === 'pending_posts') return 4;
+        return 0;
+    };
+
+    const [activeTab, setActiveTab] = useState(getInitialTab);
     // Accordion: which tab is expanded on mobile (can be same as activeTab or null)
-    const [accordionOpen, setAccordionOpen] = useState(0);
+    const [accordionOpen, setAccordionOpen] = useState(getInitialTab);
+
+    useEffect(() => {
+        if (tabParam) {
+            let targetTab = 0;
+            if (tabParam === 'invite') targetTab = 0;
+            else if (tabParam === 'grant') targetTab = 1;
+            else if (tabParam === 'members') targetTab = 2;
+            else if (tabParam === 'requests') targetTab = 3;
+            else if (tabParam === 'pending_posts') targetTab = 4;
+            
+            setActiveTab(targetTab);
+            setAccordionOpen(targetTab);
+        }
+    }, [tabParam]);
     const [inviteEmailsRaw, setInviteEmailsRaw] = useState("");
     const [grantEmailsRaw, setGrantEmailsRaw] = useState("");
 

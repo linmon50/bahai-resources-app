@@ -541,6 +541,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar-logo {
   font-family: 'Fredoka', sans-serif;
+  font-weight: bold;
   font-size: 1.55rem;
   font-weight: 600;
   color: white;
@@ -1103,6 +1104,7 @@ form .auth-input-wrapper:last-of-type {
 
 .admin-title {
   font-family: 'Fredoka', sans-serif;
+  font-weight: bold;
   font-size: 2.5rem;
   font-weight: 600;
   margin: 0 0 1.5rem;
@@ -1135,7 +1137,7 @@ form .auth-input-wrapper:last-of-type {
 
 .admin-tabs {
   display: flex;
-  gap: 0;
+  gap: 8px;
   margin-bottom: 0;
   padding-top: 2px;
   flex-wrap: nowrap;
@@ -1166,7 +1168,6 @@ form .auth-input-wrapper:last-of-type {
   padding: 0.65rem 1.25rem;
   border-radius: 10px 10px 0 0;
   transition: all 0.2s;
-  margin-right: 4px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1189,7 +1190,6 @@ form .auth-input-wrapper:last-of-type {
   -webkit-backdrop-filter: blur(18px);
   border: 1px solid rgba(151, 247, 233, 0.45);
   border-bottom: none;
-  box-shadow: 0 0 100px 0 rgba(121, 217, 255, 0.5), 0 0 20px 0 rgba(126, 214, 255, 0.4);
   position: relative;
   z-index: 1;
   margin-bottom: -1px;
@@ -1314,8 +1314,8 @@ form .auth-input-wrapper:last-of-type {
 
 /* ── Responsive breakpoints ─────────────────────────────── */
 
-/*  At ≤ 1200px: hide desktop tab layout parts, show accordion */
-@media (max-width: 1200px) {
+/*  At ≤ 1340px: hide desktop tab layout parts, show accordion */
+@media (max-width: 1340px) {
 
   .admin-tabs,
   .admin-desktop-only {

@@ -141,6 +141,7 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
         assigned_to_name: task.assigned_to_name || '',
         status: task.status,
         due_date: task.due_date || '',
+        link: task.link || '',
     });
     const formRef = useRef(form);
     useEffect(() => { formRef.current = form; }, [form]);
@@ -155,11 +156,12 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
         setSaving(true);
         try {
             await onSave(task.id, {
-                title: currentForm.title.trim(),
+                title: currentForm.title.trim().slice(0, 270),
                 assigned_to: currentForm.assigned_to,
                 assigned_to_name: currentForm.assigned_to ? null : (currentForm.assigned_to_name || null),
                 status: currentForm.status,
                 due_date: currentForm.due_date || null,
+                link: currentForm.link.trim() || null,
             });
             setEditing(false);
         } catch (err) {
@@ -186,13 +188,13 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
         await onDelete(task.id);
     };
 
-    const indent = isSubtask ? { paddingLeft: '2.5rem', background: 'rgba(0,0,0,0.15)' } : {};
+    const indent = isSubtask ? { background: 'rgba(0,0,0,0.15)' } : {};
 
     if (editing) {
         return (
             <>
                 <tr style={{ ...indent, background: 'rgba(151,247,233,0.06)' }}>
-                    <td colSpan={4} style={{ padding: '0.75rem 1rem' }}>
+                    <td colSpan={4} style={{ padding: '0.75rem 1rem', paddingLeft: isSubtask ? '2.5rem' : '1rem' }}>
                         <div style={{ display: 'grid', gap: '0.6rem' }}>
                             {isSubtask && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '-0.3rem' }}>↳ Sub-task</span>}
                             <input
@@ -200,7 +202,16 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                                 value={form.title}
                                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                                 placeholder="Task title"
+                                maxLength={270}
                                 autoFocus
+                                onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+                                disabled={!isEditor}
+                            />
+                            <input
+                                className="task-inline-input"
+                                value={form.link}
+                                onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
+                                placeholder="Link (optional, e.g. https://google.com)"
                                 onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
                                 disabled={!isEditor}
                             />
@@ -269,8 +280,8 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
 
     return (
         <tr className="task-row" style={indent}>
-            <td style={{ width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <td style={{ width: '100%', paddingLeft: isSubtask ? '2.25rem' : '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {isSubtask && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>↳</span>}
                     <span
                         style={{ cursor: canEdit ? 'pointer' : 'default', flex: 1 }}
@@ -279,6 +290,30 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                     >
                         {task.title}
                     </span>
+                    {task.link && (
+                        <a 
+                            href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '0.3rem',
+                                color: '#ffffff', 
+                                textDecoration: 'none', 
+                                fontSize: '0.78rem',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                padding: '0.15rem 0.6rem',
+                                borderRadius: '9999px',
+                                fontWeight: '500'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <LinkIcon />
+                            <span>Link</span>
+                        </a>
+                    )}
                 </div>
                 {task.description && (
                     <p style={{ margin: isSubtask ? '0.2rem 0 0 1.3rem' : '0.2rem 0 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}>
@@ -340,7 +375,7 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
 // ─── New task inline row ──────────────────────────────────────────────────────
 
 function NewTaskRow({ parentTaskId, assigneeGroups, sessionId, onCreated, onCancel, invitedIds, onInvitePrompt }) {
-    const [form, setForm] = useState({ title: '', assigned_to: null, assigned_to_name: '', status: 'not_started', due_date: '' });
+    const [form, setForm] = useState({ title: '', assigned_to: null, assigned_to_name: '', status: 'not_started', due_date: '', link: '' });
     const [saving, setSaving] = useState(false);
     const formRef = useRef(form);
     useEffect(() => { formRef.current = form; }, [form]);
@@ -358,11 +393,12 @@ function NewTaskRow({ parentTaskId, assigneeGroups, sessionId, onCreated, onCanc
             const payload = {
                 session_id: sessionId,
                 parent_task_id: parentTaskId || null,
-                title: currentForm.title.trim(),
+                title: currentForm.title.trim().slice(0, 270),
                 assigned_to: currentForm.assigned_to,
                 assigned_to_name: currentForm.assigned_to ? null : (currentForm.assigned_to_name || null),
                 status: currentForm.status,
                 due_date: currentForm.due_date || null,
+                link: currentForm.link.trim() || null,
             };
             const { error } = await supabase.from('session_tasks').insert(payload);
             if (error) throw error;
@@ -375,13 +411,18 @@ function NewTaskRow({ parentTaskId, assigneeGroups, sessionId, onCreated, onCanc
     };
 
     return (
-        <tr style={{ background: 'rgba(151,247,233,0.05)', ...(parentTaskId ? { paddingLeft: '2.5rem' } : {}) }}>
+        <tr style={{ background: 'rgba(151,247,233,0.05)' }}>
             <td colSpan={5} style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ display: 'grid', gap: '0.6rem', paddingLeft: parentTaskId ? '2.5rem' : 0 }}>
+                <div style={{ display: 'grid', gap: '0.6rem', paddingLeft: parentTaskId ? '1.5rem' : 0 }}>
                     {parentTaskId && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '-0.3rem' }}>↳ New Sub-task</span>}
                     <input className="task-inline-input" value={form.title} autoFocus
                         onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                         placeholder={parentTaskId ? 'Sub-task title…' : 'Task title…'}
+                        maxLength={270}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onCancel(); }} />
+                    <input className="task-inline-input" value={form.link}
+                        onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
+                        placeholder="Link (optional, e.g. https://google.com)"
                         onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onCancel(); }} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                         <ComboBox userId={form.assigned_to} userName={form.assigned_to_name || ''}
@@ -571,6 +612,13 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     }, [sessionId, session.user.id, isAdmin]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // Redirect to /planning if active community changes to another community
+    useEffect(() => {
+        if (sessionData && activeCommunityId && sessionData.community_id !== activeCommunityId) {
+            navigate('/planning');
+        }
+    }, [activeCommunityId, sessionData, navigate]);
 
     // Escape listener and focus management for Contact Info Popup modal
     useEffect(() => {
@@ -831,7 +879,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
             <div className="member-mgmt-container">
                 <div className="glass-panel" style={{ maxWidth: '500px', margin: '4rem auto', padding: '2.5rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'white' }}><LockIcon /></div>
-                    <h2 style={{ color: 'var(--auth-text-light-blue)', marginBottom: '1rem' }}>Access Required</h2>
+                    <h2 style={{ color: 'white', marginBottom: '1rem' }}>Access Required</h2>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '2rem' }}>
                         You don't have access to this planning session. Contact the session creator to request access.
                     </p>
@@ -981,7 +1029,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <h3 style={{ margin: 0, color: 'var(--auth-text-light-blue)', fontSize: '1.1rem' }}>Shared Notes</h3>
+                            <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>Shared Notes</h3>
                             {isEditor && (
                                 <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', borderRadius: '9999px', padding: '2px' }}>
                                     <button
@@ -1039,7 +1087,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
 
             return (
                 <div>
-                    <h3 style={{ margin: '0 0 1.5rem', color: 'var(--auth-text-light-blue)', fontSize: '1.1rem' }}>
+                    <h3 style={{ margin: '0 0 1.5rem', color: 'white', fontSize: '1.1rem' }}>
                         {isCreatorOrAdmin ? 'Manage Access' : 'Session Access'}
                     </h3>
 
@@ -1235,7 +1283,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
                                 <div style={{ flex: '1 1 300px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-                                        <h1 className="admin-title" style={{ margin: 0, lineHeight: 1.1 }}>
+                                        <h1 className="admin-title" style={{ margin: 0, lineHeight: 1.1, color: 'white' }}>
                                             {sessionData.title}
                                         </h1>
                                         <SessionStatusBadge status={sessionData.status} />
@@ -1407,7 +1455,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                             aria-label="Close contact details"
                             style={{ position: 'absolute', top: '1rem', right: '1.2rem', background: 'none', border: 'none', color: 'white', fontSize: '1.2rem', cursor: 'pointer', lineHeight: 1 }}
                         >×</button>
-                        <h3 id="contact-modal-title" style={{ margin: '0 0 1rem', color: 'var(--auth-text-light-blue)', fontFamily: "'Fredoka', sans-serif" }}>Contact Information</h3>
+                        <h3 id="contact-modal-title" style={{ margin: '0 0 1rem', color: 'var(--auth-text-light-blue)', fontFamily: "'Arboria', sans-serif", fontWeight: 'bold' }}>Contact Information</h3>
                         <div style={{ display: 'grid', gap: '1rem' }}>
                             <div>
                                 <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name</label>
