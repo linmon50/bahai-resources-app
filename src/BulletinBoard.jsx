@@ -236,7 +236,8 @@ export default function BulletinBoard({ session, isAdmin }) {
                 flexDirection: editingPostId === sub.id ? 'column' : 'row',
                 justifyContent: editingPostId === sub.id ? 'flex-start' : 'space-between',
                 alignItems: editingPostId === sub.id ? 'flex-start' : 'center',
-                gap: editingPostId === sub.id ? '1rem' : '0'
+                flexWrap: 'wrap',
+                gap: '0.75rem'
               }}>
                 <div style={editingPostId === sub.id ? { width: '100%' } : { flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -330,9 +331,9 @@ export default function BulletinBoard({ session, isAdmin }) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div 
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer', minWidth: 0 }}
                   onClick={() => navigate(`/profile/${post.author_id}`)}
                 >
                   <div style={{ width: '45px', height: '45px', borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>

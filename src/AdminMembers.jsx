@@ -1426,12 +1426,12 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                             padding: '1.5rem', 
                             background: 'rgba(255, 255, 255, 0.08)'
                         }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.8rem' }}>
-                                <div>
-                                    <strong style={{ display: 'block', fontSize: '1.1rem' }}>{post.author?.display_name || 'No Display Name'}</strong>
-                                    <span style={{ fontSize: '0.85rem', color: '#97f7e9' }}>{post.author?.contact_email}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.8rem' }}>
+                                <div style={{ minWidth: 0 }}>
+                                    <strong style={{ display: 'block', fontSize: '1.1rem', overflowWrap: 'break-word' }}>{post.author?.display_name || 'No Display Name'}</strong>
+                                    <span style={{ fontSize: '0.85rem', color: '#97f7e9', overflowWrap: 'break-word' }}>{post.author?.contact_email}</span>
                                 </div>
-                                <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{new Date(post.created_at).toLocaleString()}</span>
+                                <span style={{ fontSize: '0.8rem', color: '#ffffff', flexShrink: 0 }}>{new Date(post.created_at).toLocaleString()}</span>
                             </div>
                             
                             <p style={{ whiteSpace: 'pre-wrap', marginBottom: '1rem', fontSize: '1rem', lineHeight: '1.5' }}>{post.content}</p>
