@@ -13,10 +13,10 @@ export const CommunityProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    async function fetchUserCommunities() {
+    async function fetchUserCommunities(sessionObj) {
       if (mounted) setLoading(true);
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = sessionObj !== undefined ? sessionObj : (await supabase.auth.getSession()).data.session;
         if (!session?.user) {
           if (mounted) {
             setCommunities([]);
@@ -80,8 +80,8 @@ export const CommunityProvider = ({ children }) => {
 
     fetchUserCommunities();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-        fetchUserCommunities();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        fetchUserCommunities(session);
     });
 
     return () => {
