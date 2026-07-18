@@ -122,7 +122,7 @@ export default function EditProfilePage({ session }) {
 
   useEffect(() => {
     fetchProfile();
-  }, [session]);
+  }, [session?.user?.id]);
 
   const fetchProfile = async () => {
     if (!session?.user?.id) return;

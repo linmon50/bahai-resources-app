@@ -52,7 +52,7 @@ export default function BulletinBoard({ session, isAdmin }) {
     } else {
       setLoading(false);
     }
-  }, [activeCommunityId, session]);
+  }, [activeCommunityId, session?.user?.id]);
 
   const checkCurrentCommunityAdmin = async () => {
     if (!session?.user?.id || !activeCommunityId) {

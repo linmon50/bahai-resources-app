@@ -36,7 +36,7 @@ export default function ProfileDropdown({ session, isAdmin }) {
         return () => {
             window.removeEventListener('profileUpdated', handleProfileUpdate);
         };
-    }, [session]);
+    }, [session?.user?.id]);
 
     const fetchProfile = async () => {
         const { data, error } = await supabase
