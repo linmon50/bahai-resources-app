@@ -7,8 +7,8 @@ const EXPERIENCE_ROLES = [
   "Ruhi book 1 tutor", "Ruhi book 2 tutor", "Ruhi book 3 tutor", "Ruhi book 4 tutor",
   "Ruhi book 5 tutor", "Ruhi book 6 tutor", "Ruhi book 7 tutor", "Ruhi book 8 tutor",
   "Ruhi book 9 tutor", "Ruhi book 10 tutor", "Ruhi book 11 tutor", "Ruhi book 12 tutor",
-  "Local spiritual assembly member", "Huqúqu'lláh representative", "Councellor",
-  "Auxiliary board member", "Auxiliary board member assistant", "Statisics officer",
+  "Local spiritual assembly member", "Huqúqu'lláh representative", "Counsellor",
+  "Auxiliary board member", "Auxiliary board member assistant", "Statistics officer",
   "Area teaching committee", "Task forces and special committees", "Other"
 ];
 
