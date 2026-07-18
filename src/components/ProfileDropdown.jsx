@@ -61,8 +61,12 @@ export default function ProfileDropdown({ session, isAdmin }) {
     }, []);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        navigate('/');
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error("Sign out error:", err);
+        }
+        window.location.href = "/";
     };
 
     return (

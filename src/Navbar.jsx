@@ -49,9 +49,13 @@ export default function Navbar({ session, isAdmin }) {
     const { communities, activeCommunityId, setActiveCommunityId } = useCommunity();
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        navigate("/");
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error("Sign out error:", err);
+        }
         setMenuOpen(false);
+        window.location.href = "/";
     };
 
     const navLinkClass = (path) =>

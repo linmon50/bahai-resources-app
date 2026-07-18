@@ -22,7 +22,14 @@ function MembershipRequired() {
       <p style={{ color: 'white', marginBottom: '1.5rem' }}>Your account is not currently associated with an approved community.</p>
       <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '2rem' }}>If you just signed up, please wait for an administrator to approve your request, or ensure you used a valid invite link.</p>
       <button 
-        onClick={() => supabase.auth.signOut()} 
+        onClick={async () => {
+          try {
+            await supabase.auth.signOut();
+          } catch (err) {
+            console.error("Sign out error:", err);
+          }
+          window.location.href = "/";
+        }} 
         className="admin-pill-btn danger" 
         style={{ width: '100%' }}
       >
