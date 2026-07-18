@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import supabase from "./supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "./components/CustomSelect";
 import { notifyAdmins } from './utils/notifyAdmins';
 
@@ -23,6 +23,7 @@ export default function Auth() {
     const [loading, setLoading] = useState(false);
     const [requiresPassword, setRequiresPassword] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         if (view === "request_invite") {
@@ -64,7 +65,8 @@ export default function Auth() {
         try {
             const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
-            navigate("/");
+            const from = location.state?.from || "/";
+            navigate(from, { replace: true });
         } catch (err) {
             setError(err.message || "Login failed.");
         } finally {
@@ -147,7 +149,8 @@ export default function Auth() {
                 }
             }
 
-            navigate("/");
+            const from = location.state?.from || "/";
+            navigate(from);
             window.location.reload(); // Force refresh to update Navbar/App state
         } catch (err) {
             setError(err.message || "Sign up failed.");
