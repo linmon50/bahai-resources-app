@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import supabase from '../supabaseClient';
 import NotificationMenu from './NotificationMenu';
+import { clearSessionAndRedirect } from '../utils/authUtils';
 import { getInitials, getAvatarColor } from '../utils/avatarUtils';
 
 const ChevronDown = () => (
@@ -61,12 +62,7 @@ export default function ProfileDropdown({ session, isAdmin }) {
     }, []);
 
     const handleSignOut = async () => {
-        try {
-            await supabase.auth.signOut();
-        } catch (err) {
-            console.error("Sign out error:", err);
-        }
-        window.location.href = "/";
+        await clearSessionAndRedirect();
     };
 
     return (

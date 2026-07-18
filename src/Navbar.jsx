@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import supabase from "./supabaseClient";
+import { clearSessionAndRedirect } from "./utils/authUtils";
 import { useCommunity } from "./context/CommunityContext";
 import CustomSelect from "./components/CustomSelect";
 import NotificationMenu from "./components/NotificationMenu";
@@ -49,13 +49,8 @@ export default function Navbar({ session, isAdmin }) {
     const { communities, activeCommunityId, setActiveCommunityId } = useCommunity();
 
     const handleSignOut = async () => {
-        try {
-            await supabase.auth.signOut();
-        } catch (err) {
-            console.error("Sign out error:", err);
-        }
         setMenuOpen(false);
-        window.location.href = "/";
+        await clearSessionAndRedirect();
     };
 
     const navLinkClass = (path) =>

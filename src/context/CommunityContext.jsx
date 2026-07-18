@@ -63,7 +63,9 @@ export const CommunityProvider = ({ children }) => {
           if (combined.length > 0) {
             const savedId = localStorage.getItem('active_community_id');
             const exists = combined.find(c => c.id === savedId);
-            if (!exists) {
+            if (exists) {
+              setActiveCommunityId(exists.id);
+            } else {
               setActiveCommunityId(combined[0].id);
               localStorage.setItem('active_community_id', combined[0].id);
             }
