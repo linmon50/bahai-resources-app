@@ -116,7 +116,7 @@ export default function AccountSettings({ session }) {
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: '700px', margin: '2rem auto', padding: '0 1rem', color: 'white', boxSizing: 'border-box' }}>
+    <div className="content-container" style={{ maxWidth: '700px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 className="admin-title" style={{ margin: 0 }}>Account Settings</h2>
       </div>

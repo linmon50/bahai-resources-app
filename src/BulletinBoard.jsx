@@ -192,7 +192,7 @@ export default function BulletinBoard({ session, isAdmin }) {
   if (error) return <div style={{ padding: '2rem', textAlign: 'center', color: '#ff4444' }}>{error}</div>;
 
   return (
-    <div style={{ maxWidth: '800px', width: '100%', boxSizing: 'border-box', margin: '2rem auto', padding: '0 1.5rem', color: 'white' }}>
+    <div className="content-container" style={{ maxWidth: '800px' }}>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h2 className="admin-title" style={{ marginBottom: '0.5rem' }}>
           {communityDetails?.name} Bulletin Board

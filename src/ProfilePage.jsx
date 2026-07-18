@@ -83,7 +83,7 @@ export default function ProfilePage({ session }) {
   const hasDirectoryInfo = (profile.experience_roles?.length > 0) || (profile.talents_and_abilities?.length > 0) || (profile.materials?.length > 0);
 
   return (
-    <div style={{ maxWidth: '900px', width: '100%', boxSizing: 'border-box', margin: '2rem auto', padding: '0 1.5rem', color: 'white' }}>
+    <div className="content-container" style={{ maxWidth: '900px' }}>
       
       {/* HEADER: Avatar & Name */}
       <div style={{ 

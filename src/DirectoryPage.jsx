@@ -93,7 +93,7 @@ export default function DirectoryPage({ session }) {
   });
 
   return (
-    <div style={{ maxWidth: '1000px', width: '100%', boxSizing: 'border-box', margin: '2rem auto', padding: '0 1.5rem', color: 'white' }}>
+    <div className="content-container" style={{ maxWidth: '1000px' }}>
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h2 className="admin-title" style={{ marginBottom: '1rem' }}>
           {communityDetails?.name ? `${communityDetails.name} Directory` : 'Community Directory'}

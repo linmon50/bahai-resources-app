@@ -131,6 +131,22 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Centered content page wrapper class */
+.content-container {
+  width: 100%;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .content-container {
+    margin: 1rem auto;
+    padding: 0 0.75rem;
+  }
+}
+
 /* ─── Top Profile Nav ─── */
 .profile-top-nav {
   position: absolute;
@@ -1728,6 +1744,14 @@ textarea.admin-input {
 
   .edit-profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .member-mgmt-container {
+    padding: 1.5rem 0.75rem 2.5rem !important;
+  }
+
+  .admin-accordion-panel {
+    padding: 1.25rem 0.75rem !important;
   }
 }
 
