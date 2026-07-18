@@ -14,10 +14,17 @@ export const CommunityProvider = ({ children }) => {
     let mounted = true;
 
     async function fetchUserCommunities() {
+      if (mounted) setLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
-          if (mounted) setLoading(false);
+          if (mounted) {
+            setCommunities([]);
+            setUserMemberships([]);
+            setIsGlobalAdmin(false);
+            setActiveCommunityId('');
+            setLoading(false);
+          }
           return;
         }
 
