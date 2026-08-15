@@ -3,6 +3,8 @@ import supabase from "./supabaseClient";
 import { useNavigate, useLocation } from "react-router-dom";
 import CustomSelect from "./components/CustomSelect";
 import { notifyAdmins } from './utils/notifyAdmins';
+import LockoutNotice from './components/LockoutNotice';
+import { notifyLockout } from './utils/notifyLockout';
 
 // Which "view" we are showing
 // 'login' | 'signup' | 'forgot' | 'forgot_sent'
@@ -22,6 +24,7 @@ export default function Auth() {
     const [message, setMessage] = useState({ text: "", isError: true });
     const [loading, setLoading] = useState(false);
     const [requiresPassword, setRequiresPassword] = useState(false);
+    const [lockoutInfo, setLockoutInfo] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -62,11 +65,45 @@ export default function Auth() {
         e.preventDefault();
         setLoading(true);
         setMessage({ text: "", isError: true });
+        setLockoutInfo(null);
+        const cleanEmail = email.trim();
+
         try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
+            // 1️⃣ Fetch failed login counters for this email from memberships table
+            const { data: lockoutRows, error: lockoutErr } = await supabase
+                .rpc('get_lockout_status', { p_email: cleanEmail });
+
+            if (lockoutErr) console.warn("Lockout check error:", lockoutErr.message);
+
+            const lockoutData = lockoutRows?.[0] || { failed_login_attempts: 0, last_failed_at: null };
+            const attempts = lockoutData.failed_login_attempts || 0;
+            const last = lockoutData.last_failed_at ? new Date(lockoutData.last_failed_at) : null;
+            const now = new Date();
+
+            // 2️⃣ Determine lockout (5 attempts within 15 minutes)
+            if (attempts >= 5 && last && (now - last) < 15 * 60 * 1000) {
+                const remaining = Math.ceil((15 * 60 * 1000 - (now - last)) / 60000);
+                setLockoutInfo({ remaining });
+                setPassword("");
+                // Notify user via email
+                await notifyLockout(supabase, { email: cleanEmail });
+                setLoading(false);
+                return;
+            }
+
+            // 3️⃣ Attempt sign-in
+            const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+            if (error) {
+                // Increment counter in memberships on failure
+                await supabase.rpc('record_failed_login', { p_email: cleanEmail });
+                throw error;
+            }
+
+            // 4️⃣ On success, reset counters in memberships
+            await supabase.rpc('record_successful_login', { p_email: cleanEmail });
+
             const from = location.state?.from || "/";
-            navigate(from, { replace: true });
+            window.location.href = from;
         } catch (err) {
             setError(err.message || "Login failed.");
         } finally {
@@ -315,6 +352,7 @@ export default function Auth() {
             {/* Right Box: Form */}
             <div className="auth-right">
                 <div className="auth-card">
+                    {lockoutInfo && <LockoutNotice remaining={lockoutInfo.remaining} />}
                     {/* -------- LOGIN -------- */}
                     {view === "login" && (
                         <>
@@ -325,7 +363,15 @@ export default function Auth() {
                             
                             <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", margin: 0 }}>
                                 <Field label="Email" type="email" value={email} onChange={setEmail} />
-                                <Field label="Password" type="password" value={password} onChange={setPassword} />
+                                <Field 
+                                  label="Password" 
+                                  type="password" 
+                                  value={password} 
+                                  onChange={(val) => {
+                                      setPassword(val);
+                                      if (lockoutInfo) setLockoutInfo(null);
+                                  }} 
+                                />
 
                                 <button type="submit" disabled={loading} className="auth-btn-green">
                                     {loading ? "Logging in..." : "Login"}
@@ -355,7 +401,7 @@ export default function Auth() {
                             <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", margin: 0 }}>
                                 <Field label="Invite Code" type="text" value={inviteCode} onChange={setInviteCode} />
                                 <Field label="Email" type="email" value={email} onChange={setEmail} />
-                                <Field label="Password" type="password" value={password} onChange={setPassword} />
+                                <Field label="Create a Password" type="password" value={password} onChange={setPassword} />
                                 <Field label="Confirm Password" type="password" value={confirmPassword} onChange={setConfirmPassword} />
 
                                 <button type="submit" disabled={loading} className="auth-btn-green">
@@ -407,7 +453,7 @@ export default function Auth() {
                                 <Field label="Zip Code" type="text" value={zipCode} onChange={setZipCode} />
 
                                 <div className="auth-input-wrapper">
-                                    <label id="community-label">Community</label>
+                                    <label id="community-label">Community <span style={{ color: "#ef4444", marginLeft: "4px" }}>*</span></label>
                                     <CustomSelect
                                         value={communityId}
                                         onChange={e => setCommunityId(e.target.value)}
@@ -500,7 +546,7 @@ export default function Auth() {
 }
 
 // --- Small reusable components ---
-function Field({ label, type, value, onChange }) {
+function Field({ label, type, value, onChange, required = true }) {
     const [show, setShow] = useState(false);
     const isPassword = type === "password";
     const actualType = isPassword ? (show ? "text" : "password") : type;
@@ -508,13 +554,16 @@ function Field({ label, type, value, onChange }) {
 
     return (
         <div className="auth-input-wrapper">
-            <label htmlFor={id}>{label}</label>
+            <label htmlFor={id}>
+                {label}
+                {required && <span style={{ color: "#ef4444", marginLeft: "4px" }}>*</span>}
+            </label>
             <input
                 id={id}
                 type={actualType}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                required
+                required={required}
                 style={{ paddingRight: isPassword ? "2.5rem" : "1rem" }}
                 autoComplete={type === "email" ? "email" : type === "password" ? "current-password" : "off"}
             />

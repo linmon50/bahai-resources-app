@@ -13,6 +13,11 @@ export const CommunityProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    // Safety fallback: ensure loading spinner disappears after 3.5s
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 3500);
+
     async function fetchUserCommunities(sessionObj) {
       if (mounted) setLoading(true);
       try {
@@ -88,6 +93,7 @@ export const CommunityProvider = ({ children }) => {
 
     return () => {
         mounted = false;
+        clearTimeout(safetyTimer);
         subscription?.unsubscribe();
     };
   }, []);

@@ -122,7 +122,7 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, []);
 
-  if (loading && !isRecovering) {
+  if (loading && !session && !isRecovering) {
     return <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>Loading...</div>;
   }
 
@@ -153,10 +153,6 @@ function AppContent({ session, hasMembership, isGlobalAdmin }) {
   const { isAdmin: activeCommunityAdmin, loading: communityLoading } = useCommunity();
   const location = useLocation();
 
-  if (communityLoading) {
-    return <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>Loading community...</div>;
-  }
-
   return (
     <div className="app-layout">
       <a href="#main-content" className="skip-link">Skip to main content</a>
@@ -164,41 +160,48 @@ function AppContent({ session, hasMembership, isGlobalAdmin }) {
 
       <main id="main-content" className="app-content" style={{ marginLeft: session ? undefined : 0, paddingTop: session ? undefined : 0 }}>
         {session && <ProfileDropdown session={session} isAdmin={activeCommunityAdmin} />}
-        <Routes>
-          <Route
-            path="/"
-            element={
-              session
-                ? (hasMembership
-                  ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} />
-                  : (
-                    <div style={{ padding: "2rem" }}>
-                      <MembershipRequired />
-                    </div>
+        
+        {communityLoading ? (
+          <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'white' }}>
+            <p style={{ color: 'var(--auth-text-light-blue)', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Loading community...</p>
+          </div>
+        ) : (
+          <Routes>
+            <Route
+              path="/"
+              element={
+                session
+                  ? (hasMembership
+                    ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} />
+                    : (
+                      <div style={{ padding: "2rem" }}>
+                        <MembershipRequired />
+                      </div>
+                    )
                   )
-                )
-                : <Auth />
-            }
-          />
+                  : <Auth />
+              }
+            />
 
-          <Route
-            path="/admin/members"
-            element={(session && activeCommunityAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />}
-          />
+            <Route
+              path="/admin/members"
+              element={(session && activeCommunityAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />}
+            />
 
-          <Route path="/profile" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-          <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-          <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-          <Route path="/settings" element={(session && hasMembership) ? <AccountSettings session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-          <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-          <Route path="/bulletin" element={(session && hasMembership) ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-          <Route path="/planning" element={(session && hasMembership) ? <PlanningSessionsPage session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-          <Route path="/planning/:sessionId" element={(session && hasMembership) ? <PlanningSessionDetail session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/profile" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/profile/edit" element={(session && hasMembership) ? <EditProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/profile/:userId" element={(session && hasMembership) ? <ProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/settings" element={(session && hasMembership) ? <AccountSettings session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/directory" element={(session && hasMembership) ? <DirectoryPage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/bulletin" element={(session && hasMembership) ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/planning" element={(session && hasMembership) ? <PlanningSessionsPage session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/planning/:sessionId" element={(session && hasMembership) ? <PlanningSessionDetail session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
 
-          <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
+            <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
 
-          <Route path="*" element={<Navigate to="/" state={{ from: location.pathname }} replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" state={{ from: location.pathname }} replace />} />
+          </Routes>
+        )}
       </main>
     </div>
   );

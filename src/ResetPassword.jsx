@@ -14,6 +14,19 @@ export default function ResetPassword() {
     const [showConfirm, setShowConfirm] = useState(false);
     const navigate = useNavigate();
 
+    useEffect(() => {
+        async function checkSession() {
+            const { data } = await supabase.auth.getSession();
+            if (!data?.session) {
+                setMessage({
+                    text: 'Authorized session missing. Go back to log in page and click "Forgot your Password" if you still don\'t know your password. Be sure to use the most recent password recovery link sent to your email.',
+                    isError: true
+                });
+            }
+        }
+        checkSession();
+    }, []);
+
     const handleReset = async (e) => {
         e.preventDefault();
 
@@ -30,8 +43,22 @@ export default function ResetPassword() {
         setMessage({ text: "", isError: true });
 
         try {
-            const { error } = await supabase.auth.updateUser({ password });
+            const { data: updateData, error } = await supabase.auth.updateUser({ password });
             if (error) throw error;
+
+            // Reset lockout counters in login_attempts upon successful password recovery
+            const { data: sessionData } = await supabase.auth.getSession();
+            const currentUser = updateData?.user || sessionData?.session?.user;
+            const resetEmail = currentUser?.email || email; // fallback to state email if present
+            const userId = currentUser?.id;
+
+            if (resetEmail || userId) {
+                const { error: rpcErr } = await supabase.rpc('record_successful_login', { 
+                    p_email: resetEmail || null, 
+                    p_user_id: userId || null 
+                });
+                if (rpcErr) console.error("Lockout reset RPC error:", rpcErr);
+            }
 
             setMessage({ text: "Password updated successfully!", isError: false });
             
@@ -45,7 +72,11 @@ export default function ResetPassword() {
             }, 1500);
 
         } catch (err) {
-            setMessage({ text: err.message || "Failed to update password.", isError: true });
+            let errMsg = err.message || "Failed to update password.";
+            if (errMsg.toLowerCase().includes("auth session missing") || errMsg.toLowerCase().includes("session missing")) {
+                errMsg = 'Authorized session missing. Go back to log in page and click "Forgot your Password" if you still don\'t know your password. Be sure to use the most recent password recovery link sent to your email.';
+            }
+            setMessage({ text: errMsg, isError: true });
         } finally {
             setLoading(false);
         }
@@ -72,7 +103,7 @@ export default function ResetPassword() {
 
                     <form onSubmit={handleReset} style={{ display: "flex", flexDirection: "column", margin: 0 }}>
                         <div className="auth-input-wrapper">
-                            <label>New Password</label>
+                            <label>New Password <span style={{ color: "#ef4444", marginLeft: "4px" }}>*</span></label>
                             <input
                                 type={showPass ? "text" : "password"}
                                 value={password}
@@ -96,7 +127,7 @@ export default function ResetPassword() {
                         </div>
                         
                         <div className="auth-input-wrapper">
-                            <label>Confirm New Password</label>
+                            <label>Confirm New Password <span style={{ color: "#ef4444", marginLeft: "4px" }}>*</span></label>
                             <input
                                 type={showConfirm ? "text" : "password"}
                                 value={confirmPassword}
@@ -119,7 +150,7 @@ export default function ResetPassword() {
                             </button>
                         </div>
 
-                        <button type="submit" disabled={loading} className="auth-btn-green" style={{ marginTop: "1rem" }}>
+                        <button type="submit" disabled={loading} className="auth-btn-green">
                             {loading ? "Updating..." : "Update Password"}
                         </button>
                     </form>
@@ -127,7 +158,7 @@ export default function ResetPassword() {
                     {message.text && (
                         <div style={{
                             padding: '1rem',
-                            marginTop: '1rem',
+                            marginBottom: '1rem',
                             borderRadius: '8px',
                             textAlign: 'center',
                             backgroundColor: message.isError ? 'var(--error-bg)' : 'var(--success-bg)',
@@ -137,6 +168,18 @@ export default function ResetPassword() {
                             {message.text}
                         </div>
                     )}
+
+                    <button 
+                        type="button" 
+                        onClick={async () => {
+                            sessionStorage.removeItem("isRecoveringPassword");
+                            await supabase.auth.signOut();
+                            window.location.href = "/";
+                        }} 
+                        className="auth-btn-blue"
+                    >
+                        Back to Log In
+                    </button>
                 </div>
             </div>
         </div>
