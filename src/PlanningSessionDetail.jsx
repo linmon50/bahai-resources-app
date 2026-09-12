@@ -61,9 +61,59 @@ const NotesIcon = () => (
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
     </svg>
 );
+const DocumentsIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+);
 const AccessIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+);
+
+// White SVG icons for resource category types
+const FileTextIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+        <polyline points="10 9 9 9 8 9" />
+    </svg>
+);
+
+const SpreadsheetIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <line x1="3" y1="9" x2="21" y2="9" />
+        <line x1="3" y1="15" x2="21" y2="15" />
+        <line x1="9" y1="3" x2="9" y2="21" />
+        <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+);
+
+const PresentationIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+);
+
+const VideoIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <polygon points="23 7 16 12 23 17 23 7" />
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+    </svg>
+);
+
+const FolderIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
     </svg>
 );
 const STATUS_COLORS = {
@@ -501,6 +551,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     const [newResourceUrl, setNewResourceUrl]     = useState('');
     const [newResourceCategory, setNewResourceCategory] = useState('Document');
     const [addingResource, setAddingResource]     = useState(false);
+    const [showAddResourceForm, setShowAddResourceForm] = useState(false);
 
     // Task UI state
     const [addingTask,    setAddingTask]    = useState(false);
@@ -832,6 +883,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
             setNewResourceTitle('');
             setNewResourceUrl('');
             setNewResourceCategory('Document');
+            setShowAddResourceForm(false);
         } catch (err) {
             alert('Error adding resource link: ' + err.message);
         } finally {
@@ -1141,28 +1193,39 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
 
             const getCategoryIcon = (cat) => {
                 switch (cat) {
-                    case 'Document': return '📄';
-                    case 'Spreadsheet': return '📊';
-                    case 'Presentation': return '💻';
-                    case 'Video/Audio': return '🎥';
-                    case 'Folder': return '📁';
-                    default: return '🔗';
+                    case 'Document': return <FileTextIcon />;
+                    case 'Spreadsheet': return <SpreadsheetIcon />;
+                    case 'Presentation': return <PresentationIcon />;
+                    case 'Video/Audio': return <VideoIcon />;
+                    case 'Folder': return <FolderIcon />;
+                    default: return <LinkIcon />;
                 }
             };
 
             return (
                 <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>
                             Planning Documents & Media
                         </h3>
-                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
-                            {resourceLinks.length} item{resourceLinks.length !== 1 ? 's' : ''} attached
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+                                {resourceLinks.length} item{resourceLinks.length !== 1 ? 's' : ''} attached
+                            </span>
+                            {isEditor && (
+                                <button
+                                    className="admin-pill-btn"
+                                    style={{ margin: 0, padding: '0.35rem 0.85rem', fontSize: '0.82rem' }}
+                                    onClick={() => setShowAddResourceForm(prev => !prev)}
+                                >
+                                    {showAddResourceForm ? '▲ Cancel' : '+ Add Link / File'}
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Add Resource Link Form for Editors */}
-                    {isEditor && (
+                    {isEditor && showAddResourceForm && (
                         <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(151,247,233,0.2)', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.5rem' }}>
                             <h4 style={{ margin: '0 0 1rem', color: '#97f7e9', fontSize: '0.92rem', fontWeight: 600 }}>
                                 + Add Document or Media Link
@@ -1195,12 +1258,12 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                             value={newResourceCategory}
                                             onChange={e => setNewResourceCategory(e.target.value)}
                                             options={[
-                                                { value: 'Document', label: '📄 Document' },
-                                                { value: 'Spreadsheet', label: '📊 Spreadsheet' },
-                                                { value: 'Presentation', label: '💻 Presentation' },
-                                                { value: 'Video/Audio', label: '🎥 Video/Audio' },
-                                                { value: 'Folder', label: '📁 Folder' },
-                                                { value: 'Other', label: '🔗 Other Link' },
+                                                { value: 'Document', label: 'Document' },
+                                                { value: 'Spreadsheet', label: 'Spreadsheet' },
+                                                { value: 'Presentation', label: 'Presentation' },
+                                                { value: 'Video/Audio', label: 'Video / Audio' },
+                                                { value: 'Folder', label: 'Folder Link' },
+                                                { value: 'Other', label: 'Other Link' },
                                             ]}
                                         />
                                     </div>
@@ -1226,7 +1289,9 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                     borderRadius: '10px', padding: '0.9rem 1.25rem', gap: '1rem', flexWrap: 'wrap'
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '220px' }}>
-                                        <span style={{ fontSize: '1.4rem' }}>{getCategoryIcon(item.category)}</span>
+                                        <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            {getCategoryIcon(item.category)}
+                                        </div>
                                         <div>
                                             <a
                                                 href={item.url}
@@ -1557,10 +1622,14 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 {tab === 'Tasks' && <TasksIcon />}
                                 {tab === 'Notes' && <NotesIcon />}
+                                {tab === 'Documents & Media' && <DocumentsIcon />}
                                 {tab === 'Access' && <AccessIcon />}
                                 {tab}
                                 {tab === 'Tasks' && (
                                     <span className="admin-tab-badge">{allTaskCount}</span>
+                                )}
+                                {tab === 'Documents & Media' && (
+                                    <span className="admin-tab-badge">{parseSessionLinks(sessionData?.links).resourceLinks.length}</span>
                                 )}
                                 {tab === 'Access' && (
                                     <span className="admin-tab-badge">{accessList.length}</span>
@@ -1588,6 +1657,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         {tab === 'Tasks' && <TasksIcon />}
                                         {tab === 'Notes' && <NotesIcon />}
+                                        {tab === 'Documents & Media' && <DocumentsIcon />}
                                         {tab === 'Access' && <AccessIcon />}
                                         {tab}
                                     </span>
