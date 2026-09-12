@@ -1210,7 +1210,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                     {editingHeader ? (
                         // ── Edit mode ──────────────────────────────────────
                         <div style={{ display: 'grid', gap: '1rem' }}>
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                            <div className="planning-form-title-row">
                                 <input className="admin-input" style={{ flex: 1, fontSize: '1.2rem', fontWeight: 600 }}
                                     value={headerForm.title}
                                     onChange={e => setHeaderForm(f => ({ ...f, title: e.target.value }))}
@@ -1230,7 +1230,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 value={headerForm.description}
                                 onChange={e => setHeaderForm(f => ({ ...f, description: e.target.value }))}
                                 style={{ resize: 'vertical' }} />
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div className="planning-form-grid-2">
                                 <div><label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.3rem' }}><CalendarIcon /> Start Date</label>
                                     <CustomDatePicker className="admin-input" value={headerForm.starts_at}
                                         onChange={e => setHeaderForm(f => ({ ...f, starts_at: e.target.value }))}
@@ -1255,7 +1255,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                         </span>
                                     ))}
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '0.5rem' }}>
+                                <div className="planning-form-links-grid">
                                     <input className="admin-input" placeholder="Label" value={headerLinkLabel} onChange={e => setHeaderLinkLabel(e.target.value)} />
                                     <input className="admin-input" placeholder="URL" value={headerLinkUrl} onChange={e => setHeaderLinkUrl(e.target.value)}
                                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (headerLinkUrl.trim()) { setHeaderForm(f => ({ ...f, links: [...(f.links||[]), { label: headerLinkLabel.trim() || headerLinkUrl.trim(), url: headerLinkUrl.trim() }] })); setHeaderLinkLabel(''); setHeaderLinkUrl(''); } } }} />
@@ -1271,7 +1271,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><LockIcon /> Hidden session</span>
                             </label>
 
-                            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+                            <div className="planning-form-actions">
                                 <button className="admin-pill-btn secondary" style={{ margin: 0 }} onClick={() => setEditingHeader(false)}>Cancel</button>
                                 <button className="admin-pill-btn" style={{ margin: 0 }} disabled={savingHeader} onClick={handleSaveHeader}>
                                     {savingHeader ? 'Saving…' : '✓ Save'}

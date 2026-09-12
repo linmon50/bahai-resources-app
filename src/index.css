@@ -2682,4 +2682,102 @@ td:has(.combobox-dropdown) {
 }
 .btn-icon + .btn-text-desktop {
   margin-left: 4px;
-}
+}
+
+/* ==========================================================================
+   Planning Session Form Responsive Styles
+   ========================================================================== */
+
+.planning-form-panel {
+  width: 100%;
+  max-width: 900px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-sizing: border-box;
+}
+
+.planning-form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.planning-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.planning-form-links-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.planning-form-title-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.planning-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .planning-form-panel {
+    padding: 1.25rem 0.85rem !important;
+  }
+
+  .planning-form-grid-3,
+  .planning-form-grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .planning-form-links-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
+
+  .planning-form-links-grid button {
+    width: 100% !important;
+  }
+
+  .planning-form-title-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .planning-form-title-row > div,
+  .planning-form-title-row > input,
+  .planning-form-title-row .custom-select-container {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .planning-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .planning-form-actions button {
+    width: 100% !important;
+    justify-content: center;
+  }
+}
+

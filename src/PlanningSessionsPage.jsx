@@ -259,8 +259,8 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
 
             {/* ── Create Form ──────────────────────────────────────────────── */}
             {showCreate && (
-                <div className="glass-panel" style={{ width: '100%', maxWidth: '900px', padding: '2rem', marginBottom: '2rem', boxSizing: 'border-box' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div className="glass-panel planning-form-panel">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <h3 style={{ margin: 0, fontFamily: "'Arboria', sans-serif", fontWeight: 'bold', fontSize: '1.4rem', color: 'white' }}>
                             New Planning Session
                         </h3>
@@ -294,7 +294,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                            <div className="planning-form-grid-3">
                                 <div className="admin-input-group">
                                     <label>Start Date</label>
                                     <CustomDatePicker className="admin-input"
@@ -341,7 +341,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                         ))}
                                     </div>
                                 )}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                                <div className="planning-form-links-grid">
                                     <input className="admin-input" placeholder="Label (e.g. Zoom)" value={linkLabel}
                                         onChange={e => setLinkLabel(e.target.value)} />
                                     <input className="admin-input" placeholder="URL" value={linkUrl}
@@ -366,7 +366,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                 </span>
                             </label>
 
-                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                            <div className="planning-form-actions">
                                 <button type="button" className="admin-pill-btn secondary"
                                     style={{ margin: 0 }}
                                     onClick={() => {
