@@ -184,53 +184,9 @@ function sortTasks(tasks) {
 
 // ─── TaskRow ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, onAddSubtask, invitedIds, onInvitePrompt, sessionId, onShowContact, currentUserId, hasAnyEditableTasks }) {
-    const [editing, setEditing] = useState(false);
+function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask, isBeingEdited, onShowContact, currentUserId, hasAnyEditableTasks }) {
     const canEdit = isEditor || (task.assigned_to === currentUserId);
-    const [form, setForm] = useState({
-        title: task.title,
-        assigned_to: task.assigned_to || null,
-        assigned_to_name: task.assigned_to_name || '',
-        status: task.status,
-        due_date: task.due_date || '',
-        link: task.link || '',
-    });
-    const formRef = useRef(form);
-    useEffect(() => { formRef.current = form; }, [form]);
-
-    const [saving, setSaving] = useState(false);
-
     const displayName = task.assigned_to_name || task.assignee?.display_name || '—';
-
-    const handleSave = async () => {
-        const currentForm = formRef.current;
-        if (!currentForm.title.trim()) return;
-        setSaving(true);
-        try {
-            await onSave(task.id, {
-                title: currentForm.title.trim().slice(0, 270),
-                assigned_to: currentForm.assigned_to,
-                assigned_to_name: currentForm.assigned_to ? null : (currentForm.assigned_to_name || null),
-                status: currentForm.status,
-                due_date: currentForm.due_date || null,
-                link: currentForm.link.trim() || null,
-            });
-            setEditing(false);
-        } catch (err) {
-            alert('Error saving task: ' + err.message);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleAssigneeChange = (uid, name) => {
-        const isNone = !uid && (!name || name === 'Unassigned');
-        setForm(f => ({ 
-            ...f, 
-            assigned_to: uid, 
-            assigned_to_name: isNone ? null : name 
-        }));
-    };
 
     const handleDelete = async () => {
         const msg = isSubtask
@@ -241,104 +197,17 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
     };
 
     const indent = isSubtask ? { background: 'rgba(0,0,0,0.15)' } : {};
-
-    if (editing) {
-        return (
-            <>
-                <tr style={{ ...indent, background: 'rgba(151,247,233,0.06)' }}>
-                    <td colSpan={4} style={{ padding: '0.75rem 1rem', paddingLeft: isSubtask ? '2.5rem' : '1rem' }}>
-                        <div style={{ display: 'grid', gap: '0.6rem' }}>
-                            {isSubtask && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '-0.3rem' }}>↳ Sub-task</span>}
-                            <input
-                                className="task-inline-input"
-                                value={form.title}
-                                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                                placeholder="Task title"
-                                maxLength={270}
-                                autoFocus
-                                onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-                                disabled={!isEditor}
-                            />
-                            <input
-                                className="task-inline-input"
-                                value={form.link}
-                                onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
-                                placeholder="Link (optional, e.g. https://google.com)"
-                                onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
-                                disabled={!isEditor}
-                            />
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                                <ComboBox
-                                    userId={form.assigned_to}
-                                    userName={form.assigned_to_name || (task.assignee?.display_name || '')}
-                                    onChange={handleAssigneeChange}
-                                    groups={assigneeGroups}
-                                    placeholder="Assign to…"
-                                    disabled={!isEditor}
-                                />
-                                <CustomDatePicker className="task-inline-input"
-                                    value={form.due_date}
-                                    onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                                    disabled={!isEditor}
-                                    placeholder="Due date…"
-                                />
-                                <CustomSelect
-                                    value={form.status}
-                                    onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                                    options={[
-                                        { value: 'not_started', label: 'Not Started' },
-                                        { value: 'in_progress', label: 'In Progress' },
-                                        { value: 'done',        label: 'Done'        },
-                                    ]}
-                                    variant="dense"
-                                />
-                            </div>
-
-                            {/* Invite prompt */}
-                            {isEditor && form.assigned_to && !invitedIds.includes(form.assigned_to) && (
-                                <div style={{ background: 'rgba(252,211,77,0.1)', border: '1px solid rgba(252,211,77,0.3)', borderRadius: '8px', padding: '0.6rem 0.9rem', fontSize: '0.82rem', color: '#fcd34d' }}>
-                                    <strong>{form.assigned_to_name || 'Selected user'}</strong> isn't invited to this session yet.
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-                                        <button className="admin-pill-btn" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0 }}
-                                            onClick={() => onInvitePrompt(form.assigned_to, 'editor')}>
-                                            Invite as Editor
-                                        </button>
-                                        <button className="admin-pill-btn secondary" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0 }}
-                                            onClick={() => onInvitePrompt(form.assigned_to, 'viewer')}>
-                                            Invite as Viewer
-                                        </button>
-                                        <button className="admin-pill-btn secondary" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0, opacity: 0.6 }}
-                                            onClick={() => handleAssigneeChange(null, 'Unassigned')}>
-                                            Skip / Unassign
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                <button className="admin-pill-btn secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
-                                    onClick={() => setEditing(false)}>Cancel</button>
-                                <button className="admin-pill-btn" style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', margin: 0 }}
-                                    disabled={saving} onClick={handleSave}>
-                                    {saving ? 'Saving…' : '✓ Save'}
-                                </button>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </>
-        );
-    }
+    const highlight = isBeingEdited ? { background: 'rgba(151,247,233,0.12)' } : {};
 
     return (
-        <tr className="task-row" style={indent}>
+        <tr className="task-row" style={{ ...indent, ...highlight }}>
             <td style={{ width: '100%', paddingLeft: isSubtask ? '2.25rem' : '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {isSubtask && <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>↳</span>}
                     <span
-                        style={{ cursor: canEdit ? 'pointer' : 'default', flex: 1 }}
-                        onClick={() => canEdit && setEditing(true)}
-                        title={canEdit ? 'Click to edit' : undefined}
+                        style={{ cursor: canEdit ? 'pointer' : 'default', flex: 1, fontWeight: isBeingEdited ? 600 : 'normal' }}
+                        onClick={() => canEdit && onEditTask(task)}
+                        title={canEdit ? 'Click to edit task' : undefined}
                     >
                         {task.title}
                     </span>
@@ -367,14 +236,10 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                         </a>
                     )}
                 </div>
-                {task.description && (
-                    <p style={{ margin: isSubtask ? '0.2rem 0 0 1.3rem' : '0.2rem 0 0 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}>
-                        {task.description}
-                    </p>
-                )}
             </td>
-            <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)' }}>
-                {task.assigned_to ? (
+
+            <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)' }} className="align-to-input">
+                {task.assignee ? (
                     <button 
                         onClick={() => onShowContact(task.assignee)}
                         style={{ 
@@ -389,12 +254,15 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                     displayName
                 )}
             </td>
-            <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
+
+            <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }} className="align-to-input">
                 {task.due_date ? formatDate(task.due_date) : '—'}
             </td>
-            <td style={{ whiteSpace: 'nowrap' }}>
+
+            <td style={{ whiteSpace: 'nowrap' }} className="align-to-input">
                 <StatusBadge status={task.status} />
             </td>
+
             {hasAnyEditableTasks && (
                 <td style={{ whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: '0.3rem' }}>
@@ -410,7 +278,7 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                         {canEdit && (
                             <button className="admin-pill-btn secondary"
                                 style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
-                                onClick={() => setEditing(true)} title="Edit"><PencilIcon size={12} /></button>
+                                onClick={() => onEditTask(task)} title="Edit task"><PencilIcon size={12} /></button>
                         )}
                         {isEditor && (
                             <button className="admin-pill-btn danger"
@@ -424,65 +292,160 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
     );
 }
 
-// ─── New task inline row ──────────────────────────────────────────────────────
+// ─── TaskFormCard ─────────────────────────────────────────────────────────────
 
-function NewTaskRow({ parentTaskId, assigneeGroups, sessionId, onCreated, onCancel, invitedIds, onInvitePrompt }) {
-    const [form, setForm] = useState({ title: '', assigned_to: null, assigned_to_name: '', status: 'not_started', due_date: '', link: '' });
+function TaskFormCard({ parentTaskId, parentTaskTitle, editingTask, assigneeGroups, sessionId, onSaved, onCancel, invitedIds, onInvitePrompt, isEditor }) {
+    const [form, setForm] = useState({
+        title: editingTask ? editingTask.title : '',
+        assigned_to: editingTask ? (editingTask.assigned_to || null) : null,
+        assigned_to_name: editingTask ? (editingTask.assigned_to_name || '') : '',
+        status: editingTask ? editingTask.status : 'not_started',
+        due_date: editingTask ? (editingTask.due_date || '') : '',
+        link: editingTask ? (editingTask.link || '') : '',
+    });
     const [saving, setSaving] = useState(false);
     const formRef = useRef(form);
     useEffect(() => { formRef.current = form; }, [form]);
+
+    useEffect(() => {
+        setForm({
+            title: editingTask ? editingTask.title : '',
+            assigned_to: editingTask ? (editingTask.assigned_to || null) : null,
+            assigned_to_name: editingTask ? (editingTask.assigned_to_name || '') : '',
+            status: editingTask ? editingTask.status : 'not_started',
+            due_date: editingTask ? (editingTask.due_date || '') : '',
+            link: editingTask ? (editingTask.link || '') : '',
+        });
+    }, [editingTask]);
 
     const handleAssigneeChange = (uid, name) => {
         const isNone = !uid && (!name || name === 'Unassigned');
         setForm(f => ({ ...f, assigned_to: uid, assigned_to_name: isNone ? null : name }));
     };
 
-    const handleSave = async () => {
+    const handleSave = async (e) => {
+        if (e) e.preventDefault();
         const currentForm = formRef.current;
         if (!currentForm.title.trim()) return;
         setSaving(true);
         try {
-            const payload = {
-                session_id: sessionId,
-                parent_task_id: parentTaskId || null,
-                title: currentForm.title.trim().slice(0, 270),
-                assigned_to: currentForm.assigned_to,
-                assigned_to_name: currentForm.assigned_to ? null : (currentForm.assigned_to_name || null),
-                status: currentForm.status,
-                due_date: currentForm.due_date || null,
-                link: currentForm.link.trim() || null,
-            };
-            const { error } = await supabase.from('session_tasks').insert(payload);
-            if (error) throw error;
-            onCreated();
+            if (editingTask) {
+                await onSaved(editingTask.id, {
+                    title: currentForm.title.trim().slice(0, 270),
+                    assigned_to: currentForm.assigned_to,
+                    assigned_to_name: currentForm.assigned_to ? null : (currentForm.assigned_to_name || null),
+                    status: currentForm.status,
+                    due_date: currentForm.due_date || null,
+                    link: currentForm.link.trim() || null,
+                });
+            } else {
+                const payload = {
+                    session_id: sessionId,
+                    parent_task_id: parentTaskId || null,
+                    title: currentForm.title.trim().slice(0, 270),
+                    assigned_to: currentForm.assigned_to,
+                    assigned_to_name: currentForm.assigned_to ? null : (currentForm.assigned_to_name || null),
+                    status: currentForm.status,
+                    due_date: currentForm.due_date || null,
+                    link: currentForm.link.trim() || null,
+                };
+                const { error } = await supabase.from('session_tasks').insert(payload);
+                if (error) throw error;
+                await onSaved();
+            }
         } catch (err) {
-            alert('Error creating task: ' + err.message);
+            alert('Error saving task: ' + err.message);
         } finally {
             setSaving(false);
         }
     };
 
+    const headerTitle = editingTask
+        ? `✏️ Edit Task: ${editingTask.title}`
+        : parentTaskId
+        ? `+ Add Sub-task for: ${parentTaskTitle || 'Parent Task'}`
+        : '+ Add Top-Level Task';
+
     return (
-        <tr style={{ background: 'rgba(151,247,233,0.05)' }}>
-            <td colSpan={5} style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ display: 'grid', gap: '0.6rem', paddingLeft: parentTaskId ? '1.5rem' : 0 }}>
-                    {parentTaskId && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '-0.3rem' }}>↳ New Sub-task</span>}
-                    <input className="task-inline-input" value={form.title} autoFocus
+        <div style={{
+            background: 'rgba(0,0,0,0.25)',
+            border: '1px solid rgba(151,247,233,0.3)',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            marginBottom: '1.5rem'
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h4 style={{ margin: 0, color: '#97f7e9', fontSize: '1rem', fontWeight: 600 }}>
+                    {headerTitle}
+                </h4>
+                <button
+                    type="button"
+                    className="admin-pill-btn danger"
+                    style={{ margin: 0, padding: '0.3rem 0.75rem', fontSize: '0.78rem' }}
+                    onClick={onCancel}
+                >
+                    ▲ Cancel
+                </button>
+            </div>
+
+            <form onSubmit={handleSave} style={{ display: 'grid', gap: '0.9rem' }}>
+                <div>
+                    <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>
+                        Task Title *
+                    </label>
+                    <input
+                        className="admin-input"
+                        value={form.title}
                         onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                        placeholder={parentTaskId ? 'Sub-task title…' : 'Task title…'}
+                        placeholder={parentTaskId ? 'e.g. Confirm location booking' : 'e.g. Finalize event program'}
                         maxLength={270}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onCancel(); }} />
-                    <input className="task-inline-input" value={form.link}
+                        required
+                        autoFocus
+                    />
+                </div>
+
+                <div>
+                    <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>
+                        Reference Link <span style={{ opacity: 0.6 }}>(Optional)</span>
+                    </label>
+                    <input
+                        className="admin-input"
+                        value={form.link}
                         onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
-                        placeholder="Link (optional, e.g. https://google.com)"
-                        onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onCancel(); }} />
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                        <ComboBox userId={form.assigned_to} userName={form.assigned_to_name || ''}
-                            onChange={handleAssigneeChange} groups={assigneeGroups} placeholder="Assign to…" />
-                        <CustomDatePicker className="task-inline-input" value={form.due_date}
+                        placeholder="https://..."
+                    />
+                </div>
+
+                <div className="planning-form-grid-3">
+                    <div>
+                        <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>
+                            Assigned To
+                        </label>
+                        <ComboBox
+                            userId={form.assigned_to}
+                            userName={form.assigned_to_name || (editingTask?.assignee?.display_name || '')}
+                            onChange={handleAssigneeChange}
+                            groups={assigneeGroups}
+                            placeholder="Assign to…"
+                            disabled={!isEditor}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>
+                            Due Date
+                        </label>
+                        <CustomDatePicker
+                            className="admin-input"
+                            value={form.due_date}
                             onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                             placeholder="Due date…"
+                            disabled={!isEditor}
                         />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>
+                            Status
+                        </label>
                         <CustomSelect
                             value={form.status}
                             onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
@@ -491,31 +454,41 @@ function NewTaskRow({ parentTaskId, assigneeGroups, sessionId, onCreated, onCanc
                                 { value: 'in_progress', label: 'In Progress' },
                                 { value: 'done',        label: 'Done'        },
                             ]}
-                            variant="dense"
                         />
                     </div>
-                    {form.assigned_to && !invitedIds.includes(form.assigned_to) && (
-                        <div style={{ background: 'rgba(252,211,77,0.1)', border: '1px solid rgba(252,211,77,0.3)', borderRadius: '8px', padding: '0.6rem 0.9rem', fontSize: '0.82rem', color: '#fcd34d' }}>
-                            <strong>{form.assigned_to_name || 'Selected user'}</strong> isn't invited to this session yet.
-                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
-                                <button className="admin-pill-btn" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0 }}
-                                    onClick={() => onInvitePrompt(form.assigned_to, 'editor')}>Invite as Editor</button>
-                                <button className="admin-pill-btn secondary" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0 }}
-                                    onClick={() => onInvitePrompt(form.assigned_to, 'viewer')}>Invite as Viewer</button>
-                                <button className="admin-pill-btn secondary" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0, opacity: 0.6 }}
-                                    onClick={() => handleAssigneeChange(null, 'Unassigned')}>Skip</button>
-                            </div>
-                        </div>
-                    )}
-                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                        <button className="admin-pill-btn secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', margin: 0 }} onClick={onCancel}>Cancel</button>
-                        <button className="admin-pill-btn" style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', margin: 0 }} disabled={saving} onClick={handleSave}>
-                            {saving ? 'Adding…' : '✓ Add'}
-                        </button>
-                    </div>
                 </div>
-            </td>
-        </tr>
+
+                {/* Invite Prompt */}
+                {isEditor && form.assigned_to && !invitedIds.includes(form.assigned_to) && (
+                    <div style={{ background: 'rgba(252,211,77,0.1)', border: '1px solid rgba(252,211,77,0.3)', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#fcd34d' }}>
+                        <strong>{form.assigned_to_name || 'Selected user'}</strong> isn't invited to this session yet.
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                            <button type="button" className="admin-pill-btn" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0 }}
+                                onClick={() => onInvitePrompt(form.assigned_to, 'editor')}>
+                                Invite as Editor
+                            </button>
+                            <button type="button" className="admin-pill-btn secondary" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0 }}
+                                onClick={() => onInvitePrompt(form.assigned_to, 'viewer')}>
+                                Invite as Viewer
+                            </button>
+                            <button type="button" className="admin-pill-btn secondary" style={{ padding: '0.25rem 0.7rem', fontSize: '0.78rem', margin: 0, opacity: 0.6 }}
+                                onClick={() => handleAssigneeChange(null, 'Unassigned')}>
+                                Skip / Unassign
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                    <button type="button" className="admin-pill-btn secondary" style={{ margin: 0 }} onClick={onCancel}>
+                        Cancel
+                    </button>
+                    <button type="submit" className="admin-pill-btn" style={{ margin: 0 }} disabled={saving}>
+                        {saving ? 'Saving…' : (editingTask ? '✓ Save Task' : '✓ Add Task')}
+                    </button>
+                </div>
+            </form>
+        </div>
     );
 }
 
@@ -558,7 +531,14 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     // Task UI state
     const [addingTask,    setAddingTask]    = useState(false);
     const [addingSubFor,  setAddingSubFor]  = useState(null); // parent task id
+    const [editingTask,   setEditingTask]   = useState(null); // task object being edited
     const [taskSearch,    setTaskSearch]    = useState('');
+
+    const closeTaskForm = () => {
+        setAddingTask(false);
+        setAddingSubFor(null);
+        setEditingTask(null);
+    };
 
     // Notes
     const [notes,         setNotes]         = useState('');
@@ -1038,12 +1018,46 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                         style={{ flex: 1, minWidth: '180px', maxWidth: '300px' }}
                     />
                     {isEditor && (
-                        <button className="admin-pill-btn" style={{ padding: '0.45rem 1rem', fontSize: '0.88rem', margin: 0 }}
-                            onClick={() => { setAddingTask(true); setAddingSubFor(null); }}>
-                            + Add Task
+                        <button
+                            className={`admin-pill-btn ${(addingTask || addingSubFor || editingTask) ? 'danger' : ''}`}
+                            style={{ padding: '0.45rem 1rem', fontSize: '0.88rem', margin: 0 }}
+                            onClick={() => {
+                                if (addingTask || addingSubFor || editingTask) {
+                                    closeTaskForm();
+                                } else {
+                                    setAddingTask(true);
+                                    setAddingSubFor(null);
+                                    setEditingTask(null);
+                                }
+                            }}
+                        >
+                            {(addingTask || addingSubFor || editingTask) ? '▲ Cancel' : '+ Add Task'}
                         </button>
                     )}
                 </div>
+
+                {/* Task Form Card above the tasks table */}
+                {isEditor && (addingTask || addingSubFor || editingTask) && (
+                    <TaskFormCard
+                        parentTaskId={addingSubFor}
+                        parentTaskTitle={addingSubFor ? tasks.find(t => t.id === addingSubFor)?.title : ''}
+                        editingTask={editingTask}
+                        assigneeGroups={assigneeGroups}
+                        sessionId={sessionId}
+                        onSaved={async (taskId, updates) => {
+                            if (editingTask) {
+                                await handleSaveTask(taskId, updates);
+                            } else {
+                                closeTaskForm();
+                                fetchAll();
+                            }
+                        }}
+                        onCancel={closeTaskForm}
+                        invitedIds={invitedIds}
+                        onInvitePrompt={handleInviteFromTask}
+                        isEditor={isEditor}
+                    />
+                )}
 
                 <div className="admin-table-wrapper" style={{ borderRadius: '10px' }}>
                     <table className="task-table">
@@ -1057,7 +1071,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredParents.length === 0 && !addingTask && (
+                            {filteredParents.length === 0 && !addingTask && !addingSubFor && !editingTask && (
                                 <tr><td colSpan={hasAnyEditableTasks ? 5 : 4} style={{ textAlign: 'center', padding: '2.5rem', color: 'rgba(255,255,255,0.35)', fontSize: '0.9rem' }}>
                                     {taskSearch ? 'No tasks match your search.' : 'No tasks yet. Add one to get started.'}
                                 </td></tr>
@@ -1067,12 +1081,10 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 <React.Fragment key={task.id}>
                                     <TaskRow
                                         task={task} isSubtask={false} isEditor={isEditor}
-                                        assigneeGroups={assigneeGroups}
-                                        onSave={handleSaveTask} onDelete={handleDeleteTask}
-                                        onAddSubtask={pid => { setAddingSubFor(pid); setAddingTask(false); }}
-                                        invitedIds={invitedIds}
-                                        onInvitePrompt={handleInviteFromTask}
-                                        sessionId={sessionId}
+                                        onDelete={handleDeleteTask}
+                                        onAddSubtask={pid => { setAddingSubFor(pid); setAddingTask(false); setEditingTask(null); }}
+                                        onEditTask={t => { setEditingTask(t); setAddingTask(false); setAddingSubFor(null); }}
+                                        isBeingEdited={editingTask?.id === task.id}
                                         onShowContact={setContactPopup}
                                         currentUserId={session.user.id}
                                         hasAnyEditableTasks={hasAnyEditableTasks}
@@ -1082,45 +1094,17 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                     {sortTasks(subTaskMap[task.id] || []).map(sub => (
                                         <TaskRow key={sub.id}
                                             task={sub} isSubtask={true} isEditor={isEditor}
-                                            assigneeGroups={assigneeGroups}
-                                            onSave={handleSaveTask} onDelete={handleDeleteTask}
+                                            onDelete={handleDeleteTask}
                                             onAddSubtask={() => {}}
-                                            invitedIds={invitedIds}
-                                            onInvitePrompt={handleInviteFromTask}
-                                            sessionId={sessionId}
+                                            onEditTask={t => { setEditingTask(t); setAddingTask(false); setAddingSubFor(null); }}
+                                            isBeingEdited={editingTask?.id === sub.id}
                                             onShowContact={setContactPopup}
                                             currentUserId={session.user.id}
                                             hasAnyEditableTasks={hasAnyEditableTasks}
                                         />
                                     ))}
-
-                                    {/* Add sub-task row */}
-                                    {isEditor && addingSubFor === task.id && (
-                                        <NewTaskRow
-                                            parentTaskId={task.id} assigneeGroups={assigneeGroups}
-                                            sessionId={sessionId}
-                                            onCreated={() => { setAddingSubFor(null); fetchAll(); }}
-                                            onCancel={() => setAddingSubFor(null)}
-                                            invitedIds={invitedIds}
-                                            onInvitePrompt={handleInviteFromTask}
-                                        />
-                                    )}
-
-                                    {/* Add sub-task button removed (now inline green plus icon) */}
                                 </React.Fragment>
                             ))}
-
-                            {/* New top-level task row */}
-                            {isEditor && addingTask && (
-                                <NewTaskRow
-                                    parentTaskId={null} assigneeGroups={assigneeGroups}
-                                    sessionId={sessionId}
-                                    onCreated={() => { setAddingTask(false); fetchAll(); }}
-                                    onCancel={() => setAddingTask(false)}
-                                    invitedIds={invitedIds}
-                                    onInvitePrompt={handleInviteFromTask}
-                                />
-                            )}
                         </tbody>
                     </table>
                 </div>
