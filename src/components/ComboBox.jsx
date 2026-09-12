@@ -20,7 +20,8 @@ export default function ComboBox({
     groups = [],
     placeholder = 'Assign to…',
     disabled = false,
-    style = {}
+    style = {},
+    className = 'admin-input'
 }) {
     const [inputText, setInputText] = useState(userName || '');
     const [isOpen, setIsOpen]       = useState(false);
@@ -173,7 +174,7 @@ export default function ComboBox({
                 placeholder={placeholder}
                 disabled={disabled}
                 autoComplete="off"
-                className="task-inline-input"
+                className={className}
                 style={{ width: '100%' }}
             />
 
