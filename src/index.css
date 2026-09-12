@@ -1813,6 +1813,28 @@ textarea.admin-input {
   align-items: flex-start;
 }
 
+.address-forms-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.address-form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.address-grid-state-zip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .address-grid-city-state-zip {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
@@ -1918,6 +1940,16 @@ textarea.admin-input {
 
   .edit-profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .address-forms-two-col {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  .address-grid-state-zip {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
   }
 
   .address-grid-city-state-zip {

@@ -175,7 +175,7 @@ export default function ProfilePage({ session }) {
           )}
 
           {/* Contact Info */}
-          {(isOwnProfile || profile.show_contact_info) && (profile.phone || profile.contact_email || profile.contact_preferences || hasAnyAddress) && (
+          {(isOwnProfile || profile.show_contact_info) && (profile.phone || profile.contact_email || profile.contact_preferences) && (
             <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
                 <h3 style={{ margin: 0, color: 'var(--auth-text-light-blue)' }}>Contact Info</h3>
@@ -201,6 +201,19 @@ export default function ProfilePage({ session }) {
                     <span style={{ color: 'var(--auth-text-light-blue)' }}>{profile.contact_preferences}</span>
                   </li>
                 )}
+              </ul>
+            </div>
+          )}
+
+          {/* Addresses */}
+          {(isOwnProfile || profile.show_address) && hasAnyAddress && (
+            <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--auth-text-light-blue)' }}>Addresses</h3>
+                {renderSectionLabel(profile.show_address)}
+              </div>
+              
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {hasPhysicalAddress && (
                   <li>
                     <strong style={{ display: 'block', color: 'white', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Physical Address</strong>
