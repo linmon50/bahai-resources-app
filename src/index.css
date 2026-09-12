@@ -2780,4 +2780,36 @@ td:has(.combobox-dropdown) {
     justify-content: center;
   }
 }
+
+/* Task action menu dropdown */
+.task-action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.task-action-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #97f7e9;
+}
+
+.task-action-menu-item.danger {
+  color: #ff6b6b;
+}
+
+.task-action-menu-item.danger:hover {
+  background-color: rgba(255, 107, 107, 0.18);
+  color: #ff8787;
+}
 

@@ -35,9 +35,16 @@ const PencilIcon = ({ size = 14 }) => (
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
 );
-const TrashIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+const TrashIcon = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
         <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+);
+const MoreVerticalIcon = ({ size = 16 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+        <circle cx="12" cy="19" r="1.5" fill="currentColor" />
     </svg>
 );
 const LockIcon = () => (
@@ -186,14 +193,87 @@ function sortTasks(tasks) {
 
 function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask, isBeingEdited, onShowContact, currentUserId, hasAnyEditableTasks }) {
     const canEdit = isEditor || (task.assigned_to === currentUserId);
+    const canAddSub = isEditor && !isSubtask;
+    const canDelete = isEditor;
+    const hasRowActions = canAddSub || canEdit || canDelete;
+
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [menuCoords, setMenuCoords] = useState({ top: 0, right: 0 });
+    const triggerRef = useRef(null);
+    const menuRef = useRef(null);
+
+    const updateCoords = useCallback(() => {
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setMenuCoords({
+                top: rect.bottom + 4,
+                right: window.innerWidth - rect.right
+            });
+        }
+    }, []);
+
+    const toggleMenu = (e) => {
+        e.stopPropagation();
+        if (!menuOpen) {
+            updateCoords();
+        }
+        setMenuOpen(!menuOpen);
+    };
+
+    useEffect(() => {
+        if (!menuOpen) return;
+
+        const handleClickOutside = (e) => {
+            if (
+                triggerRef.current && !triggerRef.current.contains(e.target) &&
+                menuRef.current && !menuRef.current.contains(e.target)
+            ) {
+                setMenuOpen(false);
+            }
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setMenuOpen(false);
+            }
+        };
+
+        const handleScrollOrResize = () => {
+            updateCoords();
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('scroll', handleScrollOrResize, true);
+        window.addEventListener('resize', handleScrollOrResize);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('scroll', handleScrollOrResize, true);
+            window.removeEventListener('resize', handleScrollOrResize);
+        };
+    }, [menuOpen, updateCoords]);
+
     const displayName = task.assigned_to_name || task.assignee?.display_name || '—';
 
     const handleDelete = async () => {
+        setMenuOpen(false);
         const msg = isSubtask
             ? 'Delete this sub-task?'
             : 'Delete this task and all its sub-tasks?';
         if (!window.confirm(msg)) return;
         await onDelete(task.id);
+    };
+
+    const handleAddSub = () => {
+        setMenuOpen(false);
+        onAddSubtask(task.id);
+    };
+
+    const handleEdit = () => {
+        setMenuOpen(false);
+        onEditTask(task);
     };
 
     const indent = isSubtask ? { background: 'rgba(0,0,0,0.15)' } : {};
@@ -264,28 +344,77 @@ function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask
             </td>
 
             {hasAnyEditableTasks && (
-                <td style={{ whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', gap: '0.3rem' }}>
-                        {isEditor && !isSubtask && (
-                            <button className="admin-pill-btn"
-                                style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
-                                onClick={() => onAddSubtask(task.id)} 
-                                title="Add Sub-task"
+                <td style={{ whiteSpace: 'nowrap', width: '1%', textAlign: 'right' }}>
+                    {hasRowActions && (
+                        <>
+                            <button
+                                ref={triggerRef}
+                                className="nav-icon-btn"
+                                style={{
+                                    padding: '0.3rem',
+                                    borderRadius: '6px',
+                                    color: menuOpen ? '#97f7e9' : 'rgba(255, 255, 255, 0.7)',
+                                    background: menuOpen ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                                onClick={toggleMenu}
+                                title="Task options"
                             >
-                                <PlusIcon size={12} color="white" />
+                                <MoreVerticalIcon size={18} />
                             </button>
-                        )}
-                        {canEdit && (
-                            <button className="admin-pill-btn secondary"
-                                style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
-                                onClick={() => onEditTask(task)} title="Edit task"><PencilIcon size={12} /></button>
-                        )}
-                        {isEditor && (
-                            <button className="admin-pill-btn danger"
-                                style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem', margin: 0 }}
-                                onClick={handleDelete} title="Delete"><TrashIcon /></button>
-                        )}
-                    </div>
+                            {menuOpen && createPortal(
+                                <div
+                                    ref={menuRef}
+                                    style={{
+                                        position: 'fixed',
+                                        top: `${menuCoords.top}px`,
+                                        right: `${menuCoords.right}px`,
+                                        background: 'rgba(20, 30, 45, 0.95)',
+                                        backdropFilter: 'blur(16px)',
+                                        WebkitBackdropFilter: 'blur(16px)',
+                                        border: '1px solid rgba(151, 247, 233, 0.3)',
+                                        borderRadius: '8px',
+                                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+                                        zIndex: 99999,
+                                        minWidth: '150px',
+                                        padding: '0.35rem 0',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    {canAddSub && (
+                                        <button
+                                            className="task-action-menu-item"
+                                            onClick={handleAddSub}
+                                        >
+                                            <PlusIcon size={14} color="currentColor" />
+                                            <span>Add Sub-task</span>
+                                        </button>
+                                    )}
+                                    {canEdit && (
+                                        <button
+                                            className="task-action-menu-item"
+                                            onClick={handleEdit}
+                                        >
+                                            <PencilIcon size={14} />
+                                            <span>Edit Task</span>
+                                        </button>
+                                    )}
+                                    {canDelete && (
+                                        <button
+                                            className="task-action-menu-item danger"
+                                            onClick={handleDelete}
+                                        >
+                                            <TrashIcon size={14} />
+                                            <span>Delete Task</span>
+                                        </button>
+                                    )}
+                                </div>,
+                                document.body
+                            )}
+                        </>
+                    )}
                 </td>
             )}
         </tr>
