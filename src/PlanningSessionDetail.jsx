@@ -199,8 +199,46 @@ function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [menuCoords, setMenuCoords] = useState({ top: 0, right: 0 });
+    const [focusedIndex, setFocusedIndex] = useState(-1);
+
     const triggerRef = useRef(null);
     const menuRef = useRef(null);
+    const itemRefs = useRef([]);
+
+    const actions = [];
+    if (canAddSub) {
+        actions.push({
+            key: 'add-sub',
+            label: 'Add Sub-task',
+            icon: <PlusIcon size={14} color="currentColor" />,
+            onClick: () => onAddSubtask(task.id),
+            isDanger: false
+        });
+    }
+    if (canEdit) {
+        actions.push({
+            key: 'edit',
+            label: 'Edit Task',
+            icon: <PencilIcon size={14} />,
+            onClick: () => onEditTask(task),
+            isDanger: false
+        });
+    }
+    if (canDelete) {
+        actions.push({
+            key: 'delete',
+            label: 'Delete Task',
+            icon: <TrashIcon size={14} />,
+            onClick: async () => {
+                const msg = isSubtask
+                    ? 'Delete this sub-task?'
+                    : 'Delete this task and all its sub-tasks?';
+                if (!window.confirm(msg)) return;
+                await onDelete(task.id);
+            },
+            isDanger: true
+        });
+    }
 
     const updateCoords = useCallback(() => {
         if (triggerRef.current) {
@@ -212,13 +250,86 @@ function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask
         }
     }, []);
 
+    const openMenu = (initialIdx = 0) => {
+        updateCoords();
+        setFocusedIndex(initialIdx);
+        setMenuOpen(true);
+    };
+
+    const closeMenu = (restoreFocus = true) => {
+        setMenuOpen(false);
+        setFocusedIndex(-1);
+        if (restoreFocus && triggerRef.current) {
+            triggerRef.current.focus();
+        }
+    };
+
     const toggleMenu = (e) => {
         e.stopPropagation();
-        if (!menuOpen) {
-            updateCoords();
+        if (menuOpen) {
+            closeMenu(false);
+        } else {
+            openMenu(0);
         }
-        setMenuOpen(!menuOpen);
     };
+
+    const handleTriggerKeyDown = (e) => {
+        if (!hasRowActions) return;
+        if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openMenu(0);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            openMenu(actions.length - 1);
+        }
+    };
+
+    const handleMenuKeyDown = (e) => {
+        if (!menuOpen || actions.length === 0) return;
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setFocusedIndex(i => (i + 1) % actions.length);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setFocusedIndex(i => (i - 1 + actions.length) % actions.length);
+                break;
+            case 'Home':
+                e.preventDefault();
+                setFocusedIndex(0);
+                break;
+            case 'End':
+                e.preventDefault();
+                setFocusedIndex(actions.length - 1);
+                break;
+            case 'Escape':
+                e.preventDefault();
+                closeMenu(true);
+                break;
+            case 'Tab':
+                closeMenu(false);
+                break;
+            case 'Enter':
+            case ' ':
+                e.preventDefault();
+                if (focusedIndex >= 0 && focusedIndex < actions.length) {
+                    const action = actions[focusedIndex];
+                    closeMenu(true);
+                    action.onClick();
+                }
+                break;
+            default:
+                break;
+        }
+    };
+
+    useEffect(() => {
+        if (menuOpen && focusedIndex >= 0 && itemRefs.current[focusedIndex]) {
+            itemRefs.current[focusedIndex].focus();
+        }
+    }, [menuOpen, focusedIndex]);
 
     useEffect(() => {
         if (!menuOpen) return;
@@ -228,13 +339,7 @@ function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask
                 triggerRef.current && !triggerRef.current.contains(e.target) &&
                 menuRef.current && !menuRef.current.contains(e.target)
             ) {
-                setMenuOpen(false);
-            }
-        };
-
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') {
-                setMenuOpen(false);
+                closeMenu(false);
             }
         };
 
@@ -243,39 +348,17 @@ function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        document.addEventListener('keydown', handleKeyDown);
         window.addEventListener('scroll', handleScrollOrResize, true);
         window.addEventListener('resize', handleScrollOrResize);
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('scroll', handleScrollOrResize, true);
             window.removeEventListener('resize', handleScrollOrResize);
         };
     }, [menuOpen, updateCoords]);
 
     const displayName = task.assigned_to_name || task.assignee?.display_name || '—';
-
-    const handleDelete = async () => {
-        setMenuOpen(false);
-        const msg = isSubtask
-            ? 'Delete this sub-task?'
-            : 'Delete this task and all its sub-tasks?';
-        if (!window.confirm(msg)) return;
-        await onDelete(task.id);
-    };
-
-    const handleAddSub = () => {
-        setMenuOpen(false);
-        onAddSubtask(task.id);
-    };
-
-    const handleEdit = () => {
-        setMenuOpen(false);
-        onEditTask(task);
-    };
-
     const indent = isSubtask ? { background: 'rgba(0,0,0,0.15)' } : {};
     const highlight = isBeingEdited ? { background: 'rgba(151,247,233,0.12)' } : {};
 
@@ -360,6 +443,10 @@ function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask
                                     justifyContent: 'center'
                                 }}
                                 onClick={toggleMenu}
+                                onKeyDown={handleTriggerKeyDown}
+                                aria-haspopup="menu"
+                                aria-expanded={menuOpen}
+                                aria-label="Task options"
                                 title="Task options"
                             >
                                 <MoreVerticalIcon size={18} />
@@ -367,49 +454,34 @@ function TaskRow({ task, isSubtask, isEditor, onDelete, onAddSubtask, onEditTask
                             {menuOpen && createPortal(
                                 <div
                                     ref={menuRef}
+                                    role="menu"
+                                    aria-orientation="vertical"
+                                    aria-label="Task options"
+                                    className="task-action-menu-dropdown"
                                     style={{
                                         position: 'fixed',
                                         top: `${menuCoords.top}px`,
-                                        right: `${menuCoords.right}px`,
-                                        background: 'rgba(20, 30, 45, 0.95)',
-                                        backdropFilter: 'blur(16px)',
-                                        WebkitBackdropFilter: 'blur(16px)',
-                                        border: '1px solid rgba(151, 247, 233, 0.3)',
-                                        borderRadius: '8px',
-                                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-                                        zIndex: 99999,
-                                        minWidth: '150px',
-                                        padding: '0.35rem 0',
-                                        overflow: 'hidden'
+                                        right: `${menuCoords.right}px`
                                     }}
+                                    onKeyDown={handleMenuKeyDown}
                                 >
-                                    {canAddSub && (
+                                    {actions.map((act, idx) => (
                                         <button
-                                            className="task-action-menu-item"
-                                            onClick={handleAddSub}
+                                            key={act.key}
+                                            ref={el => itemRefs.current[idx] = el}
+                                            role="menuitem"
+                                            tabIndex={idx === focusedIndex ? 0 : -1}
+                                            className={`task-action-menu-item ${act.isDanger ? 'danger' : ''} ${idx === focusedIndex ? 'focused' : ''}`}
+                                            onMouseEnter={() => setFocusedIndex(idx)}
+                                            onClick={() => {
+                                                closeMenu(true);
+                                                act.onClick();
+                                            }}
                                         >
-                                            <PlusIcon size={14} color="currentColor" />
-                                            <span>Add Sub-task</span>
+                                            {act.icon}
+                                            <span>{act.label}</span>
                                         </button>
-                                    )}
-                                    {canEdit && (
-                                        <button
-                                            className="task-action-menu-item"
-                                            onClick={handleEdit}
-                                        >
-                                            <PencilIcon size={14} />
-                                            <span>Edit Task</span>
-                                        </button>
-                                    )}
-                                    {canDelete && (
-                                        <button
-                                            className="task-action-menu-item danger"
-                                            onClick={handleDelete}
-                                        >
-                                            <TrashIcon size={14} />
-                                            <span>Delete Task</span>
-                                        </button>
-                                    )}
+                                    ))}
                                 </div>,
                                 document.body
                             )}

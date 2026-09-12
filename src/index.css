@@ -2782,34 +2782,57 @@ td:has(.combobox-dropdown) {
 }
 
 /* Task action menu dropdown */
+.task-action-menu-dropdown {
+  position: fixed;
+  z-index: 999999 !important;
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 0;
+  background: #3265c2;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(151, 247, 233, 0.35);
+  min-width: 160px;
+  overflow: hidden;
+}
+
 .task-action-menu-item {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   width: 100%;
-  padding: 0.55rem 0.85rem;
+  padding: 0.65rem 1rem;
   background: transparent;
   border: none;
   color: #ffffff;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
   box-sizing: border-box;
   transition: background-color 0.15s ease, color 0.15s ease;
+  outline: none;
 }
 
-.task-action-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.task-action-menu-item:hover,
+.task-action-menu-item:focus,
+.task-action-menu-item.focused {
+  background-color: rgba(151, 247, 233, 0.15);
   color: #97f7e9;
+  outline: none;
 }
 
 .task-action-menu-item.danger {
   color: #ff6b6b;
 }
 
-.task-action-menu-item.danger:hover {
-  background-color: rgba(255, 107, 107, 0.18);
+.task-action-menu-item.danger:hover,
+.task-action-menu-item.danger:focus,
+.task-action-menu-item.danger.focused {
+  background-color: rgba(255, 107, 107, 0.2);
   color: #ff8787;
+  outline: none;
 }
 
