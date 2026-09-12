@@ -164,6 +164,17 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
         if (!form.title.trim()) return;
         setCreating(true);
         try {
+            let finalLinks = [...(form.links || [])];
+            if (linkUrl.trim()) {
+                const newLink = {
+                    label: linkLabel.trim() || linkUrl.trim(),
+                    url: linkUrl.trim(),
+                };
+                if (!finalLinks.some(l => l.url === newLink.url)) {
+                    finalLinks.push(newLink);
+                }
+            }
+
             const { error } = await supabase.from('planning_sessions').insert({
                 community_id: activeCommunityId,
                 title:        form.title.trim(),
@@ -172,13 +183,15 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                 starts_at:    form.starts_at || null,
                 ends_at:      form.ends_at   || null,
                 is_hidden:    form.is_hidden,
-                links:        form.links,
+                links:        finalLinks,
                 created_by:   session.user.id,
             });
             if (error) throw error;
             clearDraft();
             setShowCreate(false);
             setForm(blankForm);
+            setLinkLabel('');
+            setLinkUrl('');
             await fetchSessions();
         } catch (err) {
             alert('Error creating session: ' + err.message);
@@ -230,7 +243,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
 
                 {/* Create button */}
                 {(() => {
-                    const hasDraft = form.title.trim() || form.description.trim() || form.starts_at || form.ends_at || form.links.length > 0;
+                    const hasDraft = form.title.trim() || form.description.trim() || form.starts_at || form.ends_at || form.links.length > 0 || linkUrl.trim();
                     return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', marginTop: '2.5rem', marginBottom: showCreate ? '0' : '1.5rem' }}>
                             <button
