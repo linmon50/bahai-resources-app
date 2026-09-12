@@ -4,7 +4,7 @@ import supabase from './supabaseClient';
 import { useCommunity } from './context/CommunityContext';
 import CustomSelect from './components/CustomSelect';
 import CustomDatePicker from './components/CustomDatePicker';
-import { getLinkTarget, isInternalLink } from './utils/linkUtils';
+import { getLinkTarget, isInternalLink, parseSessionLinks, formatSessionLinks } from './utils/linkUtils';
 
 const STATUS_COLORS = {
     active:    { bg: 'rgba(71,178,96,0.18)',   text: '#47b260', border: 'rgba(71,178,96,0.4)'   },
@@ -62,7 +62,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
     const [creating,     setCreating]    = useState(false);
     const [draftSaved,   setDraftSaved]  = useState(false);
 
-    const blankForm = { title: '', description: '', starts_at: '', ends_at: '', status: 'active', is_hidden: false, links: [] };
+    const blankForm = { title: '', description: '', starts_at: '', ends_at: '', status: 'active', is_hidden: false, header_link_label: '', header_link_url: '' };
     const DRAFT_KEY = `planning_new_draft_${session.user.id}`;
 
     // ── Restore draft from localStorage on first mount ────────────────────
@@ -77,8 +77,6 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
     const initial = readDraft();
     const [form,       setForm]       = useState(initial.form);
     const [showCreate, setShowCreate] = useState(initial.showCreate);
-    const [linkLabel,  setLinkLabel]  = useState('');
-    const [linkUrl,    setLinkUrl]    = useState('');
 
     // ── Persist draft whenever form or showCreate changes ─────────────────
     useEffect(() => {
@@ -164,16 +162,8 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
         if (!form.title.trim()) return;
         setCreating(true);
         try {
-            let finalLinks = [...(form.links || [])];
-            if (linkUrl.trim()) {
-                const newLink = {
-                    label: linkLabel.trim() || linkUrl.trim(),
-                    url: linkUrl.trim(),
-                };
-                if (!finalLinks.some(l => l.url === newLink.url)) {
-                    finalLinks.push(newLink);
-                }
-            }
+            const headerLinkObj = form.header_link_url ? { label: form.header_link_label, url: form.header_link_url } : null;
+            const linksPayload = formatSessionLinks(headerLinkObj, []);
 
             const { error } = await supabase.from('planning_sessions').insert({
                 community_id: activeCommunityId,
@@ -183,15 +173,13 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                 starts_at:    form.starts_at || null,
                 ends_at:      form.ends_at   || null,
                 is_hidden:    form.is_hidden,
-                links:        finalLinks,
+                links:        linksPayload,
                 created_by:   session.user.id,
             });
             if (error) throw error;
             clearDraft();
             setShowCreate(false);
             setForm(blankForm);
-            setLinkLabel('');
-            setLinkUrl('');
             await fetchSessions();
         } catch (err) {
             alert('Error creating session: ' + err.message);
@@ -199,14 +187,6 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
             setCreating(false);
         }
     };
-
-    const addLink = () => {
-        if (!linkUrl.trim()) return;
-        setForm(f => ({ ...f, links: [...f.links, { label: linkLabel.trim() || linkUrl.trim(), url: linkUrl.trim() }] }));
-        setLinkLabel(''); setLinkUrl('');
-    };
-
-    const removeLink = (idx) => setForm(f => ({ ...f, links: f.links.filter((_, i) => i !== idx) }));
 
     return (
         <div className="member-mgmt-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -243,7 +223,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
 
                 {/* Create button */}
                 {(() => {
-                    const hasDraft = form.title.trim() || form.description.trim() || form.starts_at || form.ends_at || form.links.length > 0 || linkUrl.trim();
+                    const hasDraft = form.title.trim() || form.description.trim() || form.starts_at || form.ends_at || form.header_link_url?.trim();
                     return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', marginTop: '2.5rem', marginBottom: showCreate ? '0' : '1.5rem' }}>
                             <button
@@ -336,32 +316,14 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                 </div>
                             </div>
 
-                            {/* Links section */}
+                            {/* Header Link section */}
                             <div className="admin-input-group">
-                                <label>Links</label>
-                                {form.links.length > 0 && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                        {form.links.map((lk, i) => (
-                                            <span key={i} style={{
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                                                background: 'rgba(151,247,233,0.1)', border: '1px solid rgba(151,247,233,0.25)',
-                                                padding: '3px 10px', borderRadius: '9999px', fontSize: '0.82rem'
-                                            }}>
-                                                🔗 {lk.label}
-                                                <button type="button" onClick={() => removeLink(i)}
-                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, fontSize: '0.9rem', lineHeight: 1 }}>✕</button>
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="planning-form-links-grid">
-                                    <input className="admin-input" placeholder="Label (e.g. Zoom)" value={linkLabel}
-                                        onChange={e => setLinkLabel(e.target.value)} />
-                                    <input className="admin-input" placeholder="URL" value={linkUrl}
-                                        onChange={e => setLinkUrl(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLink(); } }} />
-                                    <button type="button" className="admin-pill-btn" onClick={addLink}
-                                        style={{ padding: '0.5rem 1rem', margin: 0, whiteSpace: 'nowrap' }}>+ Add</button>
+                                <label>Header Link <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', fontWeight: 'normal' }}>(Optional meeting or primary event link)</span></label>
+                                <div className="planning-form-grid-2">
+                                    <input className="admin-input" placeholder="Label (e.g. Zoom Meeting)" value={form.header_link_label}
+                                        onChange={e => setForm(f => ({ ...f, header_link_label: e.target.value }))} />
+                                    <input className="admin-input" placeholder="URL (e.g. https://zoom.us/j/...)" value={form.header_link_url}
+                                        onChange={e => setForm(f => ({ ...f, header_link_url: e.target.value }))} />
                                 </div>
                             </div>
 
@@ -417,6 +379,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                         const stats  = getStats(s.tasks);
                         const days   = daysLeft(s.ends_at);
                         const range  = formatDateRange(s.starts_at, s.ends_at);
+                        const { headerLink, resourceLinks } = parseSessionLinks(s.links);
 
                         return (
                             <div
@@ -476,15 +439,20 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                     <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
                                         By {s.creator?.display_name || 'Unknown'}
                                     </span>
-                                    {(s.links || []).slice(0, 3).map((lk, i) => (
-                                        <a key={i} href={lk.url} target={getLinkTarget(lk.url)} rel={isInternalLink(lk.url) ? undefined : "noopener noreferrer"}
+                                    {headerLink && headerLink.url && (
+                                        <a href={headerLink.url} target={getLinkTarget(headerLink.url)} rel={isInternalLink(headerLink.url) ? undefined : "noopener noreferrer"}
                                             onClick={e => e.stopPropagation()}
                                             style={{ fontSize: '0.75rem', color: 'var(--auth-text-light-blue)', textDecoration: 'none',
                                                 background: 'rgba(151,247,233,0.1)', border: '1px solid rgba(151,247,233,0.25)',
                                                 padding: '2px 8px', borderRadius: '9999px' }}>
-                                            🔗 {lk.label}
+                                            🔗 {headerLink.label || headerLink.url}
                                         </a>
-                                    ))}
+                                    )}
+                                    {resourceLinks.length > 0 && (
+                                        <span style={{ fontSize: '0.75rem', color: '#97f7e9', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: '9999px' }}>
+                                            📄 {resourceLinks.length} document{resourceLinks.length !== 1 ? 's' : ''} / media
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         );

@@ -6,11 +6,11 @@ import { useCommunity } from './context/CommunityContext';
 import ComboBox from './components/ComboBox';
 import CustomSelect from './components/CustomSelect';
 import CustomDatePicker from './components/CustomDatePicker';
-import { getLinkTarget, isInternalLink } from './utils/linkUtils';
+import { getLinkTarget, isInternalLink, parseSessionLinks, formatSessionLinks } from './utils/linkUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TABS = ['Tasks', 'Notes', 'Access'];
+const TABS = ['Tasks', 'Notes', 'Documents & Media', 'Access'];
 const STATUS_ORDER  = { not_started: 0, in_progress: 1, done: 2 };
 const STATUS_LABELS = { not_started: 'Not Started', in_progress: 'In Progress', done: 'Done' };
 
@@ -494,9 +494,13 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     // Header edit state
     const [editingHeader, setEditingHeader]   = useState(false);
     const [headerForm,    setHeaderForm]      = useState({});
-    const [headerLinkLabel, setHeaderLinkLabel] = useState('');
-    const [headerLinkUrl,   setHeaderLinkUrl]   = useState('');
     const [savingHeader,  setSavingHeader]    = useState(false);
+
+    // Resource links state (Documents & Media tab)
+    const [newResourceTitle, setNewResourceTitle] = useState('');
+    const [newResourceUrl, setNewResourceUrl]     = useState('');
+    const [newResourceCategory, setNewResourceCategory] = useState('Document');
+    const [addingResource, setAddingResource]     = useState(false);
 
     // Task UI state
     const [addingTask,    setAddingTask]    = useState(false);
@@ -539,11 +543,15 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
             setSessionData({ ...sd, creator: creatorProfile || null });
             setNotes(sd.notes || '');
             lastPushedNotes.current = sd.notes || '';
+
+            const { headerLink } = parseSessionLinks(sd.links);
             setHeaderForm({
                 title: sd.title, description: sd.description || '',
                 starts_at: sd.starts_at ? sd.starts_at.split('T')[0] : '',
                 ends_at:   sd.ends_at   ? sd.ends_at.split('T')[0]   : '',
-                status: sd.status, is_hidden: sd.is_hidden, links: sd.links || [],
+                status: sd.status, is_hidden: sd.is_hidden,
+                header_link_label: headerLink?.label || '',
+                header_link_url: headerLink?.url || '',
             });
 
             // Permissions
@@ -772,20 +780,9 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
         if (!headerForm.title?.trim()) return;
         setSavingHeader(true);
         try {
-            // Auto-add last link from inputs if not empty
-            let finalLinks = [...(headerForm.links || [])];
-            if (headerLinkUrl.trim()) {
-                const newLink = { 
-                    label: headerLinkLabel.trim() || headerLinkUrl.trim(), 
-                    url: headerLinkUrl.trim() 
-                };
-                // Only add if not already in finalLinks
-                if (!finalLinks.find(l => l.url === newLink.url)) {
-                    finalLinks.push(newLink);
-                }
-                setHeaderLinkLabel('');
-                setHeaderLinkUrl('');
-            }
+            const currentLinks = parseSessionLinks(sessionData?.links);
+            const newHeaderLink = headerForm.header_link_url ? { label: headerForm.header_link_label, url: headerForm.header_link_url } : null;
+            const payload = formatSessionLinks(newHeaderLink, currentLinks.resourceLinks);
 
             const { error } = await supabase.from('planning_sessions').update({
                 title: headerForm.title.trim(),
@@ -794,15 +791,71 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                 ends_at:   headerForm.ends_at   || null,
                 status:    headerForm.status,
                 is_hidden: headerForm.is_hidden,
-                links:     finalLinks,
+                links:     payload,
             }).eq('id', sessionId);
             if (error) throw error;
-            setSessionData(prev => ({ ...prev, ...headerForm, links: finalLinks }));
+            setSessionData(prev => ({ ...prev, ...headerForm, links: payload }));
             setEditingHeader(false);
         } catch (err) {
-            alert('Error saving: ' + err.message);
+            alert('Error saving header: ' + err.message);
         } finally {
             setSavingHeader(false);
+        }
+    };
+
+    // ── Resource Links (Documents & Media) ──────────────────────────────────
+
+    const handleAddResourceLink = async (e) => {
+        e.preventDefault();
+        if (!newResourceUrl.trim()) return;
+        setAddingResource(true);
+        try {
+            const currentLinks = parseSessionLinks(sessionData?.links);
+            const newItem = {
+                id: `res-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                label: newResourceTitle.trim() || newResourceUrl.trim(),
+                url: newResourceUrl.trim(),
+                category: newResourceCategory,
+                created_at: new Date().toISOString()
+            };
+            const updatedResourceLinks = [...currentLinks.resourceLinks, newItem];
+            const payload = formatSessionLinks(currentLinks.headerLink, updatedResourceLinks);
+
+            const { error } = await supabase
+                .from('planning_sessions')
+                .update({ links: payload })
+                .eq('id', sessionId);
+
+            if (error) throw error;
+
+            setSessionData(prev => ({ ...prev, links: payload }));
+            setNewResourceTitle('');
+            setNewResourceUrl('');
+            setNewResourceCategory('Document');
+        } catch (err) {
+            alert('Error adding resource link: ' + err.message);
+        } finally {
+            setAddingResource(false);
+        }
+    };
+
+    const handleDeleteResourceLink = async (linkId) => {
+        if (!window.confirm('Remove this document link?')) return;
+        try {
+            const currentLinks = parseSessionLinks(sessionData?.links);
+            const updatedResourceLinks = currentLinks.resourceLinks.filter(l => l.id !== linkId);
+            const payload = formatSessionLinks(currentLinks.headerLink, updatedResourceLinks);
+
+            const { error } = await supabase
+                .from('planning_sessions')
+                .update({ links: payload })
+                .eq('id', sessionId);
+
+            if (error) throw error;
+
+            setSessionData(prev => ({ ...prev, links: payload }));
+        } catch (err) {
+            alert('Error deleting link: ' + err.message);
         }
     };
 
@@ -1082,8 +1135,132 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
             );
         }
 
-        // ── ACCESS TAB ─────────────────────────────────────────────────────
+        // ── DOCUMENTS & MEDIA TAB ──────────────────────────────────────────
         if (i === 2) {
+            const { resourceLinks } = parseSessionLinks(sessionData?.links);
+
+            const getCategoryIcon = (cat) => {
+                switch (cat) {
+                    case 'Document': return '📄';
+                    case 'Spreadsheet': return '📊';
+                    case 'Presentation': return '💻';
+                    case 'Video/Audio': return '🎥';
+                    case 'Folder': return '📁';
+                    default: return '🔗';
+                }
+            };
+
+            return (
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>
+                            Planning Documents & Media
+                        </h3>
+                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+                            {resourceLinks.length} item{resourceLinks.length !== 1 ? 's' : ''} attached
+                        </span>
+                    </div>
+
+                    {/* Add Resource Link Form for Editors */}
+                    {isEditor && (
+                        <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(151,247,233,0.2)', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                            <h4 style={{ margin: '0 0 1rem', color: '#97f7e9', fontSize: '0.92rem', fontWeight: 600 }}>
+                                + Add Document or Media Link
+                            </h4>
+                            <form onSubmit={handleAddResourceLink}>
+                                <div className="planning-form-links-grid">
+                                    <div>
+                                        <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>Title / Label *</label>
+                                        <input
+                                            className="admin-input"
+                                            placeholder="e.g. Event Schedule PDF"
+                                            value={newResourceTitle}
+                                            onChange={e => setNewResourceTitle(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>URL *</label>
+                                        <input
+                                            className="admin-input"
+                                            placeholder="https://..."
+                                            value={newResourceUrl}
+                                            onChange={e => setNewResourceUrl(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>Category</label>
+                                        <CustomSelect
+                                            value={newResourceCategory}
+                                            onChange={e => setNewResourceCategory(e.target.value)}
+                                            options={[
+                                                { value: 'Document', label: '📄 Document' },
+                                                { value: 'Spreadsheet', label: '📊 Spreadsheet' },
+                                                { value: 'Presentation', label: '💻 Presentation' },
+                                                { value: 'Video/Audio', label: '🎥 Video/Audio' },
+                                                { value: 'Folder', label: '📁 Folder' },
+                                                { value: 'Other', label: '🔗 Other Link' },
+                                            ]}
+                                        />
+                                    </div>
+                                    <button type="submit" className="admin-pill-btn" style={{ margin: 0, padding: '0.55rem 1.25rem', whiteSpace: 'nowrap' }} disabled={addingResource}>
+                                        {addingResource ? 'Adding…' : '+ Add Link'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* List of Resource Links */}
+                    {resourceLinks.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.35)', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', fontSize: '0.9rem' }}>
+                            No planning documents or media links attached yet.
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {resourceLinks.map((item) => (
+                                <div key={item.id} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '10px', padding: '0.9rem 1.25rem', gap: '1rem', flexWrap: 'wrap'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '220px' }}>
+                                        <span style={{ fontSize: '1.4rem' }}>{getCategoryIcon(item.category)}</span>
+                                        <div>
+                                            <a
+                                                href={item.url}
+                                                target={getLinkTarget(item.url)}
+                                                rel={isInternalLink(item.url) ? undefined : "noopener noreferrer"}
+                                                style={{ color: 'var(--auth-text-light-blue)', fontWeight: 600, fontSize: '0.98rem', textDecoration: 'underline' }}
+                                            >
+                                                {item.label || item.url}
+                                            </a>
+                                            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.2rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                <span style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 7px', borderRadius: '4px' }}>{item.category || 'Document'}</span>
+                                                {item.created_at && <span>Added {new Date(item.created_at).toLocaleDateString()}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {isEditor && (
+                                        <button
+                                            className="admin-pill-btn danger"
+                                            style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem', margin: 0 }}
+                                            onClick={() => handleDeleteResourceLink(item.id)}
+                                        >
+                                            <TrashIcon /> Remove
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ── ACCESS TAB ─────────────────────────────────────────────────────
+        if (i === 3) {
             const uninvitedMembers = members.filter(m => !invitedIds.includes(m.user_id) && m.user_id !== sessionData?.created_by);
 
             return (
@@ -1243,24 +1420,14 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                     /></div>
                             </div>
 
-                            {/* Links editor */}
-                            <div>
-                                <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.5rem' }}>Links</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                                    {(headerForm.links || []).map((lk, i) => (
-                                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: 'rgba(151,247,233,0.1)', border: '1px solid rgba(151, 247, 233, 0.25)', padding: '2px 10px', borderRadius: '9999px', fontSize: '0.8rem' }}>
-                                            <LinkIcon /> {lk.label}
-                                            <button type="button" onClick={() => setHeaderForm(f => ({ ...f, links: f.links.filter((_, li) => li !== i) }))}
-                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, fontSize: '0.85rem', lineHeight: 1 }}>✕</button>
-                                        </span>
-                                    ))}
-                                </div>
-                                <div className="planning-form-links-grid">
-                                    <input className="admin-input" placeholder="Label" value={headerLinkLabel} onChange={e => setHeaderLinkLabel(e.target.value)} />
-                                    <input className="admin-input" placeholder="URL" value={headerLinkUrl} onChange={e => setHeaderLinkUrl(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (headerLinkUrl.trim()) { setHeaderForm(f => ({ ...f, links: [...(f.links||[]), { label: headerLinkLabel.trim() || headerLinkUrl.trim(), url: headerLinkUrl.trim() }] })); setHeaderLinkLabel(''); setHeaderLinkUrl(''); } } }} />
-                                    <button type="button" className="admin-pill-btn" style={{ margin: 0 }}
-                                        onClick={() => { if (headerLinkUrl.trim()) { setHeaderForm(f => ({ ...f, links: [...(f.links||[]), { label: headerLinkLabel.trim() || headerLinkUrl.trim(), url: headerLinkUrl.trim() }] })); setHeaderLinkLabel(''); setHeaderLinkUrl(''); } }}>+ Add</button>
+                            {/* Header Link editor */}
+                            <div className="admin-input-group">
+                                <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.3rem' }}>Header Link <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 'normal' }}>(Optional meeting or primary event link)</span></label>
+                                <div className="planning-form-grid-2">
+                                    <input className="admin-input" placeholder="Label (e.g. Zoom Meeting)" value={headerForm.header_link_label || ''}
+                                        onChange={e => setHeaderForm(f => ({ ...f, header_link_label: e.target.value }))} />
+                                    <input className="admin-input" placeholder="URL (e.g. https://zoom.us/j/...)" value={headerForm.header_link_url || ''}
+                                        onChange={e => setHeaderForm(f => ({ ...f, header_link_url: e.target.value }))} />
                                 </div>
                             </div>
 
@@ -1330,17 +1497,19 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 )}
 
 
-                                {(sessionData.links || []).length > 0 && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                        {sessionData.links.map((lk, i) => (
-                                            <a key={i} href={lk.url} target={getLinkTarget(lk.url)} rel={isInternalLink(lk.url) ? undefined : "noopener noreferrer"}
+                                {(() => {
+                                    const { headerLink } = parseSessionLinks(sessionData.links);
+                                    if (!headerLink || !headerLink.url) return null;
+                                    return (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            <a href={headerLink.url} target={getLinkTarget(headerLink.url)} rel={isInternalLink(headerLink.url) ? undefined : "noopener noreferrer"}
                                                 className="session-link-pill"
                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--auth-text-light-blue)', textDecoration: 'none', background: 'rgba(151,247,233,0.1)', border: '1px solid rgba(151,247,233,0.25)', padding: '5px 12px', borderRadius: '9999px', transition: 'all 0.2s' }}>
-                                                <span style={{ color: 'white' }}><LinkIcon /></span> {lk.label}
+                                                <span style={{ color: 'white' }}><LinkIcon /></span> {headerLink.label || headerLink.url}
                                             </a>
-                                        ))}
-                                    </div>
-                                )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {/* Action buttons & Creator */}
