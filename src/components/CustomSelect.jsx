@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 
 export default function CustomSelect({ value, onChange, options, disabled, className, style, triggerStyle, labelId, placeholder = "Select...", variant }) {
     const [isOpen, setIsOpen] = useState(false);
     const [focusedIndex, setFocusedIndex] = useState(-1);
+    const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, openUpward: false });
     const containerRef = useRef(null);
     const listRef = useRef(null);
     const selectId = useRef(Math.random().toString(36).substring(2, 9)).current;
@@ -11,15 +13,50 @@ export default function CustomSelect({ value, onChange, options, disabled, class
     const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
     const selectedIndex = options.findIndex(o => String(o.value) === String(value));
 
+    // Calculate fixed screen coordinates relative to document.body
+    const updateCoords = () => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+
+            setCoords({
+                top: openUp ? rect.top - 6 : rect.bottom + 6,
+                left: rect.left,
+                width: Math.max(rect.width, 160),
+                openUpward: openUp
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            updateCoords();
+            window.addEventListener("scroll", updateCoords, true);
+            window.addEventListener("resize", updateCoords);
+        }
+        return () => {
+            window.removeEventListener("scroll", updateCoords, true);
+            window.removeEventListener("resize", updateCoords);
+        };
+    }, [isOpen]);
+
     useEffect(() => {
         function handleClickOutside(event) {
             if (containerRef.current && !containerRef.current.contains(event.target)) {
+                // Also check if click was inside portal dropdown
+                if (listRef.current && listRef.current.contains(event.target)) {
+                    return;
+                }
                 setIsOpen(false);
             }
         }
-        document.addEventListener("mousedown", handleClickOutside);
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
     useEffect(() => {
         if (isOpen) setFocusedIndex(selectedIndex >= 0 ? selectedIndex : 0);
@@ -103,13 +140,22 @@ export default function CustomSelect({ value, onChange, options, disabled, class
                 }}>▼</span>
             </div>
 
-            {isOpen && !disabled && (
+            {isOpen && !disabled && ReactDOM.createPortal(
                 <ul
                     ref={listRef}
                     role="listbox"
                     id={listboxId}
                     aria-labelledby={labelId}
-                    className="custom-select-dropdown"
+                    className={`custom-select-dropdown ${coords.openUpward ? "open-upward" : ""}`}
+                    style={{
+                        position: "fixed",
+                        top: coords.openUpward ? "auto" : `${coords.top}px`,
+                        bottom: coords.openUpward ? `${window.innerHeight - coords.top}px` : "auto",
+                        left: `${coords.left}px`,
+                        width: `${coords.width}px`,
+                        zIndex: 999999,
+                        margin: 0,
+                    }}
                 >
                     {options.map((opt, idx) => (
                         <li
@@ -126,7 +172,8 @@ export default function CustomSelect({ value, onChange, options, disabled, class
                             {opt.label}
                         </li>
                     ))}
-                </ul>
+                </ul>,
+                document.body
             )}
         </div>
     );

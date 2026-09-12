@@ -18,8 +18,8 @@ export const CommunityProvider = ({ children }) => {
       if (mounted) setLoading(false);
     }, 3500);
 
-    async function fetchUserCommunities(sessionObj) {
-      if (mounted) setLoading(true);
+    async function fetchUserCommunities(sessionObj, isBackgroundRefresh = false) {
+      if (mounted && !isBackgroundRefresh) setLoading(true);
       try {
         const session = sessionObj !== undefined ? sessionObj : (await supabase.auth.getSession()).data.session;
         if (!session?.user) {
@@ -88,7 +88,12 @@ export const CommunityProvider = ({ children }) => {
     fetchUserCommunities();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        fetchUserCommunities(session);
+        // Skip routine token refresh on tab switching if communities are already loaded in memory
+        if (event === 'TOKEN_REFRESHED' && communities.length > 0) {
+            return;
+        }
+        const isBackground = communities.length > 0;
+        fetchUserCommunities(session, isBackground);
     });
 
     return () => {
@@ -99,12 +104,57 @@ export const CommunityProvider = ({ children }) => {
   }, []);
 
   const handleSetCommunity = (id) => {
-    setActiveCommunityId(id);
-    localStorage.setItem('active_community_id', id);
+    setActiveCommunityId(prev => {
+        if (prev !== id) {
+            if (id) localStorage.setItem('active_community_id', id);
+            return id;
+        }
+        return prev;
+    });
   };
 
   const activeMembership = userMemberships.find(m => m.community_id === activeCommunityId);
   const currentIsAdmin = isGlobalAdmin || (activeMembership && activeMembership.admin_level > 0);
+
+  const refreshCommunities = async () => {
+    const session = (await supabase.auth.getSession()).data.session;
+    if (!session?.user) return;
+    const { data: userIsGlobalAdmin } = await supabase.rpc("is_global_admin", { uid: session.user.id });
+    let combined = [];
+    let membershipsList = [];
+    if (userIsGlobalAdmin) {
+      const { data } = await supabase.from("communities").select("id, name").order("name");
+      combined = data || [];
+    } else {
+      const { data: rows } = await supabase
+        .from("memberships")
+        .select("community_id, admin_level, communities(id, name)")
+        .eq("user_id", session.user.id)
+        .eq("approved", true);
+      if (rows) {
+        membershipsList = rows;
+        combined = rows
+          .map(r => r.communities)
+          .filter(Boolean)
+          .sort((a, b) => a.name.localeCompare(b.name));
+      }
+    }
+    setCommunities(combined);
+    setUserMemberships(membershipsList);
+    setIsGlobalAdmin(!!userIsGlobalAdmin);
+    if (combined.length > 0) {
+      const savedId = localStorage.getItem('active_community_id');
+      const exists = combined.find(c => c.id === savedId);
+      if (exists) {
+        setActiveCommunityId(exists.id);
+      } else {
+        setActiveCommunityId(combined[0].id);
+        localStorage.setItem('active_community_id', combined[0].id);
+      }
+    } else {
+      setActiveCommunityId('');
+    }
+  };
 
   return (
     <CommunityContext.Provider value={{ 
@@ -113,7 +163,9 @@ export const CommunityProvider = ({ children }) => {
       communityDetails: communities.find(c => c.id === activeCommunityId) || null,
       setActiveCommunityId: handleSetCommunity, 
       loading,
-      isAdmin: currentIsAdmin
+      isAdmin: currentIsAdmin,
+      isGlobalAdmin,
+      refreshCommunities
     }}>
       {children}
     </CommunityContext.Provider>

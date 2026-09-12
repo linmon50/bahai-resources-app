@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 
 const MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -11,7 +12,9 @@ export default function CustomDatePicker({ value, onChange, disabled, className,
     const [isOpen, setIsOpen] = useState(false);
     const [currentDate, setCurrentDate] = useState(null);
     const [viewDate, setViewDate] = useState(() => new Date());
+    const [coords, setCoords] = useState({ top: 0, left: 0, width: 280, openUpward: false });
     const containerRef = useRef(null);
+    const dropdownRef = useRef(null);
 
     // Sync input value with internal state
     useEffect(() => {
@@ -28,16 +31,55 @@ export default function CustomDatePicker({ value, onChange, disabled, className,
         }
     }, [value]);
 
+    // Calculate fixed screen coordinates relative to document.body
+    const updateCoords = () => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            const openUp = spaceBelow < 300 && spaceAbove > spaceBelow;
+
+            const dropdownWidth = Math.min(280, window.innerWidth - 24);
+            const maxLeft = Math.max(12, window.innerWidth - dropdownWidth - 12);
+            const calcLeft = Math.min(Math.max(12, rect.left), maxLeft);
+
+            setCoords({
+                top: rect.bottom + 6,
+                bottom: window.innerHeight - rect.top + 6,
+                left: calcLeft,
+                width: dropdownWidth,
+                openUpward: openUp
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            updateCoords();
+            window.addEventListener("scroll", updateCoords, true);
+            window.addEventListener("resize", updateCoords);
+        }
+        return () => {
+            window.removeEventListener("scroll", updateCoords, true);
+            window.removeEventListener("resize", updateCoords);
+        };
+    }, [isOpen]);
+
     // Handle outside clicks to close calendar
     useEffect(() => {
         function handleClickOutside(event) {
             if (containerRef.current && !containerRef.current.contains(event.target)) {
+                if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+                    return;
+                }
                 setIsOpen(false);
             }
         }
-        document.addEventListener("mousedown", handleClickOutside);
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
     const handlePrevMonth = (e) => {
         e.preventDefault();
@@ -195,8 +237,22 @@ export default function CustomDatePicker({ value, onChange, disabled, className,
                 </div>
             </div>
 
-            {isOpen && (
-                <div className="custom-datepicker-dropdown" role="dialog" aria-label="Calendar date picker">
+            {isOpen && ReactDOM.createPortal(
+                <div 
+                    ref={dropdownRef}
+                    className={`custom-datepicker-dropdown ${coords.openUpward ? "open-upward" : ""}`} 
+                    role="dialog" 
+                    aria-label="Calendar date picker"
+                    style={{
+                        position: "fixed",
+                        top: coords.openUpward ? "auto" : `${coords.top}px`,
+                        bottom: coords.openUpward ? `${coords.bottom}px` : "auto",
+                        left: `${coords.left}px`,
+                        width: `${coords.width}px`,
+                        zIndex: 999999,
+                        margin: 0,
+                    }}
+                >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.8rem" }}>
                         <button type="button" onClick={handlePrevMonth} className="datepicker-nav-btn" aria-label="Previous month">
                             ◀
@@ -241,7 +297,8 @@ export default function CustomDatePicker({ value, onChange, disabled, className,
                             );
                         })}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

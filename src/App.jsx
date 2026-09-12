@@ -17,17 +17,27 @@ import { CommunityProvider, useCommunity } from "./context/CommunityContext";
 import ProfileDropdown from "./components/ProfileDropdown";
 
 function MembershipRequired() {
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async (e) => {
+    if (e) e.preventDefault();
+    setSigningOut(true);
+    await clearSessionAndRedirect();
+  };
+
   return (
     <div className="glass-panel" style={{ padding: '2rem', maxWidth: '500px', margin: '4rem auto', textAlign: 'center' }}>
       <h2 style={{ color: 'var(--auth-text-light-blue)', marginBottom: '1.5rem' }}>Membership Required</h2>
       <p style={{ color: 'white', marginBottom: '1.5rem' }}>Your account is not currently associated with an approved community.</p>
       <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '2rem' }}>If you just signed up, please wait for an administrator to approve your request, or ensure you used a valid invite link.</p>
       <button 
-        onClick={clearSessionAndRedirect} 
+        type="button"
+        onClick={handleSignOut} 
+        disabled={signingOut}
         className="admin-pill-btn danger" 
-        style={{ width: '100%' }}
+        style={{ width: '100%', cursor: signingOut ? 'wait' : 'pointer' }}
       >
-        Sign Out
+        {signingOut ? "Signing Out..." : "Sign Out"}
       </button>
     </div>
   );
@@ -89,7 +99,7 @@ export default function App() {
       }
     }
 
-    let authListenerInitialized = false;
+    let lastUserId = null;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
@@ -97,13 +107,24 @@ export default function App() {
           setIsRecovering(true);
         }
 
+        // On tab switching within the same browser port, Supabase fires TOKEN_REFRESHED.
+        // If the user is already logged in with the same ID, ignore token refresh re-renders completely.
+        if (event === 'TOKEN_REFRESHED' && session?.user && session.user.id === lastUserId) {
+          return;
+        }
+
         setSession(session);
         if (session?.user) {
-          // Only show global loading on the very first auth event to prevent flickers on refreshes
-          if (!authListenerInitialized) setLoading(true);
-          checkAdminStatus(session.user.id);
-          authListenerInitialized = true;
+          // If first load or user changed, perform full admin status check
+          if (!lastUserId || session.user.id !== lastUserId) {
+            setLoading(true);
+            await checkAdminStatus(session.user.id);
+            lastUserId = session.user.id;
+          } else {
+            setLoading(false);
+          }
         } else {
+          lastUserId = null;
           setIsAdmin(false);
           setIsGlobalAdmin(false);
           setHasMembership(false);

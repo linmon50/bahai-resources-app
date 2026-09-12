@@ -4,6 +4,7 @@ import supabase from './supabaseClient';
 import { useCommunity } from './context/CommunityContext';
 import CustomSelect from './components/CustomSelect';
 import CustomDatePicker from './components/CustomDatePicker';
+import { getLinkTarget, isInternalLink } from './utils/linkUtils';
 
 const STATUS_COLORS = {
     active:    { bg: 'rgba(71,178,96,0.18)',   text: '#47b260', border: 'rgba(71,178,96,0.4)'   },
@@ -463,7 +464,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                         By {s.creator?.display_name || 'Unknown'}
                                     </span>
                                     {(s.links || []).slice(0, 3).map((lk, i) => (
-                                        <a key={i} href={lk.url} target="_blank" rel="noopener noreferrer"
+                                        <a key={i} href={lk.url} target={getLinkTarget(lk.url)} rel={isInternalLink(lk.url) ? undefined : "noopener noreferrer"}
                                             onClick={e => e.stopPropagation()}
                                             style={{ fontSize: '0.75rem', color: 'var(--auth-text-light-blue)', textDecoration: 'none',
                                                 background: 'rgba(151,247,233,0.1)', border: '1px solid rgba(151,247,233,0.25)',

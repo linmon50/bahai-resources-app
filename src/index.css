@@ -356,7 +356,7 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(151, 247, 233, 0.25);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  z-index: 1000;
+  z-index: 99999 !important;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1471,11 +1471,8 @@ textarea.admin-input {
 /* ── Custom React Select Overlay ────────────────────────── */
 
 .custom-select-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 999;
+  position: fixed;
+  z-index: 999999 !important;
   margin: 0;
   padding: 0.5rem 0;
   list-style: none;
@@ -1483,8 +1480,8 @@ textarea.admin-input {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(151, 247, 233, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(151, 247, 233, 0.35);
   max-height: 250px;
   overflow-y: auto;
 }
@@ -2374,11 +2371,8 @@ textarea.admin-input {
 /* ── ComboBox dropdown ──────────────────────────────────────────── */
 
 .combobox-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 999;
+  position: fixed;
+  z-index: 999999 !important;
   list-style: none;
   margin: 0;
   padding: 0.5rem 0;
@@ -2388,8 +2382,8 @@ textarea.admin-input {
   border-radius: 12px;
   max-height: 250px;
   overflow-y: auto;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(151, 247, 233, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(151, 247, 233, 0.35);
 }
 
 .combobox-group-label {
@@ -2547,19 +2541,29 @@ textarea.admin-input {
 }
 
 .custom-datepicker-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 2000; /* Float above other content and tables */
+  position: fixed;
+  z-index: 999999 !important; /* Float above all other content, panels, modals, headers, and tables */
   width: 280px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
   background: #3265c2;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(151, 247, 233, 0.25);
+  border: 1px solid rgba(151, 247, 233, 0.35);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.8), 0 8px 18px -6px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
   animation: datepickerFadeIn 0.15s ease-out;
+}
+
+@media (max-width: 480px) {
+  .custom-datepicker-dropdown {
+    padding: 0.75rem;
+  }
+  .datepicker-day {
+    font-size: 0.8rem;
+    padding: 5px 0;
+  }
 }
 
 @keyframes datepickerFadeIn {
@@ -2631,11 +2635,36 @@ textarea.admin-input {
   color: #f87171 !important;
 }
 
-/* Ensure the calendar dropdown is visible and not clipped by table wrappers on desktop */
-@media (min-width: 768px) {
-  .admin-table-wrapper:has(.custom-datepicker-dropdown) {
-    overflow: visible !important;
-  }
+/* Ensure all dropdown menus float above all tables, panels, cards, headers, and modal dialogs */
+.admin-table-wrapper:has(.custom-datepicker-dropdown),
+.admin-table-wrapper:has(.custom-select-dropdown),
+.admin-table-wrapper:has(.combobox-dropdown),
+.glass-panel:has(.custom-datepicker-dropdown),
+.glass-panel:has(.custom-select-dropdown),
+.glass-panel:has(.combobox-dropdown),
+.modal-card:has(.custom-datepicker-dropdown),
+.modal-card:has(.custom-select-dropdown),
+.modal-card:has(.combobox-dropdown),
+.auth-card:has(.custom-datepicker-dropdown),
+.auth-card:has(.custom-select-dropdown),
+.session-detail-card:has(.custom-datepicker-dropdown),
+.session-detail-card:has(.custom-select-dropdown),
+.session-detail-card:has(.combobox-dropdown),
+.task-item:has(.custom-datepicker-dropdown),
+.task-item:has(.custom-select-dropdown),
+.task-item:has(.combobox-dropdown),
+.planning-panel:has(.custom-datepicker-dropdown),
+.planning-panel:has(.custom-select-dropdown),
+.planning-panel:has(.combobox-dropdown),
+.navbar-community-switcher:has(.custom-select-dropdown),
+tr:has(.custom-datepicker-dropdown),
+tr:has(.custom-select-dropdown),
+tr:has(.combobox-dropdown),
+td:has(.custom-datepicker-dropdown),
+td:has(.custom-select-dropdown),
+td:has(.combobox-dropdown) {
+  overflow: visible !important;
+  z-index: 9999 !important;
 }
 
 /* Helper to hide button text on mobile and show only icons */

@@ -77,7 +77,13 @@ export default function Navbar({ session, isAdmin }) {
                     }}>{isAdmin ? "Active Community" : "Your Community"}</label>
                     <CustomSelect
                         value={activeCommunityId}
-                        onChange={(e) => setActiveCommunityId(e.target.value)}
+                        onChange={(e) => {
+                            const newId = e.target.value;
+                            setActiveCommunityId(newId);
+                            if (location.pathname !== "/admin/members") {
+                                navigate("/");
+                            }
+                        }}
                         options={communities.map(c => ({ value: c.id, label: c.name }))}
                         style={{ width: '100%' }}
                     />

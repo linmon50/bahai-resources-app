@@ -6,6 +6,7 @@ import CreatePost from './components/CreatePost';
 import EditPost from './components/EditPost';
 import PostActions from './components/PostActions';
 import { getAvatarColor, getInitials } from './utils/avatarUtils';
+import { getLinkTarget, isInternalLink } from './utils/linkUtils';
 
 const PinIcon = ({ filled }) => (
   <svg className="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,7 +46,7 @@ export default function BulletinBoard({ session, isAdmin }) {
 
   useEffect(() => {
     if (activeCommunityId) {
-      setLoading(true);
+      if (posts.length === 0) setLoading(true);
       fetchPosts();
       fetchMySubmissions();
       checkCurrentCommunityAdmin();
@@ -417,8 +418,8 @@ export default function BulletinBoard({ session, isAdmin }) {
                 {post.link_url && (
                   <a 
                     href={post.link_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                    target={getLinkTarget(post.link_url)} 
+                    rel={isInternalLink(post.link_url) ? undefined : "noopener noreferrer"}
                     style={{ 
                       display: 'inline-block', 
                       color: 'var(--auth-text-light-blue)', 

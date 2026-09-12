@@ -6,6 +6,7 @@ import { useCommunity } from './context/CommunityContext';
 import ComboBox from './components/ComboBox';
 import CustomSelect from './components/CustomSelect';
 import CustomDatePicker from './components/CustomDatePicker';
+import { getLinkTarget, isInternalLink } from './utils/linkUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -292,9 +293,9 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                     </span>
                     {task.link && (
                         <a 
-                            href={task.link.startsWith('http') ? task.link : `https://${task.link}`}
-                            target="_blank" 
-                            rel="noopener noreferrer"
+                            href={task.link.startsWith('http') || task.link.startsWith('/') ? task.link : `https://${task.link}`}
+                            target={getLinkTarget(task.link)} 
+                            rel={isInternalLink(task.link) ? undefined : "noopener noreferrer"}
                             style={{ 
                                 display: 'inline-flex', 
                                 alignItems: 'center', 
@@ -1019,7 +1020,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                 const parts = text.split(urlRegex);
                 return parts.map((part, index) => {
                     if (part.match(urlRegex)) {
-                        return <a key={index} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--auth-text-light-blue)', textDecoration: 'underline' }}>{part}</a>;
+                        return <a key={index} href={part} target={getLinkTarget(part)} rel={isInternalLink(part) ? undefined : "noopener noreferrer"} style={{ color: 'var(--auth-text-light-blue)', textDecoration: 'underline' }}>{part}</a>;
                     }
                     return part;
                 });
@@ -1332,7 +1333,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 {(sessionData.links || []).length > 0 && (
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                         {sessionData.links.map((lk, i) => (
-                                            <a key={i} href={lk.url} target="_blank" rel="noopener noreferrer"
+                                            <a key={i} href={lk.url} target={getLinkTarget(lk.url)} rel={isInternalLink(lk.url) ? undefined : "noopener noreferrer"}
                                                 className="session-link-pill"
                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--auth-text-light-blue)', textDecoration: 'none', background: 'rgba(151,247,233,0.1)', border: '1px solid rgba(151,247,233,0.25)', padding: '5px 12px', borderRadius: '9999px', transition: 'all 0.2s' }}>
                                                 <span style={{ color: 'white' }}><LinkIcon /></span> {lk.label}

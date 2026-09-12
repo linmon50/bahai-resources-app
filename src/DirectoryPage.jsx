@@ -13,7 +13,7 @@ export default function DirectoryPage({ session }) {
 
   useEffect(() => {
     if (activeCommunityId) {
-      setLoading(true);
+      if (profiles.length === 0) setLoading(true);
       fetchDirectory();
     } else {
       setProfiles([]);

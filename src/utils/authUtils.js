@@ -1,22 +1,9 @@
 import supabase from '../supabaseClient';
 
 export async function clearSessionAndRedirect() {
+    // 1. Wipe localStorage and sessionStorage first so no residual tokens remain
     try {
-        await supabase.auth.signOut();
-    } catch (err) {
-        console.error("Sign out error:", err);
-    }
-    
-    // Manually delete all Supabase auth keys and active community ID from localStorage
-    try {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && (key.startsWith('sb-') || key === 'active_community_id')) {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
+        localStorage.clear();
     } catch (e) {
         console.error("Failed to clear localStorage:", e);
     }
@@ -27,5 +14,20 @@ export async function clearSessionAndRedirect() {
         console.error("Failed to clear sessionStorage:", e);
     }
 
-    window.location.href = "/";
+    // 2. Perform Supabase signOut with a 1s safety timeout so UI never hangs on slow network/auth RPCs
+    try {
+        await Promise.race([
+            supabase.auth.signOut(),
+            new Promise((resolve) => setTimeout(resolve, 1000))
+        ]);
+    } catch (err) {
+        console.error("Sign out error:", err);
+    }
+
+    // 3. Force hard reload to root login page (window.location.href = "/" is a no-op when already at "/")
+    if (window.location.pathname === '/' || window.location.pathname === '') {
+        window.location.reload();
+    } else {
+        window.location.href = "/";
+    }
 }

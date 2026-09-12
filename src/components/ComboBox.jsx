@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 
 /**
  * ComboBox — Hybrid text-input + grouped dropdown.
@@ -24,8 +25,10 @@ export default function ComboBox({
     const [inputText, setInputText] = useState(userName || '');
     const [isOpen, setIsOpen]       = useState(false);
     const [focusedIdx, setFocusedIdx] = useState(-1);
+    const [coords, setCoords]       = useState({ top: 0, left: 0, width: 0, openUpward: false });
     const containerRef = useRef(null);
     const inputRef     = useRef(null);
+    const dropdownRef  = useRef(null);
     const comboUniqueId = useRef(Math.random().toString(36).substring(2, 9)).current;
     const listboxId = `combo-list-${comboUniqueId}`;
 
@@ -33,6 +36,35 @@ export default function ComboBox({
     useEffect(() => {
         setInputText(userName || '');
     }, [userName]);
+
+    // Calculate fixed screen coordinates relative to document.body
+    const updateCoords = () => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+
+            setCoords({
+                top: openUp ? rect.top - 6 : rect.bottom + 6,
+                left: rect.left,
+                width: Math.max(rect.width, 180),
+                openUpward: openUp
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            updateCoords();
+            window.addEventListener("scroll", updateCoords, true);
+            window.addEventListener("resize", updateCoords);
+        }
+        return () => {
+            window.removeEventListener("scroll", updateCoords, true);
+            window.removeEventListener("resize", updateCoords);
+        };
+    }, [isOpen]);
 
     // Flatten all options for keyboard navigation
     const allOptions = groups.flatMap(g => g.options);
@@ -51,13 +83,18 @@ export default function ComboBox({
     useEffect(() => {
         function handleClickOutside(e) {
             if (containerRef.current && !containerRef.current.contains(e.target)) {
+                if (dropdownRef.current && dropdownRef.current.contains(e.target)) {
+                    return;
+                }
                 commitValue();
                 setIsOpen(false);
             }
         }
-        document.addEventListener('mousedown', handleClickOutside);
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [inputText, filteredFlat]);
+    }, [isOpen, inputText, filteredFlat]);
 
     const commitValue = () => {
         const text = inputText.trim();
@@ -140,8 +177,22 @@ export default function ComboBox({
                 style={{ width: '100%' }}
             />
 
-            {showDropdown && (
-                <ul id={listboxId} className="combobox-dropdown" role="listbox">
+            {showDropdown && ReactDOM.createPortal(
+                <ul
+                    ref={dropdownRef}
+                    id={listboxId}
+                    className={`combobox-dropdown ${coords.openUpward ? "open-upward" : ""}`}
+                    role="listbox"
+                    style={{
+                        position: "fixed",
+                        top: coords.openUpward ? "auto" : `${coords.top}px`,
+                        bottom: coords.openUpward ? `${window.innerHeight - coords.top}px` : "auto",
+                        left: `${coords.left}px`,
+                        width: `${coords.width}px`,
+                        zIndex: 999999,
+                        margin: 0,
+                    }}
+                >
                     {filteredGroups.map((group, gi) => (
                         <React.Fragment key={gi}>
                             {group.label && (
@@ -174,7 +225,8 @@ export default function ComboBox({
                             )}
                         </React.Fragment>
                     ))}
-                </ul>
+                </ul>,
+                document.body
             )}
         </div>
     );

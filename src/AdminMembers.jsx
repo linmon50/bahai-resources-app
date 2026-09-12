@@ -6,6 +6,7 @@ import CustomSelect from "./components/CustomSelect";
 
 import { useCommunity } from "./context/CommunityContext";
 import { notifyAdmins } from './utils/notifyAdmins';
+import { getLinkTarget, isInternalLink } from './utils/linkUtils';
 
 const ROLES = ["member", "admin"];
 const ROLE_OPTIONS = ROLES.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }));
@@ -1453,7 +1454,7 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
                             {post.link_url && (
                                 <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#97f7e9' }}>
                                     <span style={{ color: '#ffffff' }}>Link: </span>
-                                    <a href={post.link_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>{post.link_url}</a>
+                                    <a href={post.link_url} target={getLinkTarget(post.link_url)} rel={isInternalLink(post.link_url) ? undefined : "noopener noreferrer"} style={{ color: 'inherit' }}>{post.link_url}</a>
                                 </div>
                             )}
                             
