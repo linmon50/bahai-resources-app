@@ -86,12 +86,8 @@ export default function ProfilePage({ session }) {
     <div className="content-container" style={{ maxWidth: '900px' }}>
       
       {/* HEADER: Avatar & Name */}
-      <div style={{ 
-        display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '2rem', 
-        background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(18px)', 
-        padding: '2rem', borderRadius: '16px', border: '1px solid rgba(151, 247, 233, 0.3)' 
-      }}>
-        <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', border: 'none', flexShrink: 0 }}>
+      <div className="profile-header-card">
+        <div className="profile-header-avatar">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt={profile.display_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
@@ -111,10 +107,10 @@ export default function ProfilePage({ session }) {
             </div>
           )}
         </div>
-        <div style={{ flex: 1 }}>
-          <h2 className="admin-title" style={{ margin: '0 0 0.5rem 0', color: '#ffffff' }}>{profile.display_name}</h2>
+        <div className="profile-header-info">
+          <h2 className="admin-title profile-header-name">{profile.display_name}</h2>
           {profile.memberships?.length > 0 && (
-             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+             <div className="profile-header-badges">
                {[...profile.memberships]
                  .sort((a, b) => (a.communities?.name || "").localeCompare(b.communities?.name || ""))
                  .map((cm, idx) => cm.communities?.name && (
@@ -125,7 +121,7 @@ export default function ProfilePage({ session }) {
              </div>
           )}
           {isOwnProfile && (
-             <button onClick={() => navigate('/profile/edit')} className="admin-pill-btn blue" style={{ marginTop: '0.5rem' }}>
+             <button onClick={() => navigate('/profile/edit')} className="admin-pill-btn blue profile-header-btn">
                Edit Profile
              </button>
           )}

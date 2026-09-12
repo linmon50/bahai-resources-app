@@ -315,9 +315,9 @@ export default function EditProfilePage({ session }) {
   return (
     <div className="content-container" style={{ maxWidth: '900px' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="edit-profile-top-header">
         <h2 className="admin-title" style={{ margin: '0 0 1rem 0' }}>Edit Your Profile</h2>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="edit-profile-top-actions">
           <button 
             type="button"
             onClick={handleSubmit}
@@ -350,27 +350,21 @@ export default function EditProfilePage({ session }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ 
-        background: 'rgba(255, 255, 255, 0.1)', 
-        backdropFilter: 'blur(18px)', 
-        padding: '2rem', 
-        borderRadius: '16px', 
-        border: '1px solid rgba(151, 247, 233, 0.3)' 
-      }}>
+      <form onSubmit={handleSubmit} className="edit-profile-form">
         
         {/* AVATAR SECTION */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '3rem' }}>
-          <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', background: '#333', border: '3px solid var(--auth-text-light-blue)', flexShrink: 0 }}>
+        <div className="edit-profile-avatar-section">
+          <div className="edit-profile-avatar-wrapper">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>No Image</div>
             )}
           </div>
-          <div>
+          <div className="edit-profile-avatar-info">
             <h3 style={{ margin: '0 0 0.5rem 0' }}>Profile Picture</h3>
             <label 
-              className="admin-pill-btn blue" 
+              className="admin-pill-btn blue edit-profile-avatar-btn" 
               role="button"
               tabIndex="0"
               onKeyDown={(e) => {
