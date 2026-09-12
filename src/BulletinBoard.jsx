@@ -45,12 +45,16 @@ export default function BulletinBoard({ session, isAdmin }) {
   const { activeCommunityId, communityDetails } = useCommunity();
 
   useEffect(() => {
+    setMySubmissions([]);
+    setShowCreatePost(false);
+    setEditingPostId(null);
     if (activeCommunityId) {
       if (posts.length === 0) setLoading(true);
       fetchPosts();
       fetchMySubmissions();
       checkCurrentCommunityAdmin();
     } else {
+      setPosts([]);
       setLoading(false);
     }
   }, [activeCommunityId, session?.user?.id]);
@@ -84,12 +88,16 @@ export default function BulletinBoard({ session, isAdmin }) {
   };
 
   const fetchMySubmissions = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !activeCommunityId) {
+      setMySubmissions([]);
+      return;
+    }
     try {
       const { data } = await supabase
         .from('bulletin_posts')
         .select('*')
         .eq('author_id', session.user.id)
+        .eq('community_id', activeCommunityId)
         .neq('status', 'approved')
         .order('created_at', { ascending: false });
       setMySubmissions(data || []);
