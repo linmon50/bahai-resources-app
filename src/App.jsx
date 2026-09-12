@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import supabase from "./supabaseClient";
 import Navbar from "./Navbar";
 import { clearSessionAndRedirect } from "./utils/authUtils";
@@ -38,6 +38,26 @@ function MembershipRequired() {
         style={{ width: '100%', cursor: signingOut ? 'wait' : 'pointer' }}
       >
         {signingOut ? "Signing Out..." : "Sign Out"}
+      </button>
+    </div>
+  );
+}
+
+function NotFound() {
+  const navigate = useNavigate();
+  return (
+    <div className="glass-panel" style={{ padding: '2.5rem 2rem', maxWidth: '500px', margin: '4rem auto', textAlign: 'center' }}>
+      <h2 style={{ color: 'var(--auth-text-light-blue)', marginBottom: '1rem', fontSize: '1.5rem' }}>Page Not Found</h2>
+      <p style={{ color: 'white', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+        The link you clicked does not exist or may have been removed.
+      </p>
+      <button 
+        type="button"
+        onClick={() => navigate('/')} 
+        className="admin-pill-btn" 
+        style={{ width: '100%', justifyContent: 'center' }}
+      >
+        ← Return to Home
       </button>
     </div>
   );
@@ -220,7 +240,7 @@ function AppContent({ session, hasMembership, isGlobalAdmin }) {
 
             <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
 
-            <Route path="*" element={<Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         )}
       </main>

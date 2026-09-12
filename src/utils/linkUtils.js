@@ -1,4 +1,24 @@
 /**
+ * Normalizes a URL so that external links missing protocol get prefixed with https://.
+ */
+export function normalizeUrl(url) {
+    if (!url) return '';
+    const cleanUrl = String(url).trim();
+    if (!cleanUrl) return '';
+    if (
+        cleanUrl.startsWith('/') ||
+        cleanUrl.startsWith('#') ||
+        cleanUrl.startsWith('http://') ||
+        cleanUrl.startsWith('https://') ||
+        cleanUrl.startsWith('mailto:') ||
+        cleanUrl.startsWith('tel:')
+    ) {
+        return cleanUrl;
+    }
+    return `https://${cleanUrl}`;
+}
+
+/**
  * Helper to determine if a URL points to an internal page within the app.
  * Internal links: relative URLs ('/directory', '#section'), or URLs sharing the current origin/hostname.
  */
@@ -9,7 +29,8 @@ export function isInternalLink(url) {
         return true;
     }
     try {
-        const parsed = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`, window.location.origin);
+        const normalized = normalizeUrl(cleanUrl);
+        const parsed = new URL(normalized, window.location.origin);
         return parsed.hostname === window.location.hostname;
     } catch (e) {
         return false;

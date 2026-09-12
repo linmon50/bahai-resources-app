@@ -6,7 +6,7 @@ import { useCommunity } from './context/CommunityContext';
 import ComboBox from './components/ComboBox';
 import CustomSelect from './components/CustomSelect';
 import CustomDatePicker from './components/CustomDatePicker';
-import { getLinkTarget, isInternalLink, parseSessionLinks, formatSessionLinks } from './utils/linkUtils';
+import { getLinkTarget, isInternalLink, normalizeUrl, parseSessionLinks, formatSessionLinks } from './utils/linkUtils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -344,7 +344,7 @@ function TaskRow({ task, isSubtask, isEditor, assigneeGroups, onSave, onDelete, 
                     </span>
                     {task.link && (
                         <a 
-                            href={task.link.startsWith('http') || task.link.startsWith('/') ? task.link : `https://${task.link}`}
+                            href={normalizeUrl(task.link)}
                             target={getLinkTarget(task.link)} 
                             rel={isInternalLink(task.link) ? undefined : "noopener noreferrer"}
                             style={{ 
@@ -534,6 +534,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
     const [accessList,   setAccessList]   = useState([]); // session_access rows
     const [loading,      setLoading]      = useState(true);
     const [accessDenied, setAccessDenied] = useState(false);
+    const [sessionNotFound, setSessionNotFound] = useState(false);
     const [activeTab,    setActiveTab]    = useState(0);
     const [accordionOpen, setAccordionOpen] = useState(0);
     const [contactPopup, setContactPopup] = useState(null); // profile object
@@ -583,10 +584,10 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                 .single();
 
             if (se) {
-                if (se.code === 'PGRST116') { setAccessDenied(true); setLoading(false); return; }
+                if (se.code === 'PGRST116') { setSessionNotFound(true); setLoading(false); return; }
                 throw se;
             }
-            if (!sd) { setAccessDenied(true); setLoading(false); return; }
+            if (!sd) { setSessionNotFound(true); setLoading(false); return; }
 
             // 2. Creator profile
             const { data: creatorProfile } = await supabase
@@ -981,6 +982,22 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
 
     if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#97f7e9' }}>Loading session…</div>;
 
+    if (sessionNotFound) {
+        return (
+            <div className="member-mgmt-container">
+                <div className="glass-panel" style={{ maxWidth: '500px', margin: '4rem auto', padding: '2.5rem', textAlign: 'center' }}>
+                    <h2 style={{ color: 'var(--auth-text-light-blue)', marginBottom: '1rem' }}>Session Not Found</h2>
+                    <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '2rem' }}>
+                        This planning session does not exist or has been deleted.
+                    </p>
+                    <button className="admin-pill-btn" onClick={() => navigate('/planning')} style={{ margin: 0 }}>
+                        ← Back to Planning Sessions
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (accessDenied || !sessionData) {
         return (
             <div className="member-mgmt-container">
@@ -1295,7 +1312,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                         </div>
                                         <div>
                                             <a
-                                                href={item.url}
+                                                href={normalizeUrl(item.url)}
                                                 target={getLinkTarget(item.url)}
                                                 rel={isInternalLink(item.url) ? undefined : "noopener noreferrer"}
                                                 style={{ color: 'var(--auth-text-light-blue)', fontWeight: 600, fontSize: '0.98rem', textDecoration: 'underline' }}
@@ -1568,7 +1585,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                     if (!headerLink || !headerLink.url) return null;
                                     return (
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            <a href={headerLink.url} target={getLinkTarget(headerLink.url)} rel={isInternalLink(headerLink.url) ? undefined : "noopener noreferrer"}
+                                            <a href={normalizeUrl(headerLink.url)} target={getLinkTarget(headerLink.url)} rel={isInternalLink(headerLink.url) ? undefined : "noopener noreferrer"}
                                                 className="session-link-pill"
                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--auth-text-light-blue)', textDecoration: 'none', background: 'rgba(151,247,233,0.1)', border: '1px solid rgba(151,247,233,0.25)', padding: '5px 12px', borderRadius: '9999px', transition: 'all 0.2s' }}>
                                                 <span style={{ color: 'white' }}><LinkIcon /></span> {headerLink.label || headerLink.url}
