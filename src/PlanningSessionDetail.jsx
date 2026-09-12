@@ -1420,12 +1420,12 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
 
                     {/* Add Resource Link Form for Editors */}
                     {isEditor && showAddResourceForm && (
-                        <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(151,247,233,0.2)', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                            <h4 style={{ margin: '0 0 1rem', color: '#97f7e9', fontSize: '0.92rem', fontWeight: 600 }}>
+                        <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(151,247,233,0.3)', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                            <h4 style={{ margin: '0 0 1rem', color: '#97f7e9', fontSize: '1rem', fontWeight: 600 }}>
                                 + Add Document or Media Link
                             </h4>
-                            <form onSubmit={handleAddResourceLink}>
-                                <div className="planning-form-links-grid">
+                            <form onSubmit={handleAddResourceLink} style={{ display: 'grid', gap: '0.9rem' }}>
+                                <div className="planning-form-grid-3">
                                     <div>
                                         <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '0.3rem' }}>Title / Label *</label>
                                         <input
@@ -1434,6 +1434,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                             value={newResourceTitle}
                                             onChange={e => setNewResourceTitle(e.target.value)}
                                             required
+                                            autoFocus
                                         />
                                     </div>
                                     <div>
@@ -1461,8 +1462,14 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                             ]}
                                         />
                                     </div>
-                                    <button type="submit" className="admin-pill-btn" style={{ margin: 0, padding: '0.55rem 1.25rem', whiteSpace: 'nowrap' }} disabled={addingResource}>
-                                        {addingResource ? 'Adding…' : '+ Add Link'}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                                    <button type="button" className="admin-pill-btn secondary" style={{ margin: 0 }} onClick={() => setShowAddResourceForm(false)}>
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="admin-pill-btn" style={{ margin: 0 }} disabled={addingResource}>
+                                        {addingResource ? 'Adding…' : '✓ Add Link'}
                                     </button>
                                 </div>
                             </form>
