@@ -102,6 +102,25 @@ export default function EditProfilePage({ session }) {
   
   const DRAFT_KEY = session?.user?.id ? `profile_edit_draft_${session.user.id}` : null;
 
+  const defaultAddress = {
+    street1: '',
+    street2: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: ''
+  };
+
+  const defaultMailingAddress = {
+    same_as_physical: false,
+    street1: '',
+    street2: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: ''
+  };
+
   // Profile Form State
   const [profile, setProfile] = useState({
     display_name: '',
@@ -117,7 +136,9 @@ export default function EditProfilePage({ session }) {
     experience_roles: [],
     talents_and_abilities: [],
     materials: [],
-    is_private: false
+    is_private: false,
+    physical_address: defaultAddress,
+    mailing_address: defaultMailingAddress
   });
 
   useEffect(() => {
@@ -152,7 +173,9 @@ export default function EditProfilePage({ session }) {
           experience_roles: data.experience_roles || [],
           talents_and_abilities: data.talents_and_abilities || [],
           materials: data.materials || [],
-          is_private: data.is_private || false
+          is_private: data.is_private || false,
+          physical_address: { ...defaultAddress, ...(data.physical_address || {}) },
+          mailing_address: { ...defaultMailingAddress, ...(data.mailing_address || {}) }
         };
 
         // Check for local draft
@@ -162,7 +185,12 @@ export default function EditProfilePage({ session }) {
             try {
               const draft = JSON.parse(savedDraft);
               // Merge draft into DB profile (prefer draft for user-provided fields)
-              setProfile({ ...dbProfile, ...draft });
+              setProfile({
+                ...dbProfile,
+                ...draft,
+                physical_address: { ...defaultAddress, ...(dbProfile.physical_address || {}), ...(draft.physical_address || {}) },
+                mailing_address: { ...defaultMailingAddress, ...(dbProfile.mailing_address || {}), ...(draft.mailing_address || {}) }
+              });
             } catch (e) {
               setProfile(dbProfile);
             }
@@ -204,6 +232,63 @@ export default function EditProfilePage({ session }) {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handlePhysicalAddressChange = (e) => {
+    const { name, value } = e.target;
+    setProfile(prev => {
+      const updatedPhysical = {
+        ...(prev.physical_address || defaultAddress),
+        [name]: value
+      };
+      const updated = { ...prev, physical_address: updatedPhysical };
+      if (prev.mailing_address?.same_as_physical) {
+        updated.mailing_address = {
+          ...prev.mailing_address,
+          [name]: value
+        };
+      }
+      return updated;
+    });
+  };
+
+  const handleMailingAddressChange = (e) => {
+    const { name, value } = e.target;
+    setProfile(prev => ({
+      ...prev,
+      mailing_address: {
+        ...(prev.mailing_address || defaultMailingAddress),
+        [name]: value
+      }
+    }));
+  };
+
+  const handleSameAsPhysicalToggle = (e) => {
+    const checked = e.target.checked;
+    setProfile(prev => {
+      if (checked) {
+        return {
+          ...prev,
+          mailing_address: {
+            same_as_physical: true,
+            street1: prev.physical_address?.street1 || '',
+            street2: prev.physical_address?.street2 || '',
+            city: prev.physical_address?.city || '',
+            state: prev.physical_address?.state || '',
+            zip: prev.physical_address?.zip || '',
+            country: prev.physical_address?.country || ''
+          }
+        };
+      } else {
+        return {
+          ...prev,
+          mailing_address: {
+            ...(prev.mailing_address || defaultMailingAddress),
+            same_as_physical: false
+          }
+        };
+      }
+    });
   };
 
   const handleJSONChange = (field, newArray) => {
@@ -263,14 +348,16 @@ export default function EditProfilePage({ session }) {
       }
     }
 
-    // New Character Limit Validations
+    // Character Limit Validations
     const isOverLimit = 
       profile.display_name.length > 100 ||
       profile.bio.length > 10000 ||
       profile.contact_preferences.length > 500 ||
       profile.experience_roles.some(r => r.details.length > 1500) ||
       profile.talents_and_abilities.some(t => t.details.length > 1500) ||
-      profile.materials.some(m => m.details.length > 1500);
+      profile.materials.some(m => m.details.length > 1500) ||
+      Object.values(profile.physical_address || {}).some(v => typeof v === 'string' && v.length > 200) ||
+      Object.values(profile.mailing_address || {}).some(v => typeof v === 'string' && v.length > 200);
 
     if (isOverLimit) {
       setMsg({ text: 'Please fix the fields that are over their character limits.', type: 'error' });
@@ -478,6 +565,227 @@ export default function EditProfilePage({ session }) {
               style={{ border: profile.contact_preferences.length > 500 ? '1px solid #ef4444' : undefined }}
             />
           </div>
+        </div>
+
+        {/* PHYSICAL ADDRESS */}
+        <div style={{ marginTop: '2rem', marginBottom: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+          <h4 style={{ margin: '0 0 0.35rem 0', color: 'var(--auth-text-light-blue)', fontSize: '1.05rem' }}>
+            Physical Address <span style={{ fontSize: '0.85rem', opacity: 0.7, fontWeight: 'normal' }}>(Optional)</span>
+          </h4>
+          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)' }}>
+            Your residential or home address.
+          </p>
+
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Street Address</label>
+                {(profile.physical_address?.street1 || '').length > 200 && (
+                  <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>Over limit by {(profile.physical_address?.street1 || '').length - 200}</span>
+                )}
+              </div>
+              <input
+                name="street1"
+                value={profile.physical_address?.street1 || ''}
+                onChange={handlePhysicalAddressChange}
+                className="admin-input"
+                placeholder="123 Main St"
+                maxLength={200}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label style={{ fontWeight: '600', fontSize: '0.88rem' }}>
+                  Apartment, Suite, Unit, etc. <span style={{ opacity: 0.6, fontWeight: 'normal' }}>(Optional)</span>
+                </label>
+                {(profile.physical_address?.street2 || '').length > 200 && (
+                  <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>Over limit by {(profile.physical_address?.street2 || '').length - 200}</span>
+                )}
+              </div>
+              <input
+                name="street2"
+                value={profile.physical_address?.street2 || ''}
+                onChange={handlePhysicalAddressChange}
+                className="admin-input"
+                placeholder="Apt 4B, Suite 200, etc."
+                maxLength={200}
+              />
+            </div>
+
+            <div className="address-grid-city-state-zip">
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>City</label>
+                <input
+                  name="city"
+                  value={profile.physical_address?.city || ''}
+                  onChange={handlePhysicalAddressChange}
+                  className="admin-input"
+                  placeholder="Springfield"
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>State / Province</label>
+                <input
+                  name="state"
+                  value={profile.physical_address?.state || ''}
+                  onChange={handlePhysicalAddressChange}
+                  className="admin-input"
+                  placeholder="IL or State"
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>ZIP / Postal Code</label>
+                <input
+                  name="zip"
+                  value={profile.physical_address?.zip || ''}
+                  onChange={handlePhysicalAddressChange}
+                  className="admin-input"
+                  placeholder="62701"
+                  maxLength={50}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>Country</label>
+              <input
+                name="country"
+                value={profile.physical_address?.country || ''}
+                onChange={handlePhysicalAddressChange}
+                className="admin-input"
+                placeholder="United States"
+                maxLength={100}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* MAILING ADDRESS */}
+        <div style={{ marginTop: '2rem', marginBottom: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <h4 style={{ margin: 0, color: 'var(--auth-text-light-blue)', fontSize: '1.05rem' }}>
+              Mailing Address <span style={{ fontSize: '0.85rem', opacity: 0.7, fontWeight: 'normal' }}>(Optional)</span>
+            </h4>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.88rem', color: '#ffffff' }}>
+              <input
+                type="checkbox"
+                checked={!!profile.mailing_address?.same_as_physical}
+                onChange={handleSameAsPhysicalToggle}
+              />
+              Same as physical address
+            </label>
+          </div>
+          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)' }}>
+            Where you receive postal mail or packages if different from your physical address.
+          </p>
+
+          {!profile.mailing_address?.same_as_physical && (
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Street Address or P.O. Box</label>
+                  {(profile.mailing_address?.street1 || '').length > 200 && (
+                    <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>Over limit by {(profile.mailing_address?.street1 || '').length - 200}</span>
+                  )}
+                </div>
+                <input
+                  name="street1"
+                  value={profile.mailing_address?.street1 || ''}
+                  onChange={handleMailingAddressChange}
+                  className="admin-input"
+                  placeholder="P.O. Box 123 or 456 Elm St"
+                  maxLength={200}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ fontWeight: '600', fontSize: '0.88rem' }}>
+                    Apartment, Suite, Unit, etc. <span style={{ opacity: 0.6, fontWeight: 'normal' }}>(Optional)</span>
+                  </label>
+                  {(profile.mailing_address?.street2 || '').length > 200 && (
+                    <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 'bold' }}>Over limit by {(profile.mailing_address?.street2 || '').length - 200}</span>
+                  )}
+                </div>
+                <input
+                  name="street2"
+                  value={profile.mailing_address?.street2 || ''}
+                  onChange={handleMailingAddressChange}
+                  className="admin-input"
+                  placeholder="Apt, Suite, Building, etc."
+                  maxLength={200}
+                />
+              </div>
+
+              <div className="address-grid-city-state-zip">
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>City</label>
+                  <input
+                    name="city"
+                    value={profile.mailing_address?.city || ''}
+                    onChange={handleMailingAddressChange}
+                    className="admin-input"
+                    placeholder="Springfield"
+                    maxLength={100}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>State / Province</label>
+                  <input
+                    name="state"
+                    value={profile.mailing_address?.state || ''}
+                    onChange={handleMailingAddressChange}
+                    className="admin-input"
+                    placeholder="IL or State"
+                    maxLength={100}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>ZIP / Postal Code</label>
+                  <input
+                    name="zip"
+                    value={profile.mailing_address?.zip || ''}
+                    onChange={handleMailingAddressChange}
+                    className="admin-input"
+                    placeholder="62701"
+                    maxLength={50}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', fontSize: '0.88rem' }}>Country</label>
+                <input
+                  name="country"
+                  value={profile.mailing_address?.country || ''}
+                  onChange={handleMailingAddressChange}
+                  className="admin-input"
+                  placeholder="United States"
+                  maxLength={100}
+                />
+              </div>
+            </div>
+          )}
+
+          {profile.mailing_address?.same_as_physical && (
+            <div style={{
+              background: 'rgba(151, 247, 233, 0.08)',
+              border: '1px solid rgba(151, 247, 233, 0.2)',
+              borderRadius: '8px',
+              padding: '0.85rem 1rem',
+              color: '#97f7e9',
+              fontSize: '0.88rem'
+            }}>
+              ✓ Mailing address is set to match physical address.
+            </div>
+          )}
         </div>
 
         {/* SKILLS AND ROLES (JSONB) */}

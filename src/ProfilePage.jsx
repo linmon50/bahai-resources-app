@@ -82,6 +82,36 @@ export default function ProfilePage({ session }) {
 
   const hasDirectoryInfo = (profile.experience_roles?.length > 0) || (profile.talents_and_abilities?.length > 0) || (profile.materials?.length > 0);
 
+  const hasAddressFields = (addr) => {
+    if (!addr) return false;
+    return !!(addr.street1 || addr.street2 || addr.city || addr.state || addr.zip || addr.country);
+  };
+
+  const renderAddressBlock = (addr) => {
+    if (!addr) return null;
+    const line1 = addr.street1;
+    const line2 = addr.street2;
+    const cityStateZip = [
+      addr.city,
+      addr.state ? (addr.city ? `, ${addr.state}` : addr.state) : '',
+      addr.zip ? ` ${addr.zip}` : ''
+    ].join('').trim();
+    const country = addr.country;
+
+    return (
+      <div style={{ lineHeight: 1.5, color: 'var(--text-main)', fontSize: '0.92rem' }}>
+        {line1 && <div>{line1}</div>}
+        {line2 && <div>{line2}</div>}
+        {cityStateZip && <div>{cityStateZip}</div>}
+        {country && <div>{country}</div>}
+      </div>
+    );
+  };
+
+  const hasPhysicalAddress = hasAddressFields(profile.physical_address);
+  const hasMailingAddress = hasAddressFields(profile.mailing_address);
+  const hasAnyAddress = hasPhysicalAddress || hasMailingAddress || !!profile.mailing_address?.same_as_physical;
+
   return (
     <div className="content-container" style={{ maxWidth: '900px' }}>
       
@@ -145,7 +175,7 @@ export default function ProfilePage({ session }) {
           )}
 
           {/* Contact Info */}
-          {(isOwnProfile || profile.show_contact_info) && (profile.phone || profile.contact_email || profile.contact_preferences) && (
+          {(isOwnProfile || profile.show_contact_info) && (profile.phone || profile.contact_email || profile.contact_preferences || hasAnyAddress) && (
             <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
                 <h3 style={{ margin: 0, color: 'var(--auth-text-light-blue)' }}>Contact Info</h3>
@@ -171,6 +201,23 @@ export default function ProfilePage({ session }) {
                     <span style={{ color: 'var(--auth-text-light-blue)' }}>{profile.contact_preferences}</span>
                   </li>
                 )}
+                {hasPhysicalAddress && (
+                  <li>
+                    <strong style={{ display: 'block', color: 'white', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Physical Address</strong>
+                    {renderAddressBlock(profile.physical_address)}
+                  </li>
+                )}
+                {profile.mailing_address?.same_as_physical && hasPhysicalAddress ? (
+                  <li>
+                    <strong style={{ display: 'block', color: 'white', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Mailing Address</strong>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontStyle: 'italic' }}>Same as Physical Address</span>
+                  </li>
+                ) : hasMailingAddress ? (
+                  <li>
+                    <strong style={{ display: 'block', color: 'white', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Mailing Address</strong>
+                    {renderAddressBlock(profile.mailing_address)}
+                  </li>
+                ) : null}
               </ul>
             </div>
           )}

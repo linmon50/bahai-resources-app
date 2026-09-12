@@ -1813,6 +1813,14 @@ textarea.admin-input {
   align-items: flex-start;
 }
 
+.address-grid-city-state-zip {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
@@ -1910,6 +1918,11 @@ textarea.admin-input {
 
   .edit-profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .address-grid-city-state-zip {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
   }
 
   .member-mgmt-container {
