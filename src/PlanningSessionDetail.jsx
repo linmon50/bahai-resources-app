@@ -374,18 +374,10 @@ function TaskFormCard({ parentTaskId, parentTaskTitle, editingTask, assigneeGrou
             padding: '1.25rem',
             marginBottom: '1.5rem'
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
                 <h4 style={{ margin: 0, color: '#97f7e9', fontSize: '1rem', fontWeight: 600 }}>
                     {headerTitle}
                 </h4>
-                <button
-                    type="button"
-                    className="admin-pill-btn danger"
-                    style={{ margin: 0, padding: '0.3rem 0.75rem', fontSize: '0.78rem' }}
-                    onClick={onCancel}
-                >
-                    ▲ Cancel
-                </button>
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'grid', gap: '0.9rem' }}>
@@ -1047,10 +1039,9 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                         onSaved={async (taskId, updates) => {
                             if (editingTask) {
                                 await handleSaveTask(taskId, updates);
-                            } else {
-                                closeTaskForm();
-                                fetchAll();
                             }
+                            closeTaskForm();
+                            fetchAll();
                         }}
                         onCancel={closeTaskForm}
                         invitedIds={invitedIds}
