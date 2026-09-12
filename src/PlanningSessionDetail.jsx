@@ -1328,10 +1328,11 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                     {isEditor && (
                                         <button
                                             className="admin-pill-btn danger"
-                                            style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem', margin: 0 }}
+                                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                                             onClick={() => handleDeleteResourceLink(item.id)}
+                                            title="Remove link"
                                         >
-                                            <TrashIcon /> Remove
+                                            <TrashIcon /> <span className="btn-text-desktop">Remove</span>
                                         </button>
                                     )}
                                 </div>
