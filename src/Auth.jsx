@@ -102,8 +102,29 @@ export default function Auth() {
             // 4️⃣ On success, reset counters in memberships
             await supabase.rpc('record_successful_login', { p_email: cleanEmail });
 
-            const from = location.state?.from || "/";
-            window.location.href = from;
+            // 5️⃣ Determine if brand new user logging in for the first time or returning user
+            const { data: authData } = await supabase.auth.getUser();
+            const loggedInUserId = authData?.user?.id;
+            let isFirstLogin = false;
+
+            if (loggedInUserId) {
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('first_login_completed')
+                    .eq('user_id', loggedInUserId)
+                    .maybeSingle();
+
+                if (!profileData || profileData.first_login_completed === false) {
+                    isFirstLogin = true;
+                }
+            }
+
+            if (isFirstLogin) {
+                window.location.href = "/profile/edit?first_login=true";
+            } else {
+                // Everytime a user logs back in they should be taken to their community's bulletin board page
+                window.location.href = "/";
+            }
         } catch (err) {
             setError(err.message || "Login failed.");
         } finally {
@@ -186,9 +207,8 @@ export default function Auth() {
                 }
             }
 
-            const from = location.state?.from || "/";
-            navigate(from);
-            window.location.reload(); // Force refresh to update Navbar/App state
+            // Brand new user signing up: direct to edit profile page
+            window.location.href = "/profile/edit?first_login=true";
         } catch (err) {
             setError(err.message || "Sign up failed.");
         } finally {

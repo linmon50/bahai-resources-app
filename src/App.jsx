@@ -163,7 +163,7 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, []);
 
-  if (loading && !session && !isRecovering) {
+  if (loading && !isRecovering) {
     return <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>Loading...</div>;
   }
 
@@ -193,6 +193,23 @@ export default function App() {
 function AppContent({ session, hasMembership, isGlobalAdmin }) {
   const { isAdmin: activeCommunityAdmin, loading: communityLoading } = useCommunity();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Guard for brand new users: if first login is not completed, take them to edit profile page
+  useEffect(() => {
+    if (session?.user?.id && hasMembership && (location.pathname === '/' || location.pathname === '/bulletin')) {
+      supabase
+        .from('profiles')
+        .select('first_login_completed')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data && data.first_login_completed === false) {
+            navigate('/profile/edit?first_login=true', { replace: true });
+          }
+        });
+    }
+  }, [session?.user?.id, hasMembership, location.pathname, navigate]);
 
   return (
     <div className="app-layout">

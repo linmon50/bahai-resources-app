@@ -99,6 +99,7 @@ export default function EditProfilePage({ session }) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   
   const DRAFT_KEY = session?.user?.id ? `profile_edit_draft_${session.user.id}` : null;
 
@@ -134,6 +135,7 @@ export default function EditProfilePage({ session }) {
     show_skills: true,
     show_experiences: true,
     show_address: true,
+    first_login_completed: true,
     experience_roles: [],
     talents_and_abilities: [],
     materials: [],
@@ -159,7 +161,15 @@ export default function EditProfilePage({ session }) {
         throw error;
       }
 
-      if (data) {
+      if (!data) {
+        // Brand new profile without database row yet
+        setShowWelcomeModal(true);
+      } else {
+        const isFirstLogin = data.first_login_completed === false || window.location.search.includes('first_login=true');
+        if (isFirstLogin) {
+          setShowWelcomeModal(true);
+        }
+
         const dbProfile = {
           display_name: data.display_name || '',
           bio: data.bio || '',
@@ -172,6 +182,7 @@ export default function EditProfilePage({ session }) {
           show_skills: data.show_skills ?? true,
           show_experiences: data.show_experiences ?? true,
           show_address: data.show_address ?? true,
+          first_login_completed: data.first_login_completed ?? true,
           experience_roles: data.experience_roles || [],
           talents_and_abilities: data.talents_and_abilities || [],
           materials: data.materials || [],
@@ -208,6 +219,27 @@ export default function EditProfilePage({ session }) {
       setMsg({ text: 'Failed to load profile.', type: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDismissWelcomeModal = async () => {
+    setShowWelcomeModal(false);
+    // Remove ?first_login=true query param without page reload
+    if (window.location.search.includes('first_login')) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('first_login');
+      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+    }
+    setProfile(prev => ({ ...prev, first_login_completed: true }));
+    if (session?.user?.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ first_login_completed: true })
+          .eq('user_id', session.user.id);
+      } catch (err) {
+        console.error('Error updating first_login_completed:', err);
+      }
     }
   };
 
@@ -375,7 +407,8 @@ export default function EditProfilePage({ session }) {
         .from('profiles')
         .upsert({
           user_id: session.user.id,
-          ...profile
+          ...profile,
+          first_login_completed: true
         }, { onConflict: 'user_id' });
 
       if (error) throw error;
@@ -854,6 +887,112 @@ export default function EditProfilePage({ session }) {
 
 
       </form>
+
+      {/* Brand New User Welcome Modal */}
+      {showWelcomeModal && (
+        <div 
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="welcome-modal-title"
+          aria-describedby="welcome-modal-desc"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+            padding: '1.5rem'
+          }}
+        >
+          <div 
+            className="glass-panel" 
+            style={{
+              maxWidth: '480px',
+              width: '100%',
+              padding: '2.5rem 2rem',
+              borderRadius: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              boxShadow: '0 20px 35px -5px rgba(0, 0, 0, 0.6), 0 0 25px rgba(151, 247, 233, 0.15)',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(71, 178, 96, 0.15)',
+              border: '2px solid rgba(71, 178, 96, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem auto'
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#47b260" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+
+            <h3 
+              id="welcome-modal-title" 
+              style={{ 
+                color: '#ffffff', 
+                fontSize: '1.4rem', 
+                fontWeight: 'bold', 
+                margin: '0 0 1rem 0',
+                fontFamily: "'Arboria', sans-serif" 
+              }}
+            >
+              Welcome to Your Community!
+            </h3>
+
+            <p 
+              id="welcome-modal-desc" 
+              style={{ 
+                color: 'rgba(255, 255, 255, 0.95)', 
+                fontSize: '1.05rem', 
+                lineHeight: '1.6', 
+                margin: '0 0 2rem 0' 
+              }}
+            >
+              Please fill out your profile so your community members can get in touch with you.
+            </p>
+
+            <button
+              type="button"
+              autoFocus
+              onClick={handleDismissWelcomeModal}
+              className="admin-pill-btn success"
+              style={{
+                backgroundColor: '#47b260',
+                borderColor: '#47b260',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                padding: '0.75rem 2.5rem',
+                borderRadius: '24px',
+                cursor: 'pointer',
+                minWidth: '140px',
+                margin: '0 auto',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(71, 178, 96, 0.45)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
