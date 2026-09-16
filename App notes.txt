@@ -95,19 +95,39 @@ To save new checkpoints run: 	git add -A
 
 Manual Testing Notes
 
-- Need to do new user onboarding at some point to guide users on how to use the site upon first login. 
-
 - Add some functionality for reminding people to RSVP to events with link.
 
 - Add functionality for admins to alert all members or some to important posts. Perhaps a popup after an admin clicks on the pin and then it auto generates an email.
 
-- Add an FAQ section 
-
-- Add a "request access to other community" form under the Account Settings page
+- Add an FAQ section
 
 - Add a "create new community" form in the login section. The creator should automatically become an admin. Only global admins can accept a new community.
 
-- Make sure everyone's personal information is locked down and secure. Follow the below steps when setting up the domain. 
+- Add translation for Persian and Spanish
+
+- Connect to a zip code database so communities in that zip pop up at the top of the select list
+
+- Add a function to let users submit an image of their Baha'i ID so they can see posts about feasts etc.
+
+- Add a "request access to other community" form under the Account Settings page
+
+- Add an other resources page
+
+* Fix the user profile top menu drop-down
+
+* Fix slow loading and being randomly kicked out issues.
+
+* Need to do new user onboarding at some point to guide users on how to use the site upon first login.
+
+* Add a contact the administrator form under help/ FAQ page. 
+
+* Add a Baha'i or non-Baha'i feature where only Baha'is can see posts and events related to feasts and the Fund. On the ask for an invite form ask them to send a picture of their Baha'i card as proof?
+
+* Make passwords more robust
+
+* Put portotype on Testflight
+
+* Make sure everyone's personal information is locked down and secure. Follow the below steps when setting up the domain. 
 
 3. Key Production Security Steps (For When You Deploy)
 When you are ready to set up your domain and launch the application, here are the most important settings to check:
