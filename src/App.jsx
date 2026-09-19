@@ -16,10 +16,21 @@ import PlanningSessionDetail from "./PlanningSessionDetail";
 import { CommunityProvider, useCommunity } from "./context/CommunityContext";
 import ProfileDropdown from "./components/ProfileDropdown";
 
-async function fetchWithRetry(fn, retries = 2, delay = 400) {
+function withTimeout(promise, ms = 8000, errorMsg = 'Request timed out') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+  ]);
+}
+
+async function fetchWithRetry(fn, retries = 2, delay = 400, timeoutMs = 8000) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await fn();
+      const res = await withTimeout(fn(), timeoutMs, `Request timed out after ${timeoutMs}ms`);
+      if (res && res.error) {
+        throw res.error;
+      }
+      return res;
     } catch (err) {
       if (attempt === retries) throw err;
       await new Promise(r => setTimeout(r, delay * Math.pow(1.5, attempt)));
@@ -41,17 +52,26 @@ function MembershipRequired({ onRetry }) {
     if (!onRetry || retrying) return;
     setRetrying(true);
     try {
-      await onRetry();
+      await withTimeout(Promise.resolve(onRetry()), 8000, 'Retry timed out');
+    } catch (err) {
+      console.warn("Retry verification timed out or encountered an error:", err);
     } finally {
       setRetrying(false);
     }
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '2rem', maxWidth: '500px', margin: '4rem auto', textAlign: 'center' }}>
-      <h2 style={{ color: 'var(--auth-text-light-blue)', marginBottom: '1.5rem' }}>Membership Required</h2>
-      <p style={{ color: 'white', marginBottom: '1.5rem' }}>Your account is not currently associated with an approved community.</p>
-      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', marginBottom: '2rem' }}>If you just signed up, please wait for an administrator to approve your request, or ensure you used a valid invite link.</p>
+    <div className="glass-panel" style={{ padding: '2.5rem 2rem', maxWidth: '520px', margin: '4rem auto', textAlign: 'center' }}>
+      <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🌐</div>
+      <h2 style={{ color: 'var(--auth-text-light-blue)', marginBottom: '1.25rem', fontSize: '1.5rem' }}>
+        Unable to Connect to Community
+      </h2>
+      <p style={{ color: 'white', marginBottom: '1rem', lineHeight: '1.6', fontSize: '1rem' }}>
+        We're having trouble confirming your community connection. This can happen on a slow or intermittent connection, or when the server is taking a moment to wake up.
+      </p>
+      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '2rem' }}>
+        If you are an existing member, please tap <strong>Check Again</strong> to reconnect. If you just signed up, your request may still be pending review by an administrator.
+      </p>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
         {onRetry && (
           <button
@@ -102,7 +122,14 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
-  const [hasMembership, setHasMembership] = useState(false);
+  const [hasMembership, setHasMembership] = useState(() => {
+    try {
+      const cached = localStorage.getItem('membership_status') || sessionStorage.getItem('membership_status');
+      return cached === 'approved';
+    } catch (e) {
+      return false;
+    }
+  });
   // loading stays true until we know both session AND membership status
   const [loading, setLoading] = useState(true);
   const [isRecovering, setIsRecovering] = useState(() => sessionStorage.getItem('isRecoveringPassword') === 'true');
@@ -119,18 +146,23 @@ export default function App() {
     try {
       const pendingInvite = sessionStorage.getItem('pending_invite_code');
       if (pendingInvite) {
-        const { error: consumeErr } = await supabase.rpc('consume_invite', { p_code: pendingInvite });
-        if (consumeErr) {
+        const { error: consumeErr } = await withTimeout(
+          supabase.rpc('consume_invite', { p_code: pendingInvite }),
+          5000,
+          'consume_invite timeout'
+        ).catch(() => ({ error: 'timeout' }));
+        if (consumeErr && consumeErr !== 'timeout') {
           console.error('Failed to consume invite code:', consumeErr);
         }
         sessionStorage.removeItem('pending_invite_code');
       }
 
-      const cachedStatus = sessionStorage.getItem('membership_status_' + userId);
+      const cachedStatus = localStorage.getItem('membership_status_' + userId) ||
+                           sessionStorage.getItem('membership_status_' + userId);
 
       // Attempt 1: Call get_my_membership_status RPC with retry
       try {
-        const { data, error } = await fetchWithRetry(() => supabase.rpc('get_my_membership_status'), 2, 400);
+        const { data, error } = await fetchWithRetry(() => supabase.rpc('get_my_membership_status'), 2, 400, 7000);
 
         if (!error && data && data.length > 0) {
           const status = data[0];
@@ -138,7 +170,12 @@ export default function App() {
             setHasMembership(true);
             setIsAdmin(status.is_admin);
             setIsGlobalAdmin(status.is_global_admin);
-            sessionStorage.setItem('membership_status_' + userId, 'approved');
+            try {
+              localStorage.setItem('membership_status_' + userId, 'approved');
+              localStorage.setItem('membership_status', 'approved');
+              sessionStorage.setItem('membership_status_' + userId, 'approved');
+              sessionStorage.setItem('membership_status', 'approved');
+            } catch (e) {}
             return;
           }
         }
@@ -156,7 +193,8 @@ export default function App() {
               .eq('user_id', userId)
               .eq('approved', true),
             2,
-            400
+            400,
+            7000
           ),
           fetchWithRetry(() =>
             supabase
@@ -164,7 +202,8 @@ export default function App() {
               .select('user_id')
               .eq('user_id', userId),
             2,
-            400
+            400,
+            7000
           )
         ]);
 
@@ -176,7 +215,12 @@ export default function App() {
           setHasMembership(true);
           setIsAdmin(isCommunityAdmin || isGlobal);
           setIsGlobalAdmin(isGlobal);
-          sessionStorage.setItem('membership_status_' + userId, 'approved');
+          try {
+            localStorage.setItem('membership_status_' + userId, 'approved');
+            localStorage.setItem('membership_status', 'approved');
+            sessionStorage.setItem('membership_status_' + userId, 'approved');
+            sessionStorage.setItem('membership_status', 'approved');
+          } catch (e) {}
           return;
         }
       } catch (fallbackErr) {
@@ -190,11 +234,18 @@ export default function App() {
         setHasMembership(false);
         setIsAdmin(false);
         setIsGlobalAdmin(false);
-        sessionStorage.removeItem('membership_status_' + userId);
+        try {
+          localStorage.removeItem('membership_status_' + userId);
+          localStorage.removeItem('membership_status');
+          sessionStorage.removeItem('membership_status_' + userId);
+          sessionStorage.removeItem('membership_status');
+        } catch (e) {}
       }
     } catch (err) {
       console.error('Error checking membership status:', err);
-      if (sessionStorage.getItem('membership_status_' + userId) === 'approved') {
+      const cached = localStorage.getItem('membership_status_' + userId) ||
+                     sessionStorage.getItem('membership_status_' + userId);
+      if (cached === 'approved') {
         setHasMembership(true);
       } else {
         setHasMembership(false);
@@ -210,10 +261,23 @@ export default function App() {
   useEffect(() => {
     let lastUserId = null;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
           sessionStorage.setItem('isRecoveringPassword', 'true');
           setIsRecovering(true);
+        }
+
+        if (event === 'SIGNED_OUT') {
+          lastUserId = null;
+          setIsAdmin(false);
+          setIsGlobalAdmin(false);
+          setHasMembership(false);
+          try {
+            localStorage.removeItem('membership_status');
+            sessionStorage.removeItem('membership_status');
+          } catch (e) {}
+          setLoading(false);
+          return;
         }
 
         // On tab switching within the same browser port, Supabase fires TOKEN_REFRESHED.
@@ -226,9 +290,12 @@ export default function App() {
         if (session?.user) {
           // If first load or user changed, perform full admin status check
           if (!lastUserId || session.user.id !== lastUserId) {
-            setLoading(true);
-            await checkAdminStatus(session.user.id);
             lastUserId = session.user.id;
+            setLoading(true);
+            // Defer checkAdminStatus so onAuthStateChange returns immediately without holding Web Lock
+            setTimeout(() => {
+              checkAdminStatus(session.user.id);
+            }, 0);
           } else {
             setLoading(false);
           }

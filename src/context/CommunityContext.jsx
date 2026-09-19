@@ -3,10 +3,21 @@ import supabase from '../supabaseClient';
 
 const CommunityContext = createContext();
 
-async function fetchWithRetry(fn, retries = 2, delay = 500) {
+function withTimeout(promise, ms = 8000, errorMsg = 'Request timed out') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+  ]);
+}
+
+async function fetchWithRetry(fn, retries = 2, delay = 400, timeoutMs = 8000) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await fn();
+      const res = await withTimeout(fn(), timeoutMs, `Request timed out after ${timeoutMs}ms`);
+      if (res && res.error) {
+        throw res.error;
+      }
+      return res;
     } catch (err) {
       if (attempt === retries) throw err;
       await new Promise(r => setTimeout(r, delay * Math.pow(1.5, attempt)));
@@ -16,7 +27,7 @@ async function fetchWithRetry(fn, retries = 2, delay = 500) {
 
 const getInitialCache = () => {
   try {
-    const cached = sessionStorage.getItem('community_cache');
+    const cached = localStorage.getItem('community_cache') || sessionStorage.getItem('community_cache');
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed && Array.isArray(parsed.communities)) {
@@ -35,12 +46,13 @@ export const CommunityProvider = ({ children }) => {
   const [activeCommunityId, setActiveCommunityId] = useState(() => {
     return localStorage.getItem('active_community_id') || initialCache?.communities?.[0]?.id || '';
   });
-  // If we had valid cached communities, we can start with loading=false to avoid false flashing
+  // If we had valid cached communities, we start with loading=false so UI renders immediately
   const [loading, setLoading] = useState(initialCache?.communities?.length ? false : true);
   const [userMemberships, setUserMemberships] = useState(initialCache?.userMemberships || []);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(initialCache?.isGlobalAdmin || false);
 
   const activeTimerRef = useRef(null);
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -55,27 +67,38 @@ export const CommunityProvider = ({ children }) => {
     }, 15000);
 
     async function fetchUserCommunities(sessionObj, isBackgroundRefresh = false) {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+
       if (mounted && !isBackgroundRefresh && !communities.length) {
         setLoading(true);
       }
       try {
-        const session = sessionObj !== undefined ? sessionObj : (await supabase.auth.getSession()).data.session;
+        let session = sessionObj;
+        if (session === undefined) {
+          const { data } = await withTimeout(supabase.auth.getSession(), 6000, 'getSession timeout').catch(() => ({ data: {} }));
+          session = data?.session;
+        }
+
         if (!session?.user) {
           if (mounted) {
             setCommunities([]);
             setUserMemberships([]);
             setIsGlobalAdmin(false);
             setActiveCommunityId('');
-            sessionStorage.removeItem('community_cache');
+            try {
+              localStorage.removeItem('community_cache');
+              sessionStorage.removeItem('community_cache');
+            } catch (e) {}
             setLoading(false);
           }
           return;
         }
 
-        // 1. Check if user is a global admin (with retry)
+        // 1. Check if user is a global admin (with retry & timeout)
         let userIsGlobalAdmin = false;
         try {
-          const res = await fetchWithRetry(() => supabase.rpc("is_global_admin", { uid: session.user.id }), 2, 400);
+          const res = await fetchWithRetry(() => supabase.rpc("is_global_admin", { uid: session.user.id }), 2, 400, 7000);
           userIsGlobalAdmin = !!res?.data;
         } catch (e) {
           console.warn("is_global_admin check error:", e);
@@ -86,7 +109,7 @@ export const CommunityProvider = ({ children }) => {
         
         if (userIsGlobalAdmin) {
             const { data } = await fetchWithRetry(() =>
-              supabase.from("communities").select("id, name").order("name"), 2, 400
+              supabase.from("communities").select("id, name").order("name"), 2, 400, 7000
             );
             combined = data || [];
         } else {
@@ -98,7 +121,8 @@ export const CommunityProvider = ({ children }) => {
                 .eq("user_id", session.user.id)
                 .eq("approved", true),
               2,
-              400
+              400,
+              7000
             );
 
             if (rows) {
@@ -116,14 +140,16 @@ export const CommunityProvider = ({ children }) => {
           setUserMemberships(membershipsList);
           setIsGlobalAdmin(userIsGlobalAdmin);
 
-          // Update sessionStorage cache
+          // Update localStorage and sessionStorage cache
           try {
-            sessionStorage.setItem('community_cache', JSON.stringify({
+            const cacheData = JSON.stringify({
               userId: session.user.id,
               communities: combined,
               userMemberships: membershipsList,
               isGlobalAdmin: userIsGlobalAdmin
-            }));
+            });
+            localStorage.setItem('community_cache', cacheData);
+            sessionStorage.setItem('community_cache', cacheData);
           } catch (e) { /* ignore */ }
           
           if (combined.length > 0) {
@@ -142,6 +168,7 @@ export const CommunityProvider = ({ children }) => {
       } catch (err) {
         console.error("Error in CommunityProvider:", err);
       } finally {
+        isFetchingRef.current = false;
         if (mounted) {
           if (activeTimerRef.current) clearTimeout(activeTimerRef.current);
           setLoading(false);
@@ -149,15 +176,35 @@ export const CommunityProvider = ({ children }) => {
       }
     }
 
-    fetchUserCommunities();
-
+    // Synchronous auth listener: defer async queries outside the auth state machine lock
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
+          if (mounted) {
+            setCommunities([]);
+            setUserMemberships([]);
+            setIsGlobalAdmin(false);
+            setActiveCommunityId('');
+            try {
+              localStorage.removeItem('community_cache');
+              sessionStorage.removeItem('community_cache');
+            } catch (e) {}
+            setLoading(false);
+          }
+          return;
+        }
+
         // Skip routine token refresh if user and communities are already in state
         if (event === 'TOKEN_REFRESHED' && communities.length > 0) {
             return;
         }
-        const isBackground = communities.length > 0;
-        fetchUserCommunities(session, isBackground);
+        
+        // Defer database query call outside of onAuthStateChange dispatch lock
+        setTimeout(() => {
+          if (mounted) {
+            const isBackground = communities.length > 0;
+            fetchUserCommunities(session, isBackground);
+          }
+        }, 0);
     });
 
     return () => {
@@ -186,13 +233,13 @@ export const CommunityProvider = ({ children }) => {
     if (!session?.user) return;
     try {
       const { data: userIsGlobalAdmin } = await fetchWithRetry(() =>
-        supabase.rpc("is_global_admin", { uid: session.user.id }), 2, 400
+        supabase.rpc("is_global_admin", { uid: session.user.id }), 2, 400, 7000
       );
       let combined = [];
       let membershipsList = [];
       if (userIsGlobalAdmin) {
         const { data } = await fetchWithRetry(() =>
-          supabase.from("communities").select("id, name").order("name"), 2, 400
+          supabase.from("communities").select("id, name").order("name"), 2, 400, 7000
         );
         combined = data || [];
       } else {
@@ -203,7 +250,8 @@ export const CommunityProvider = ({ children }) => {
             .eq("user_id", session.user.id)
             .eq("approved", true),
           2,
-          400
+          400,
+          7000
         );
         if (rows) {
           membershipsList = rows;
@@ -217,12 +265,14 @@ export const CommunityProvider = ({ children }) => {
       setUserMemberships(membershipsList);
       setIsGlobalAdmin(!!userIsGlobalAdmin);
       try {
-        sessionStorage.setItem('community_cache', JSON.stringify({
+        const cacheData = JSON.stringify({
           userId: session.user.id,
           communities: combined,
           userMemberships: membershipsList,
           isGlobalAdmin: !!userIsGlobalAdmin
-        }));
+        });
+        localStorage.setItem('community_cache', cacheData);
+        sessionStorage.setItem('community_cache', cacheData);
       } catch (e) { /* ignore */ }
 
       if (combined.length > 0) {
