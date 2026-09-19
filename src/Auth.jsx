@@ -456,6 +456,8 @@ export default function Auth({ initialView }) {
                                 </button>
                             </form>
 
+                            <MessageBox msg={message} />
+
                             <button type="button" onClick={() => reset("signup")} className="auth-btn-blue" style={{ marginBottom: "calc(1.5rem + 3px)" }}>
                                 Have an invite code? Create an account here.
                             </button>
@@ -463,8 +465,6 @@ export default function Auth({ initialView }) {
                             <button type="button" onClick={() => reset("forgot")} className="auth-link">
                                 Forgot your Password?
                             </button>
-
-                            <MessageBox msg={message} />
 
                             {detectedInvite && (
                                 <div style={{ 
