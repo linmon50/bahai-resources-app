@@ -8,8 +8,8 @@ import { notifyLockout } from './utils/notifyLockout';
 
 // Which "view" we are showing
 // 'login' | 'signup' | 'forgot' | 'forgot_sent'
-export default function Auth() {
-    const [view, setView] = useState("login");
+export default function Auth({ initialView }) {
+    const [view, setView] = useState(initialView || "login");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
@@ -25,8 +25,45 @@ export default function Auth() {
     const [loading, setLoading] = useState(false);
     const [requiresPassword, setRequiresPassword] = useState(false);
     const [lockoutInfo, setLockoutInfo] = useState(null);
+    const [detectedInvite, setDetectedInvite] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Parse URL query params and direct path on load or location change
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const codeParam = searchParams.get("code") || searchParams.get("invite");
+        const emailParam = searchParams.get("email");
+        const modeParam = searchParams.get("mode");
+
+        if (codeParam) {
+            setInviteCode(codeParam.trim().toUpperCase());
+            setView("signup");
+        }
+        if (emailParam) {
+            setEmail(emailParam.trim());
+        }
+
+        if (modeParam) {
+            if (modeParam === "signup" || modeParam === "create-account") setView("signup");
+            else if (modeParam === "request_invite" || modeParam === "request-invite") setView("request_invite");
+            else if (modeParam === "forgot" || modeParam === "forgot-password") setView("forgot");
+            else if (modeParam === "login") setView("login");
+        } else if (initialView) {
+            setView(initialView);
+        } else {
+            const path = location.pathname.toLowerCase();
+            if (path === "/signup" || path === "/create-account") {
+                setView("signup");
+            } else if (path === "/request-invite") {
+                setView("request_invite");
+            } else if (path === "/forgot-password") {
+                setView("forgot");
+            } else if (path === "/login") {
+                setView("login");
+            }
+        }
+    }, [location.pathname, location.search, initialView]);
 
     useEffect(() => {
         if (view === "request_invite") {
@@ -49,6 +86,7 @@ export default function Auth() {
     const reset = (nextView) => {
         setView(nextView);
         setMessage({ text: "", isError: true });
+        setDetectedInvite(null);
         setPassword("");
         setConfirmPassword("");
         setZipCode("");
@@ -58,6 +96,18 @@ export default function Auth() {
         setLastName("");
         setHoneypot("");
         setRequiresPassword(false);
+
+        // Update URL path cleanly if navigating between views
+        const pathMap = {
+            login: "/login",
+            signup: "/signup",
+            request_invite: "/request-invite",
+            forgot: "/forgot-password",
+            forgot_sent: "/forgot-password"
+        };
+        if (pathMap[nextView] && location.pathname !== pathMap[nextView] && location.pathname !== "/") {
+            navigate(pathMap[nextView], { replace: true });
+        }
     };
 
     // --- LOGIN ---
@@ -65,8 +115,10 @@ export default function Auth() {
         e.preventDefault();
         setLoading(true);
         setMessage({ text: "", isError: true });
+        setDetectedInvite(null);
         setLockoutInfo(null);
         const cleanEmail = email.trim();
+        const cleanPassword = password.trim();
 
         try {
             // 1️⃣ Fetch failed login counters for this email from memberships table
@@ -92,10 +144,18 @@ export default function Auth() {
             }
 
             // 3️⃣ Attempt sign-in
-            const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+            const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
             if (error) {
                 // Increment counter in memberships on failure
                 await supabase.rpc('record_failed_login', { p_email: cleanEmail });
+
+                // Smart Detection: Check if user pasted an 8-character invite code into the password field
+                if (cleanPassword.length === 8 && /^[A-Za-z0-9]{8}$/.test(cleanPassword)) {
+                    setDetectedInvite({
+                        code: cleanPassword.toUpperCase(),
+                        email: cleanEmail
+                    });
+                }
                 throw error;
             }
 
@@ -397,12 +457,59 @@ export default function Auth() {
                                     {loading ? "Logging in..." : "Login"}
                                 </button>
                             </form>
+
+                            <div style={{ margin: "1rem 0 0.25rem", textAlign: "center" }}>
+                                <span style={{ color: "rgba(255, 255, 255, 0.75)", fontSize: "0.9rem" }}>
+                                    Have an invite code?{" "}
+                                </span>
+                                <button 
+                                    type="button" 
+                                    onClick={() => reset("signup")} 
+                                    className="auth-link"
+                                    style={{ fontWeight: 600, color: "var(--auth-text-light-blue)", display: "inline", padding: 0 }}
+                                >
+                                    Create your account here →
+                                </button>
+                            </div>
                             
                             <button type="button" onClick={() => reset("forgot")} className="auth-link">
                                 Forgot your Password?
                             </button>
 
                             <MessageBox msg={message} />
+
+                            {detectedInvite && (
+                                <div style={{ 
+                                    backgroundColor: "rgba(39, 174, 96, 0.15)", 
+                                    border: "1px solid #27ae60", 
+                                    color: "#ffffff",
+                                    margin: "0.75rem 0 1rem",
+                                    textAlign: "center",
+                                    padding: "1rem",
+                                    borderRadius: "8px"
+                                }}>
+                                    <div style={{ fontSize: "1.1rem", fontWeight: "bold", marginBottom: "0.35rem", color: "var(--auth-text-light-blue)" }}>
+                                        💡 Did you mean to use an invite code?
+                                    </div>
+                                    <p style={{ margin: "0 0 0.75rem", fontSize: "0.875rem", lineHeight: 1.4, color: "rgba(255,255,255,0.9)" }}>
+                                        It looks like you entered an invite code (<strong>{detectedInvite.code}</strong>) instead of a password.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const codeToUse = detectedInvite.code;
+                                            const emailToUse = detectedInvite.email;
+                                            reset("signup");
+                                            setInviteCode(codeToUse);
+                                            if (emailToUse) setEmail(emailToUse);
+                                        }}
+                                        className="auth-btn-green"
+                                        style={{ margin: "0 auto", padding: "0.5rem 1rem", fontSize: "0.875rem", display: "inline-block" }}
+                                    >
+                                        Create Account with this Code →
+                                    </button>
+                                </div>
+                            )}
                             
                             <button type="button" onClick={() => reset("signup")} className="auth-btn-blue">
                                 Are you new? Create an account here.

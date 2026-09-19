@@ -92,6 +92,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
     const [checkedEmails, setCheckedEmails] = useState([]);
     const [pendingInvites, setPendingInvites] = useState([]);
     const [copiedStates, setCopiedStates] = useState({});
+    const [copiedLinkStates, setCopiedLinkStates] = useState({});
 
     const fetchPendingInvites = async () => {
         if (!selectedCommunity) return;
@@ -119,6 +120,17 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
         setCopiedStates(prev => ({ ...prev, [code]: true }));
         setTimeout(() => {
             setCopiedStates(prev => ({ ...prev, [code]: false }));
+        }, 2000);
+    };
+
+    const handleCopyLink = (code, email) => {
+        const origin = window.location.origin;
+        const emailParam = email ? `&email=${encodeURIComponent(email)}` : '';
+        const url = `${origin}/signup?code=${encodeURIComponent(code)}${emailParam}`;
+        navigator.clipboard.writeText(url);
+        setCopiedLinkStates(prev => ({ ...prev, [code]: true }));
+        setTimeout(() => {
+            setCopiedLinkStates(prev => ({ ...prev, [code]: false }));
         }, 2000);
     };
 
@@ -441,14 +453,14 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                         Pending Invites
                     </h3>
                     <p style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.9rem", marginBottom: "1rem", lineHeight: "1.4" }}>
-                        Copy the invite code below and paste in an email to the new user. Remember, it's only one invite code per user email. Once sent, mark as sent in the below table. When a user successfully logs in with their invite code (you will know if the status says "Used"), dismiss the table row for that user.
+                        Copy the direct invite link or code below and email it to the new user. Using <strong>Copy Link</strong> gives them a link with their invite code and email pre-filled so they can set their password and join without confusion. Once sent, mark as sent in the table. When a user successfully creates an account with their invite code (the status will change to "Used"), you can dismiss the table row.
                     </p>
                     <div className="admin-table-wrapper">
                         <table className="task-table">
                             <thead>
                                 <tr>
                                     <th>Email</th>
-                                    <th>Invite Code</th>
+                                    <th>Invite Code & Link</th>
                                     <th>Role</th>
                                     <th>Level</th>
                                     <th>Status</th>
@@ -463,8 +475,38 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                         <tr key={inv.id} className="task-row">
                                             <td>{inv.email}</td>
                                             <td className="admin-table-code">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-start' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                                                     <strong>{inv.code}</strong>
+                                                    <button
+                                                        onClick={() => handleCopyLink(inv.code, inv.email)}
+                                                        className="admin-pill-btn blue"
+                                                        style={{
+                                                            margin: 0,
+                                                            padding: "0.2rem 0.5rem",
+                                                            fontSize: "0.75rem",
+                                                            background: copiedLinkStates[inv.code] ? "#47b260" : "rgba(59, 130, 246, 0.35)",
+                                                            border: "1px solid rgba(59, 130, 246, 0.5)",
+                                                            color: "#ffffff",
+                                                            display: "inline-flex",
+                                                            alignItems: "center",
+                                                            gap: "4px",
+                                                            minWidth: "75px",
+                                                            justifyContent: "center"
+                                                        }}
+                                                        title="Copy direct signup link with pre-filled invite code"
+                                                    >
+                                                        {copiedLinkStates[inv.code] ? (
+                                                            "Link Copied!"
+                                                        ) : (
+                                                            <>
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                                                </svg>
+                                                                Copy Link
+                                                            </>
+                                                        )}
+                                                    </button>
                                                     <button
                                                         onClick={() => handleCopyCode(inv.code)}
                                                         className="admin-pill-btn"
@@ -481,7 +523,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                                             minWidth: "65px",
                                                             justifyContent: "center"
                                                         }}
-                                                        title="Copy invite code"
+                                                        title="Copy raw invite code"
                                                     >
                                                         {copiedStates[inv.code] ? (
                                                             "Copied!"
@@ -491,7 +533,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                                                                 </svg>
-                                                                Copy
+                                                                Copy Code
                                                             </>
                                                         )}
                                                     </button>

@@ -413,6 +413,27 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
             />
 
             <Route
+              path="/login"
+              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="login" />}
+            />
+            <Route
+              path="/signup"
+              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+            />
+            <Route
+              path="/create-account"
+              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+            />
+            <Route
+              path="/request-invite"
+              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="request_invite" />}
+            />
+            <Route
+              path="/forgot-password"
+              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="forgot" />}
+            />
+
+            <Route
               path="/admin/members"
               element={(session && activeCommunityAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin || contextGlobalAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />}
             />
