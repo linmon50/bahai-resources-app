@@ -273,11 +273,21 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .profile-dropdown-menu {
+  position: absolute !important;
   top: calc(100% + 10px);
   width: 220px;
   right: 0 !important;
   left: auto !important;
   padding: 0.4rem;
+  background: #3265c2;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(151, 247, 233, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  z-index: 99999 !important;
+  list-style: none;
+  margin: 0;
 }
 
 .profile-dropdown-menu .custom-select-option {

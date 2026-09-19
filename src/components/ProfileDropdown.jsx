@@ -58,7 +58,11 @@ export default function ProfileDropdown({ session, isAdmin }) {
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, []);
 
     const handleSignOut = async () => {
@@ -74,6 +78,7 @@ export default function ProfileDropdown({ session, isAdmin }) {
 
             <div className="profile-dropdown-container" ref={dropdownRef}>
                 <button 
+                    type="button"
                     className="profile-trigger" 
                     onClick={() => setIsOpen(!isOpen)}
                     aria-expanded={isOpen}
@@ -99,7 +104,7 @@ export default function ProfileDropdown({ session, isAdmin }) {
                 </button>
 
                 {isOpen && (
-                    <ul className="custom-select-dropdown profile-dropdown-menu">
+                    <ul className="profile-dropdown-menu">
                         <li className="custom-select-option">
                             <Link to="/profile" onClick={() => setIsOpen(false)}>My Profile</Link>
                         </li>
@@ -108,7 +113,7 @@ export default function ProfileDropdown({ session, isAdmin }) {
                         </li>
                         <li className="menu-divider" />
                         <li className="custom-select-option">
-                            <button onClick={handleSignOut}>Sign Out</button>
+                            <button type="button" onClick={handleSignOut}>Sign Out</button>
                         </li>
                     </ul>
                 )}
