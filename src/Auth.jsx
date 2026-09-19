@@ -227,7 +227,7 @@ export default function Auth({ initialView }) {
             } else if (validationResult === 'used') {
                 throw new Error("This invite code has already been used.");
             } else if (validationResult === 'expired') {
-                throw new Error("This invite code has expired. Please ask an admin for a new one.");
+                throw new Error("This invite code has expired. Please fill out the request an invite form to ask for a new one.");
             }
 
             // 1. Attempt Sign Up
