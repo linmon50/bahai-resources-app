@@ -456,19 +456,9 @@ export default function Auth({ initialView }) {
                                 </button>
                             </form>
 
-                            <div style={{ margin: "1rem 0 0.25rem", textAlign: "center" }}>
-                                <span style={{ color: "rgba(255, 255, 255, 0.75)", fontSize: "0.9rem" }}>
-                                    Have an invite code?{" "}
-                                </span>
-                                <button 
-                                    type="button" 
-                                    onClick={() => reset("signup")} 
-                                    className="auth-link"
-                                    style={{ fontWeight: 600, color: "var(--auth-text-light-blue)", display: "inline", padding: 0 }}
-                                >
-                                    Create your account here →
-                                </button>
-                            </div>
+                            <button type="button" onClick={() => reset("signup")} className="auth-btn-blue">
+                                Have an invite code? Create an account here.
+                            </button>
                             
                             <button type="button" onClick={() => reset("forgot")} className="auth-link">
                                 Forgot your Password?
@@ -508,10 +498,6 @@ export default function Auth({ initialView }) {
                                     </button>
                                 </div>
                             )}
-                            
-                            <button type="button" onClick={() => reset("signup")} className="auth-btn-blue">
-                                Are you new? Create an account here.
-                            </button>
                         </>
                     )}
 
