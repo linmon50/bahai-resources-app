@@ -49,8 +49,6 @@ export default function Auth({ initialView }) {
             else if (modeParam === "request_invite" || modeParam === "request-invite") setView("request_invite");
             else if (modeParam === "forgot" || modeParam === "forgot-password") setView("forgot");
             else if (modeParam === "login") setView("login");
-        } else if (initialView) {
-            setView(initialView);
         } else {
             const path = location.pathname.toLowerCase();
             if (path === "/signup" || path === "/create-account") {
@@ -59,8 +57,8 @@ export default function Auth({ initialView }) {
                 setView("request_invite");
             } else if (path === "/forgot-password") {
                 setView("forgot");
-            } else if (path === "/login") {
-                setView("login");
+            } else if (path === "/login" || path === "/") {
+                setView(initialView || "login");
             }
         }
     }, [location.pathname, location.search, initialView]);
@@ -97,7 +95,7 @@ export default function Auth({ initialView }) {
         setHoneypot("");
         setRequiresPassword(false);
 
-        // Update URL path cleanly if navigating between views
+        // Update URL path cleanly when navigating between views
         const pathMap = {
             login: "/login",
             signup: "/signup",
@@ -105,8 +103,8 @@ export default function Auth({ initialView }) {
             forgot: "/forgot-password",
             forgot_sent: "/forgot-password"
         };
-        if (pathMap[nextView] && location.pathname !== pathMap[nextView] && location.pathname !== "/") {
-            navigate(pathMap[nextView], { replace: true });
+        if (pathMap[nextView] && location.pathname !== pathMap[nextView]) {
+            navigate(pathMap[nextView]);
         }
     };
 
