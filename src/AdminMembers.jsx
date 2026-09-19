@@ -93,6 +93,8 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
     const [pendingInvites, setPendingInvites] = useState([]);
     const [copiedStates, setCopiedStates] = useState({});
     const [copiedLinkStates, setCopiedLinkStates] = useState({});
+    const [selectedInviteId, setSelectedInviteId] = useState(null);
+    const [copiedMessageState, setCopiedMessageState] = useState(false);
 
     const fetchPendingInvites = async () => {
         if (!selectedCommunity) return;
@@ -113,6 +115,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
 
     useEffect(() => {
         fetchPendingInvites();
+        setSelectedInviteId(null);
     }, [selectedCommunity]);
 
     const handleCopyCode = (code) => {
@@ -132,6 +135,15 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
         setTimeout(() => {
             setCopiedLinkStates(prev => ({ ...prev, [code]: false }));
         }, 2000);
+    };
+
+    const handleCopyEmailMessage = (messageText) => {
+        if (!messageText) return;
+        navigator.clipboard.writeText(messageText);
+        setCopiedMessageState(true);
+        setTimeout(() => {
+            setCopiedMessageState(false);
+        }, 2500);
     };
 
     const handleToggleEmailSent = async (inviteId, currentVal) => {
@@ -155,6 +167,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                 .update({ dismissed: true })
                 .eq("id", inviteId);
             if (error) throw error;
+            if (selectedInviteId === inviteId) setSelectedInviteId(null);
             fetchPendingInvites();
         } catch (err) {
             setErrorMsg(`❌ Failed to dismiss invite: ${err.message}`);
@@ -459,6 +472,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                         <table className="task-table">
                             <thead>
                                 <tr>
+                                    <th style={{ width: "45px", textAlign: "center" }}>Select</th>
                                     <th>Email</th>
                                     <th>Invite Code & Link</th>
                                     <th>Role</th>
@@ -471,8 +485,27 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                             <tbody>
                                 {pendingInvites.map((inv) => {
                                     const isExpired = inv.expires_at && new Date(inv.expires_at) < new Date();
+                                    const isSelected = selectedInviteId === inv.id;
                                     return (
-                                        <tr key={inv.id} className="task-row">
+                                        <tr 
+                                            key={inv.id} 
+                                            className="task-row"
+                                            style={isSelected ? { backgroundColor: "rgba(9, 209, 214, 0.12)" } : undefined}
+                                        >
+                                            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                                                <input
+                                                    type="radio"
+                                                    name="selectedPendingInvite"
+                                                    id={`invite-radio-${inv.id}`}
+                                                    checked={isSelected}
+                                                    onChange={() => setSelectedInviteId(isSelected ? null : inv.id)}
+                                                    onClick={() => {
+                                                        if (isSelected) setSelectedInviteId(null);
+                                                    }}
+                                                    style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "var(--auth-button-blue)" }}
+                                                    aria-label={`Select invite for ${inv.email}`}
+                                                />
+                                            </td>
                                             <td>{inv.email}</td>
                                             <td className="admin-table-code">
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
@@ -580,6 +613,149 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                             </tbody>
                         </table>
                     </div>
+
+                    {(() => {
+                        const selectedInvite = pendingInvites.find((inv) => inv.id === selectedInviteId);
+                        if (!selectedInvite) return null;
+
+                        const selectedCommunityName = communities?.find((c) => c.id === selectedCommunity)?.name || "your";
+                        const origin = window.location.origin;
+                        const emailParam = selectedInvite.email ? `&email=${encodeURIComponent(selectedInvite.email)}` : '';
+                        const selectedSignupUrl = `${origin}/signup?code=${encodeURIComponent(selectedInvite.code)}${emailParam}`;
+                        const emailMessage = `You have been invited to the ${selectedCommunityName} community on The Baha'i Resources App! To sign up please use this link ${selectedSignupUrl} using the code: ${selectedInvite.code}. Please do not share the link or code with anyone else. You have 3 days to use the invite code until it expires.
+
+Enjoy your time in your new community!
+Lumindala Team`;
+
+                        return (
+                            <div style={{
+                                marginTop: "1.5rem",
+                                background: "rgba(255, 255, 255, 0.08)",
+                                backdropFilter: "blur(12px)",
+                                WebkitBackdropFilter: "blur(12px)",
+                                border: "1px solid rgba(151, 247, 233, 0.35)",
+                                borderRadius: "12px",
+                                padding: "1.5rem",
+                                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"
+                            }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                                        <span style={{ fontSize: "1.2rem" }}>✉️</span>
+                                        <h4 style={{ margin: 0, color: "#ffffff", fontSize: "1.1rem", fontWeight: "bold" }}>
+                                            Ready-to-Send Email Message
+                                        </h4>
+                                        <span style={{ 
+                                            fontSize: "0.8rem", 
+                                            padding: "2px 8px", 
+                                            borderRadius: "9999px", 
+                                            background: "rgba(151, 247, 233, 0.15)", 
+                                            color: "var(--auth-text-light-blue)",
+                                            border: "1px solid rgba(151, 247, 233, 0.3)"
+                                        }}>
+                                            {selectedInvite.email}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedInviteId(null)}
+                                        className="admin-pill-btn secondary"
+                                        style={{ margin: 0, padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
+                                        title="Deselect invite"
+                                    >
+                                        ✕ Close
+                                    </button>
+                                </div>
+
+                                <p style={{ margin: "0 0 1rem 0", color: "rgba(255, 255, 255, 0.75)", fontSize: "0.875rem" }}>
+                                    Copy and paste this personalized message into an email to send to <strong>{selectedInvite.email}</strong>.
+                                </p>
+
+                                <div style={{
+                                    position: "relative",
+                                    background: "rgba(0, 0, 0, 0.35)",
+                                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                                    borderRadius: "8px",
+                                    padding: "1rem 1.25rem",
+                                    marginBottom: "1rem",
+                                    fontFamily: "'Open Sans', sans-serif",
+                                    fontSize: "0.92rem",
+                                    lineHeight: "1.6",
+                                    color: "#ffffff",
+                                    whiteSpace: "pre-wrap",
+                                    wordBreak: "break-word"
+                                }}>
+                                    {emailMessage}
+                                </div>
+
+                                <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleCopyEmailMessage(emailMessage)}
+                                        className="admin-pill-btn blue"
+                                        style={{
+                                            margin: 0,
+                                            padding: "0.5rem 1.25rem",
+                                            fontSize: "0.9rem",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "0.5rem",
+                                            background: copiedMessageState ? "#47b260" : "var(--auth-button-blue)",
+                                            color: "#ffffff",
+                                            fontWeight: "600"
+                                        }}
+                                    >
+                                        {copiedMessageState ? (
+                                            <>
+                                                <span>✓</span> Message Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                                </svg>
+                                                Copy Email Message
+                                            </>
+                                        )}
+                                    </button>
+
+                                    <a
+                                        href={`mailto:${encodeURIComponent(selectedInvite.email)}?subject=${encodeURIComponent(`Invitation to the ${selectedCommunityName} Community`)}&body=${encodeURIComponent(emailMessage)}`}
+                                        className="admin-pill-btn secondary"
+                                        style={{
+                                            margin: 0,
+                                            padding: "0.5rem 1rem",
+                                            fontSize: "0.9rem",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "0.5rem",
+                                            textDecoration: "none",
+                                            color: "#ffffff"
+                                        }}
+                                        title="Open default email app with this message pre-filled"
+                                    >
+                                        <span>✉️</span> Open in Email App
+                                    </a>
+
+                                    {!selectedInvite.email_sent && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleEmailSent(selectedInvite.id, false)}
+                                            className="admin-pill-btn success"
+                                            style={{
+                                                margin: 0,
+                                                padding: "0.5rem 1rem",
+                                                fontSize: "0.9rem",
+                                                backgroundColor: "#47b260"
+                                            }}
+                                        >
+                                            Mark as Email Sent
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
         </div>
