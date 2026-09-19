@@ -962,7 +962,7 @@ export default function EditProfilePage({ session }) {
                 margin: '0 0 2rem 0' 
               }}
             >
-              Please fill out your profile so your community members can get in touch with you.
+              Please fill out your profile so your fellow community members can get in touch with and learn more about you.
             </p>
 
             <button
