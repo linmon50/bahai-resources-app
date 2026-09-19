@@ -126,10 +126,9 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
         }, 2000);
     };
 
-    const handleCopyLink = (code, email) => {
+    const handleCopyLink = (code) => {
         const origin = window.location.origin;
-        const emailParam = email ? `&email=${encodeURIComponent(email)}` : '';
-        const url = `${origin}/signup?code=${encodeURIComponent(code)}${emailParam}`;
+        const url = `${origin}/join/${encodeURIComponent(code)}`;
         navigator.clipboard.writeText(url);
         setCopiedLinkStates(prev => ({ ...prev, [code]: true }));
         setTimeout(() => {
@@ -511,7 +510,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                                                     <strong>{inv.code}</strong>
                                                     <button
-                                                        onClick={() => handleCopyLink(inv.code, inv.email)}
+                                                        onClick={() => handleCopyLink(inv.code)}
                                                         className="admin-pill-btn blue"
                                                         style={{
                                                             margin: 0,
@@ -620,12 +619,11 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
 
                         const selectedCommunityName = communities?.find((c) => c.id === selectedCommunity)?.name || "your";
                         const origin = window.location.origin;
-                        const emailParam = selectedInvite.email ? `&email=${encodeURIComponent(selectedInvite.email)}` : '';
-                        const selectedSignupUrl = `${origin}/signup?code=${encodeURIComponent(selectedInvite.code)}${emailParam}`;
+                        const selectedSignupUrl = `${origin}/join/${encodeURIComponent(selectedInvite.code)}`;
                         const emailMessage = `You have been invited to the ${selectedCommunityName} community on The Baha'i Resources App! To sign up please use this link ${selectedSignupUrl} using the code: ${selectedInvite.code}. Please do not share the link or code with anyone else. You have 3 days to use the invite code until it expires.
 
 Enjoy your time in your new community!
-Lumindala Team`;
+Baha'i Resources App Team`;
 
                         return (
                             <div style={{

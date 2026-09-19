@@ -421,6 +421,14 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
               element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
             />
             <Route
+              path="/signup/:code"
+              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+            />
+            <Route
+              path="/join/:code"
+              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+            />
+            <Route
               path="/create-account"
               element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
             />

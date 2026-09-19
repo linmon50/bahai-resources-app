@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import supabase from "./supabaseClient";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import CustomSelect from "./components/CustomSelect";
 import { notifyAdmins } from './utils/notifyAdmins';
 import LockoutNotice from './components/LockoutNotice';
@@ -47,17 +47,42 @@ export default function Auth({ initialView }) {
     const [detectedInvite, setDetectedInvite] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
+    const { code: routeCode } = useParams();
 
     // Parse URL query params and direct path on load or location change
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
-        const codeParam = searchParams.get("code") || searchParams.get("invite");
+        const codeParam = routeCode || searchParams.get("code") || searchParams.get("invite");
         const emailParam = searchParams.get("email");
         const modeParam = searchParams.get("mode");
 
-        if (codeParam) {
-            setInviteCode(codeParam.trim().toUpperCase());
+        const normalizedCode = codeParam ? codeParam.trim().toUpperCase() : "";
+
+        if (normalizedCode) {
+            setInviteCode(normalizedCode);
             setView("signup");
+
+            // Auto-fetch email and validate code if email wasn't passed in URL
+            if (!emailParam) {
+                (async () => {
+                    try {
+                        const { data, error } = await supabase.rpc('get_invite_details', { p_code: normalizedCode });
+                        if (!error && data) {
+                            if (data.status === 'valid' && data.email) {
+                                setEmail(data.email);
+                            } else if (data.status === 'expired') {
+                                setError("This invite code has expired. Please fill out the request an invite form to ask for a new one.");
+                            } else if (data.status === 'used') {
+                                setError("This invite code has already been used.");
+                            } else if (data.status === 'invalid') {
+                                setError("Invalid invite code. Please check for typos.");
+                            }
+                        }
+                    } catch (err) {
+                        console.warn("Failed to fetch invite details:", err);
+                    }
+                })();
+            }
         }
         if (emailParam) {
             setEmail(emailParam.trim());
@@ -70,17 +95,17 @@ export default function Auth({ initialView }) {
             else if (modeParam === "login") setView("login");
         } else {
             const path = location.pathname.toLowerCase();
-            if (path === "/signup" || path === "/create-account") {
+            if (path === "/signup" || path === "/create-account" || path.startsWith("/signup/") || path.startsWith("/join/")) {
                 setView("signup");
             } else if (path === "/request-invite") {
                 setView("request_invite");
             } else if (path === "/forgot-password") {
                 setView("forgot");
             } else if (path === "/login" || path === "/") {
-                setView(initialView || "login");
+                if (!normalizedCode) setView(initialView || "login");
             }
         }
-    }, [location.pathname, location.search, initialView]);
+    }, [location.pathname, location.search, routeCode, initialView]);
 
     useEffect(() => {
         if (view === "request_invite") {
