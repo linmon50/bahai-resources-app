@@ -6,6 +6,25 @@ import { notifyAdmins } from './utils/notifyAdmins';
 import LockoutNotice from './components/LockoutNotice';
 import { notifyLockout } from './utils/notifyLockout';
 
+const LightbulbIcon = () => (
+    <svg 
+        width="20" 
+        height="20" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="#ffffff" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        aria-hidden="true"
+        style={{ flexShrink: 0 }}
+    >
+        <path d="M9 18h6" />
+        <path d="M10 22h4" />
+        <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z" />
+    </svg>
+);
+
 // Which "view" we are showing
 // 'login' | 'signup' | 'forgot' | 'forgot_sent'
 export default function Auth({ initialView }) {
@@ -448,6 +467,7 @@ export default function Auth({ initialView }) {
                                   onChange={(val) => {
                                       setPassword(val);
                                       if (lockoutInfo) setLockoutInfo(null);
+                                      if (detectedInvite) setDetectedInvite(null);
                                   }} 
                                 />
 
@@ -458,28 +478,31 @@ export default function Auth({ initialView }) {
 
                             <MessageBox msg={message} />
 
-                            <button type="button" onClick={() => reset("signup")} className="auth-btn-blue" style={{ marginBottom: "calc(1.5rem + 3px)" }}>
-                                Have an invite code? Create an account here.
-                            </button>
-                            
-                            <button type="button" onClick={() => reset("forgot")} className="auth-link">
-                                Forgot your Password?
-                            </button>
-
-                            {detectedInvite && (
+                            {detectedInvite ? (
                                 <div style={{ 
                                     backgroundColor: "rgba(39, 174, 96, 0.15)", 
                                     border: "1px solid #27ae60", 
                                     color: "#ffffff",
-                                    margin: "0.75rem 0 1rem",
+                                    margin: "0 0 calc(1.5rem + 3px)",
                                     textAlign: "center",
-                                    padding: "1rem",
-                                    borderRadius: "8px"
+                                    padding: "1.25rem 1.25rem",
+                                    borderRadius: "12px",
+                                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)"
                                 }}>
-                                    <div style={{ fontSize: "1.1rem", fontWeight: "bold", marginBottom: "0.35rem", color: "var(--auth-text-light-blue)" }}>
-                                        💡 Did you mean to use an invite code?
+                                    <div style={{ 
+                                        fontSize: "1.05rem", 
+                                        fontWeight: "bold", 
+                                        marginBottom: "0.4rem", 
+                                        color: "#ffffff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "0.5rem"
+                                    }}>
+                                        <LightbulbIcon />
+                                        <span>Did you mean to use an invite code?</span>
                                     </div>
-                                    <p style={{ margin: "0 0 0.75rem", fontSize: "0.875rem", lineHeight: 1.4, color: "rgba(255,255,255,0.9)" }}>
+                                    <p style={{ margin: "0 0 1.1rem", fontSize: "0.9rem", lineHeight: 1.45, color: "rgba(255, 255, 255, 0.9)" }}>
                                         It looks like you entered an invite code (<strong>{detectedInvite.code}</strong>) instead of a password.
                                     </p>
                                     <button
@@ -491,13 +514,25 @@ export default function Auth({ initialView }) {
                                             setInviteCode(codeToUse);
                                             if (emailToUse) setEmail(emailToUse);
                                         }}
-                                        className="auth-btn-green"
-                                        style={{ margin: "0 auto", padding: "0.5rem 1rem", fontSize: "0.875rem", display: "inline-block" }}
+                                        className="auth-btn-blue"
                                     >
-                                        Create Account with this Code →
+                                        Have an invite code? Create an account here.
                                     </button>
                                 </div>
+                            ) : (
+                                <button 
+                                    type="button" 
+                                    onClick={() => reset("signup")} 
+                                    className="auth-btn-blue" 
+                                    style={{ marginBottom: "calc(1.5rem + 3px)" }}
+                                >
+                                    Have an invite code? Create an account here.
+                                </button>
                             )}
+                            
+                            <button type="button" onClick={() => reset("forgot")} className="auth-link">
+                                Forgot your Password?
+                            </button>
                         </>
                     )}
 
