@@ -259,16 +259,35 @@ export default function App() {
   };
 
   useEffect(() => {
+    const handleSigningOut = () => {
+      setSession(null);
+      setHasMembership(false);
+      setIsAdmin(false);
+      setIsGlobalAdmin(false);
+      setLoading(false);
+    };
+
+    window.addEventListener('appSigningOut', handleSigningOut);
+    return () => window.removeEventListener('appSigningOut', handleSigningOut);
+  }, []);
+
+  useEffect(() => {
     let lastUserId = null;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (event === 'SIGNED_IN') {
+          if (typeof window !== 'undefined') window.__isSigningOut = false;
+        }
+
         if (event === 'PASSWORD_RECOVERY') {
           sessionStorage.setItem('isRecoveringPassword', 'true');
           setIsRecovering(true);
         }
 
         if (event === 'SIGNED_OUT') {
+          if (typeof window !== 'undefined') window.__isSigningOut = false;
           lastUserId = null;
+          setSession(null);
           setIsAdmin(false);
           setIsGlobalAdmin(false);
           setHasMembership(false);
@@ -288,6 +307,7 @@ export default function App() {
 
         setSession(session);
         if (session?.user) {
+          if (typeof window !== 'undefined') window.__isSigningOut = false;
           // If first load or user changed, perform full admin status check
           if (!lastUserId || session.user.id !== lastUserId) {
             lastUserId = session.user.id;
@@ -301,6 +321,7 @@ export default function App() {
           }
         } else {
           lastUserId = null;
+          setSession(null);
           setIsAdmin(false);
           setIsGlobalAdmin(false);
           setHasMembership(false);
@@ -348,6 +369,7 @@ export default function App() {
 }
 
 function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership }) {
+  const effectiveSession = (typeof window !== 'undefined' && window.__isSigningOut) ? null : session;
   const { 
     isAdmin: activeCommunityAdmin, 
     isGlobalAdmin: contextGlobalAdmin,
@@ -368,11 +390,11 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
 
   // Guard for brand new users: if first login is not completed, take them to edit profile page
   useEffect(() => {
-    if (session?.user?.id && isMember && (location.pathname === '/' || location.pathname === '/bulletin')) {
+    if (effectiveSession?.user?.id && isMember && (location.pathname === '/' || location.pathname === '/bulletin')) {
       supabase
         .from('profiles')
         .select('first_login_completed')
-        .eq('user_id', session.user.id)
+        .eq('user_id', effectiveSession.user.id)
         .maybeSingle()
         .then(({ data }) => {
           if (data && data.first_login_completed === false) {
@@ -380,17 +402,17 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
           }
         });
     }
-  }, [session?.user?.id, isMember, location.pathname, navigate]);
+  }, [effectiveSession?.user?.id, isMember, location.pathname, navigate]);
 
   return (
     <div className="app-layout">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      {session && <Navbar session={session} isAdmin={activeCommunityAdmin} />}
+      {effectiveSession && <Navbar session={effectiveSession} isAdmin={activeCommunityAdmin} />}
 
-      <main id="main-content" className="app-content" style={{ marginLeft: session ? undefined : 0, paddingTop: session ? undefined : 0 }}>
-        {session && <ProfileDropdown session={session} isAdmin={activeCommunityAdmin} />}
+      <main id="main-content" className="app-content" style={{ marginLeft: effectiveSession ? undefined : 0, paddingTop: effectiveSession ? undefined : 0 }}>
+        {effectiveSession && <ProfileDropdown session={effectiveSession} isAdmin={activeCommunityAdmin} />}
         
-        {communityLoading ? (
+        {(effectiveSession && communityLoading) ? (
           <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'white' }}>
             <p style={{ color: 'var(--auth-text-light-blue)', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Loading community...</p>
           </div>
@@ -399,9 +421,9 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
             <Route
               path="/"
               element={
-                session
+                effectiveSession
                   ? (isMember
-                    ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} />
+                    ? <BulletinBoard session={effectiveSession} isAdmin={activeCommunityAdmin} />
                     : (
                       <div style={{ padding: "2rem" }}>
                         <MembershipRequired onRetry={handleRetry} />
@@ -414,46 +436,46 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
 
             <Route
               path="/login"
-              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="login" />}
+              element={effectiveSession && isMember ? <Navigate to="/" replace /> : <Auth initialView="login" />}
             />
             <Route
               path="/signup"
-              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+              element={effectiveSession && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
             />
             <Route
               path="/signup/:code"
-              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+              element={effectiveSession && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
             />
             <Route
               path="/join/:code"
-              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+              element={effectiveSession && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
             />
             <Route
               path="/create-account"
-              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
+              element={effectiveSession && isMember ? <Navigate to="/" replace /> : <Auth initialView="signup" />}
             />
             <Route
               path="/request-invite"
-              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="request_invite" />}
+              element={effectiveSession && isMember ? <Navigate to="/" replace /> : <Auth initialView="request_invite" />}
             />
             <Route
               path="/forgot-password"
-              element={session && isMember ? <Navigate to="/" replace /> : <Auth initialView="forgot" />}
+              element={effectiveSession && isMember ? <Navigate to="/" replace /> : <Auth initialView="forgot" />}
             />
 
             <Route
               path="/admin/members"
-              element={(session && activeCommunityAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin || contextGlobalAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />}
+              element={(effectiveSession && activeCommunityAdmin) ? <AdminMembers isGlobalAdmin={isGlobalAdmin || contextGlobalAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />}
             />
 
-            <Route path="/profile" element={(session && isMember) ? <ProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/profile/edit" element={(session && isMember) ? <EditProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/profile/:userId" element={(session && isMember) ? <ProfilePage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/settings" element={(session && isMember) ? <AccountSettings session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/directory" element={(session && isMember) ? <DirectoryPage session={session} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/bulletin" element={(session && isMember) ? <BulletinBoard session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/planning" element={(session && isMember) ? <PlanningSessionsPage session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/planning/:sessionId" element={(session && isMember) ? <PlanningSessionDetail session={session} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/profile" element={(effectiveSession && isMember) ? <ProfilePage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/profile/edit" element={(effectiveSession && isMember) ? <EditProfilePage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/profile/:userId" element={(effectiveSession && isMember) ? <ProfilePage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/settings" element={(effectiveSession && isMember) ? <AccountSettings session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/directory" element={(effectiveSession && isMember) ? <DirectoryPage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/bulletin" element={(effectiveSession && isMember) ? <BulletinBoard session={effectiveSession} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/planning" element={(effectiveSession && isMember) ? <PlanningSessionsPage session={effectiveSession} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/planning/:sessionId" element={(effectiveSession && isMember) ? <PlanningSessionDetail session={effectiveSession} isAdmin={activeCommunityAdmin} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
 
             <Route path="/reset-password" element={<div style={{ padding: "2rem" }}><ResetPassword /></div>} />
 

@@ -57,6 +57,22 @@ export const CommunityProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    const handleSigningOut = () => {
+      if (mounted) {
+        setCommunities([]);
+        setUserMemberships([]);
+        setIsGlobalAdmin(false);
+        setActiveCommunityId('');
+        try {
+          localStorage.removeItem('community_cache');
+          sessionStorage.removeItem('community_cache');
+        } catch (e) {}
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener('appSigningOut', handleSigningOut);
+
     // Safety watchdog: Only clear after a generous 15 seconds if network hangs
     if (activeTimerRef.current) clearTimeout(activeTimerRef.current);
     activeTimerRef.current = setTimeout(() => {
@@ -210,6 +226,7 @@ export const CommunityProvider = ({ children }) => {
     return () => {
         mounted = false;
         if (activeTimerRef.current) clearTimeout(activeTimerRef.current);
+        window.removeEventListener('appSigningOut', handleSigningOut);
         subscription?.unsubscribe();
     };
   }, []);

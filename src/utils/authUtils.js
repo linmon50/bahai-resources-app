@@ -1,6 +1,14 @@
 import supabase from '../supabaseClient';
 
 export async function clearSessionAndRedirect() {
+    // 0. Immediately signal to the app that sign-out is in progress
+    try {
+        window.__isSigningOut = true;
+        window.dispatchEvent(new CustomEvent('appSigningOut'));
+    } catch (e) {
+        console.error("Failed to dispatch appSigningOut event:", e);
+    }
+
     // 1. Wipe localStorage and sessionStorage first so no residual tokens remain
     try {
         localStorage.clear();
