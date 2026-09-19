@@ -108,9 +108,93 @@ async function execute() {
             END;
             $$;
 
+            -- Auto-consume invite function strictly bound to authenticated user's email
+            CREATE OR REPLACE FUNCTION public.auto_consume_invite_for_user()
+            RETURNS BOOLEAN
+            LANGUAGE plpgsql
+            SECURITY DEFINER
+            SET search_path = public, auth
+            AS $$
+            DECLARE
+                v_user_id uuid;
+                v_user_email text;
+                v_invite record;
+            BEGIN
+                v_user_id := auth.uid();
+                IF v_user_id IS NULL THEN
+                    RETURN FALSE;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM public.memberships WHERE user_id = v_user_id AND approved = true) THEN
+                    RETURN TRUE;
+                END IF;
+
+                SELECT email INTO v_user_email FROM auth.users WHERE id = v_user_id;
+                IF v_user_email IS NULL THEN
+                    RETURN FALSE;
+                END IF;
+
+                SELECT * INTO v_invite
+                FROM public.invites
+                WHERE lower(trim(email)) = lower(trim(v_user_email))
+                  AND active = true
+                  AND used_at IS NULL
+                  AND (expires_at IS NULL OR expires_at > now())
+                ORDER BY created_at DESC
+                LIMIT 1;
+
+                IF v_invite IS NULL THEN
+                    RETURN FALSE;
+                END IF;
+
+                RETURN public.consume_invite(v_invite.code);
+            END;
+            $$;
+
+            -- Updated get_my_membership_status to auto-resolve pending invites for invited emails
+            CREATE OR REPLACE FUNCTION public.get_my_membership_status()
+            RETURNS TABLE(has_membership boolean, is_admin boolean, is_global_admin boolean)
+            LANGUAGE plpgsql
+            SECURITY DEFINER
+            SET search_path = public, auth
+            AS $$
+            DECLARE
+                global_admin_flag boolean;
+                has_mem boolean;
+            BEGIN
+                SELECT EXISTS (
+                    SELECT 1 FROM global_admins 
+                    WHERE user_id = auth.uid()
+                ) INTO global_admin_flag;
+
+                SELECT EXISTS (
+                    SELECT 1 FROM memberships 
+                    WHERE user_id = auth.uid() AND approved = true
+                ) INTO has_mem;
+
+                IF NOT global_admin_flag AND NOT has_mem THEN
+                    PERFORM public.auto_consume_invite_for_user();
+                END IF;
+
+                RETURN QUERY
+                SELECT 
+                    (global_admin_flag OR EXISTS (
+                        SELECT 1 FROM memberships 
+                        WHERE user_id = auth.uid() AND approved = true
+                    )) AS has_membership,
+                    (global_admin_flag OR EXISTS (
+                        SELECT 1 FROM memberships 
+                        WHERE user_id = auth.uid() AND approved = true AND admin_level > 0
+                    )) AS is_admin,
+                    global_admin_flag AS is_global_admin;
+            END;
+            $$;
+
             -- Grant permissions
             GRANT EXECUTE ON FUNCTION public.consume_invite(TEXT) TO authenticated;
             GRANT EXECUTE ON FUNCTION public.join_community_by_code(TEXT, UUID) TO authenticated;
+            GRANT EXECUTE ON FUNCTION public.auto_consume_invite_for_user() TO authenticated;
+            GRANT EXECUTE ON FUNCTION public.get_my_membership_status() TO authenticated;
 
             -- Reload schema cache
             NOTIFY pgrst, 'reload schema';

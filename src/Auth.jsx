@@ -282,9 +282,6 @@ export default function Auth({ initialView }) {
                     data: { display_name: cleanEmail.split('@')[0] } // Default display name
                 }
             });
-            
-            // 0.5 Save invite code to sessionStorage so App.jsx can consume it after session refresh
-            sessionStorage.setItem('pending_invite_code', cleanCode);
 
             if (signUpError) {
                 const msg = signUpError.message?.toLowerCase() || "";
@@ -308,6 +305,25 @@ export default function Auth({ initialView }) {
                     if (signInError) throw signInError;
                 }
             }
+
+            // 2. Consume the invite code IMMEDIATELY while we have the user's active session
+            const { error: consumeError } = await supabase.rpc('consume_invite', { p_code: cleanCode });
+            if (consumeError) {
+                console.error("Failed to consume invite during signup:", consumeError);
+                throw new Error(consumeError.message || "Failed to join community with this invite code.");
+            }
+
+            // 3. Mark membership status as approved in storage cache so App.jsx renders without delay
+            try {
+                const { data: { session: activeSession } } = await supabase.auth.getSession();
+                const uid = activeSession?.user?.id;
+                if (uid) {
+                    localStorage.setItem('membership_status_' + uid, 'approved');
+                    sessionStorage.setItem('membership_status_' + uid, 'approved');
+                }
+                localStorage.setItem('membership_status', 'approved');
+                sessionStorage.setItem('membership_status', 'approved');
+            } catch (e) {}
 
             // Brand new user signing up: direct to edit profile page
             window.location.href = "/profile/edit?first_login=true";

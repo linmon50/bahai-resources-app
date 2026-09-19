@@ -388,6 +388,13 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
     if (refreshCommunities) await refreshCommunities();
   };
 
+  // When membership is confirmed but communities have not loaded yet, sync communities
+  useEffect(() => {
+    if (effectiveSession?.user?.id && hasMembership && communities.length === 0 && !communityLoading) {
+      if (refreshCommunities) refreshCommunities();
+    }
+  }, [effectiveSession?.user?.id, hasMembership, communities.length, communityLoading, refreshCommunities]);
+
   // Guard for brand new users: if first login is not completed, take them to edit profile page
   useEffect(() => {
     if (effectiveSession?.user?.id && isMember && (location.pathname === '/' || location.pathname === '/bulletin')) {
@@ -469,7 +476,7 @@ function AppContent({ session, hasMembership, isGlobalAdmin, onRecheckMembership
             />
 
             <Route path="/profile" element={(effectiveSession && isMember) ? <ProfilePage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
-            <Route path="/profile/edit" element={(effectiveSession && isMember) ? <EditProfilePage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
+            <Route path="/profile/edit" element={(effectiveSession && (isMember || location.search.includes('first_login=true'))) ? <EditProfilePage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
             <Route path="/profile/:userId" element={(effectiveSession && isMember) ? <ProfilePage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
             <Route path="/settings" element={(effectiveSession && isMember) ? <AccountSettings session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
             <Route path="/directory" element={(effectiveSession && isMember) ? <DirectoryPage session={effectiveSession} /> : <Navigate to="/" state={{ from: location.pathname }} replace />} />
