@@ -32,6 +32,13 @@ const CancelIcon = () => (
   </svg>
 );
 
+const LockIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
 export default function BulletinBoard({ session, isAdmin }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -42,7 +49,8 @@ export default function BulletinBoard({ session, isAdmin }) {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [isCommunityAdmin, setIsCommunityAdmin] = useState(false);
-  const { activeCommunityId, communityDetails } = useCommunity();
+  const [postFilter, setPostFilter] = useState('all');
+  const { activeCommunityId, communityDetails, hasFullTierAccess, tierLabels } = useCommunity();
 
   useEffect(() => {
     setMySubmissions([]);
@@ -57,7 +65,7 @@ export default function BulletinBoard({ session, isAdmin }) {
       setPosts([]);
       setLoading(false);
     }
-  }, [activeCommunityId, session?.user?.id]);
+  }, [activeCommunityId, session?.user?.id, hasFullTierAccess]);
 
   const checkCurrentCommunityAdmin = async () => {
     if (!session?.user?.id || !activeCommunityId) {
@@ -109,14 +117,21 @@ export default function BulletinBoard({ session, isAdmin }) {
   const fetchPosts = async () => {
     if (!activeCommunityId) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('bulletin_posts')
         .select(`
           *,
           author:profiles(display_name, avatar_url)
         `)
         .eq('community_id', activeCommunityId)
-        .eq('status', 'approved')
+        .eq('status', 'approved');
+
+      // Guests only see 'all' visibility posts
+      if (!hasFullTierAccess) {
+        query = query.eq('visibility', 'all');
+      }
+
+      const { data, error } = await query
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -260,6 +275,22 @@ export default function BulletinBoard({ session, isAdmin }) {
                     }}>
                       {sub.status.toUpperCase()}
                     </span>
+                    {sub.visibility === 'full_only' && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        fontSize: '0.7rem',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        background: 'rgba(56, 189, 248, 0.2)',
+                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                        color: '#ffffff',
+                        fontWeight: '500'
+                      }}>
+                        <LockIcon />
+                        {tierLabels?.guarded || "Registered Baha'is Only"}
+                      </span>
+                    )}
                     <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{new Date(sub.created_at).toLocaleDateString()}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: '0.95rem', color: '#ffffff', fontStyle: 'italic' }}>
@@ -320,13 +351,56 @@ export default function BulletinBoard({ session, isAdmin }) {
         </div>
       )}
 
+      {/* Feed Filters for Full-Tier Members & Admins */}
+      {hasFullTierAccess && posts.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button 
+            type="button"
+            className={`admin-pill-btn ${postFilter === 'all' ? 'blue' : 'secondary'}`}
+            style={{ margin: 0, padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+            onClick={() => setPostFilter('all')}
+          >
+            All Posts ({posts.length})
+          </button>
+          <button 
+            type="button"
+            className={`admin-pill-btn ${postFilter === 'general' ? 'blue' : 'secondary'}`}
+            style={{ margin: 0, padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+            onClick={() => setPostFilter('general')}
+          >
+            {tierLabels?.public || 'All Members & Friends'} ({posts.filter(p => p.visibility !== 'full_only').length})
+          </button>
+          <button 
+            type="button"
+            className={`admin-pill-btn ${postFilter === 'guarded' ? 'blue' : 'secondary'}`}
+            style={{ margin: 0, padding: '0.4rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center' }}
+            onClick={() => setPostFilter('guarded')}
+          >
+            <LockIcon />
+            {tierLabels?.guarded || "Registered Baha'is Only"} ({posts.filter(p => p.visibility === 'full_only').length})
+          </button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {posts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', color: '#ffffff' }}>
             No posts yet. Why not be the first to share something?
           </div>
+        ) : posts.filter(post => {
+            if (postFilter === 'general') return post.visibility !== 'full_only';
+            if (postFilter === 'guarded') return post.visibility === 'full_only';
+            return true;
+          }).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', color: '#ffffff' }}>
+            No posts found under this filter.
+          </div>
         ) : (
-          posts.map(post => (
+          posts.filter(post => {
+            if (postFilter === 'general') return post.visibility !== 'full_only';
+            if (postFilter === 'guarded') return post.visibility === 'full_only';
+            return true;
+          }).map(post => (
             <div key={post.id} style={{ 
               background: 'rgba(255, 255, 255, 0.1)', 
               borderRadius: '16px', 
@@ -367,7 +441,27 @@ export default function BulletinBoard({ session, isAdmin }) {
                   </div>
                   <div>
                     <p style={{ margin: 0, fontWeight: 'bold' }}>{post.author?.display_name || 'Anonymous'}</p>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#ffffff', opacity: 0.7 }}>{new Date(post.created_at).toLocaleDateString()} at {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '2px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#ffffff', opacity: 0.7 }}>
+                        {new Date(post.created_at).toLocaleDateString()} at {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {post.visibility === 'full_only' && (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          fontSize: '0.7rem',
+                          padding: '2px 7px',
+                          borderRadius: '10px',
+                          background: 'rgba(56, 189, 248, 0.2)',
+                          border: '1px solid rgba(56, 189, 248, 0.4)',
+                          color: '#ffffff',
+                          fontWeight: '500'
+                        }}>
+                          <LockIcon />
+                          {tierLabels?.guarded || "Registered Baha'is Only"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

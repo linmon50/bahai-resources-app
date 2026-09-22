@@ -50,9 +50,24 @@ function daysLeft(endsAt) {
     return Math.ceil((new Date(endsAt) - new Date()) / 86400000);
 }
 
+const GlobeIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+);
+
+const LockIcon = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+);
+
 export default function PlanningSessionsPage({ session, isAdmin }) {
     const navigate = useNavigate();
-    const { activeCommunityId } = useCommunity();
+    const { activeCommunityId, hasFullTierAccess, tierLabels } = useCommunity();
 
     const [sessions,     setSessions]    = useState([]);
     const [loading,      setLoading]     = useState(true);
@@ -62,7 +77,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
     const [creating,     setCreating]    = useState(false);
     const [draftSaved,   setDraftSaved]  = useState(false);
 
-    const blankForm = { title: '', description: '', starts_at: '', ends_at: '', status: 'active', is_hidden: false, header_link_label: '', header_link_url: '' };
+    const blankForm = { title: '', description: '', starts_at: '', ends_at: '', status: 'active', is_hidden: false, visibility: 'all', header_link_label: '', header_link_url: '' };
     const DRAFT_KEY = `planning_new_draft_${session.user.id}`;
 
     // ── Restore draft from localStorage on first mount ────────────────────
@@ -94,17 +109,23 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
 
     useEffect(() => {
         if (activeCommunityId) fetchSessions();
-    }, [activeCommunityId]);
+    }, [activeCommunityId, hasFullTierAccess]);
 
     const fetchSessions = async () => {
         if (sessions.length === 0) setLoading(true);
         setFetchError('');
         try {
             // 1. Fetch sessions (no embedded joins — avoids auth-schema traversal issues)
-            const { data: sessionRows, error: sessionErr } = await supabase
+            let query = supabase
                 .from('planning_sessions')
                 .select('*')
-                .eq('community_id', activeCommunityId)
+                .eq('community_id', activeCommunityId);
+
+            if (!hasFullTierAccess) {
+                query = query.eq('visibility', 'all');
+            }
+
+            const { data: sessionRows, error: sessionErr } = await query
                 .order('created_at', { ascending: false });
             if (sessionErr) throw sessionErr;
             if (!sessionRows || sessionRows.length === 0) { setSessions([]); return; }
@@ -173,6 +194,7 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                 starts_at:    form.starts_at || null,
                 ends_at:      form.ends_at   || null,
                 is_hidden:    form.is_hidden,
+                visibility:   hasFullTierAccess ? (form.visibility || 'all') : 'all',
                 links:        linksPayload,
                 created_by:   session.user.id,
             });
@@ -341,6 +363,55 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                 </span>
                             </label>
 
+                            {/* Audience / Visibility Selector for Full-tier members & admins */}
+                            {hasFullTierAccess && (
+                                <div className="admin-input-group">
+                                    <label>Who can see this session?</label>
+                                    <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm(f => ({ ...f, visibility: 'all' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                padding: '0.45rem 1rem',
+                                                borderRadius: '20px',
+                                                fontSize: '0.85rem',
+                                                fontWeight: '500',
+                                                cursor: 'pointer',
+                                                border: (form.visibility || 'all') === 'all' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                background: (form.visibility || 'all') === 'all' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                                                color: '#ffffff',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <GlobeIcon />
+                                            {tierLabels?.public || 'All Members & Friends'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm(f => ({ ...f, visibility: 'full_only' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                padding: '0.45rem 1rem',
+                                                borderRadius: '20px',
+                                                fontSize: '0.85rem',
+                                                fontWeight: '500',
+                                                cursor: 'pointer',
+                                                border: form.visibility === 'full_only' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                background: form.visibility === 'full_only' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                                                color: '#ffffff',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <LockIcon />
+                                            {tierLabels?.guarded || "Registered Baha'is Only"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="planning-form-actions">
                                 <button type="button" className="admin-pill-btn secondary"
                                     style={{ margin: 0 }}
@@ -402,6 +473,22 @@ export default function PlanningSessionsPage({ session, isAdmin }) {
                                                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                                     </svg>
                                                     Private
+                                                </span>
+                                            )}
+                                            {s.visibility === 'full_only' && (
+                                                <span style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    fontSize: '0.72rem',
+                                                    background: 'rgba(56, 189, 248, 0.2)',
+                                                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                                                    borderRadius: '9999px',
+                                                    padding: '2px 8px',
+                                                    color: '#ffffff',
+                                                    fontWeight: 500
+                                                }}>
+                                                    <LockIcon />
+                                                    {tierLabels?.guarded || "Registered Baha'is Only"}
                                                 </span>
                                             )}
                                         </div>

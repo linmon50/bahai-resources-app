@@ -47,8 +47,16 @@ const MoreVerticalIcon = ({ size = 16 }) => (
         <circle cx="12" cy="19" r="1.5" fill="currentColor" />
     </svg>
 );
-const LockIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
+const GlobeIcon = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+);
+
+const LockIcon = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle' }}>
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
 );
@@ -690,7 +698,7 @@ function TaskFormCard({ parentTaskId, parentTaskTitle, editingTask, assigneeGrou
 export default function PlanningSessionDetail({ session, isAdmin }) {
     const { sessionId } = useParams();
     const navigate = useNavigate();
-    const { activeCommunityId } = useCommunity();
+    const { activeCommunityId, hasFullTierAccess, tierLabels } = useCommunity();
     const tabRefs = useRef([]);
     const contactCloseBtnRef = useRef(null);
 
@@ -762,6 +770,13 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
             }
             if (!sd) { setSessionNotFound(true); setLoading(false); return; }
 
+            // Guard access if full_only and user is not full tier/admin
+            if (sd.visibility === 'full_only' && !hasFullTierAccess) {
+                setAccessDenied(true);
+                setLoading(false);
+                return;
+            }
+
             // 2. Creator profile
             const { data: creatorProfile } = await supabase
                 .from('profiles').select('user_id, display_name, avatar_url, contact_email, phone, show_contact_info').eq('user_id', sd.created_by).maybeSingle();
@@ -776,6 +791,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                 starts_at: sd.starts_at ? sd.starts_at.split('T')[0] : '',
                 ends_at:   sd.ends_at   ? sd.ends_at.split('T')[0]   : '',
                 status: sd.status, is_hidden: sd.is_hidden,
+                visibility: sd.visibility || 'all',
                 header_link_label: headerLink?.label || '',
                 header_link_url: headerLink?.url || '',
             });
@@ -844,7 +860,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
         } finally {
             setLoading(false);
         }
-    }, [sessionId, session.user.id, isAdmin]);
+    }, [sessionId, session.user.id, isAdmin, hasFullTierAccess]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -1009,6 +1025,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
             const currentLinks = parseSessionLinks(sessionData?.links);
             const newHeaderLink = headerForm.header_link_url ? { label: headerForm.header_link_label, url: headerForm.header_link_url } : null;
             const payload = formatSessionLinks(newHeaderLink, currentLinks.resourceLinks);
+            const newVisibility = hasFullTierAccess ? (headerForm.visibility || 'all') : (sessionData?.visibility || 'all');
 
             const { error } = await supabase.from('planning_sessions').update({
                 title: headerForm.title.trim(),
@@ -1017,10 +1034,11 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                 ends_at:   headerForm.ends_at   || null,
                 status:    headerForm.status,
                 is_hidden: headerForm.is_hidden,
+                visibility: newVisibility,
                 links:     payload,
             }).eq('id', sessionId);
             if (error) throw error;
-            setSessionData(prev => ({ ...prev, ...headerForm, links: payload }));
+            setSessionData(prev => ({ ...prev, ...headerForm, visibility: newVisibility, links: payload }));
             setEditingHeader(false);
         } catch (err) {
             alert('Error saving header: ' + err.message);
@@ -1175,7 +1193,7 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
         return (
             <div className="member-mgmt-container">
                 <div className="glass-panel" style={{ maxWidth: '500px', margin: '4rem auto', padding: '2.5rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'white' }}><LockIcon /></div>
+                    <div style={{ marginBottom: '1rem', color: 'white' }}><LockIcon size={40} /></div>
                     <h2 style={{ color: 'white', marginBottom: '1rem' }}>Access Required</h2>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '2rem' }}>
                         You don't have access to this planning session. Contact the session creator to request access.
@@ -1705,6 +1723,55 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                 <span style={{ fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><LockIcon /> Hidden session</span>
                             </label>
 
+                            {/* Audience / Visibility Selector for Full-tier members & admins */}
+                            {hasFullTierAccess && (
+                                <div className="admin-input-group" style={{ marginTop: '0.2rem' }}>
+                                    <label style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '0.4rem' }}>Who can see this session?</label>
+                                    <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setHeaderForm(f => ({ ...f, visibility: 'all' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                padding: '0.4rem 0.9rem',
+                                                borderRadius: '20px',
+                                                fontSize: '0.82rem',
+                                                fontWeight: '500',
+                                                cursor: 'pointer',
+                                                border: (headerForm.visibility || 'all') === 'all' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                background: (headerForm.visibility || 'all') === 'all' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                                                color: '#ffffff',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <GlobeIcon />
+                                            {tierLabels?.public || 'All Members & Friends'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setHeaderForm(f => ({ ...f, visibility: 'full_only' }))}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                padding: '0.4rem 0.9rem',
+                                                borderRadius: '20px',
+                                                fontSize: '0.82rem',
+                                                fontWeight: '500',
+                                                cursor: 'pointer',
+                                                border: headerForm.visibility === 'full_only' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+                                                background: headerForm.visibility === 'full_only' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                                                color: '#ffffff',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <LockIcon />
+                                            {tierLabels?.guarded || "Registered Baha'is Only"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="planning-form-actions">
                                 <button className="admin-pill-btn secondary" style={{ margin: 0 }} onClick={() => setEditingHeader(false)}>Cancel</button>
                                 <button className="admin-pill-btn" style={{ margin: 0 }} disabled={savingHeader} onClick={handleSaveHeader}>
@@ -1725,6 +1792,11 @@ export default function PlanningSessionDetail({ session, isAdmin }) {
                                         {sessionData.is_hidden && (
                                             <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '9999px', padding: '2px 10px', color: 'rgba(255,255,255,0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                                                 <LockIcon /> Private
+                                            </span>
+                                        )}
+                                        {sessionData.visibility === 'full_only' && (
+                                            <span style={{ fontSize: '0.75rem', background: 'rgba(56, 189, 248, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', borderRadius: '9999px', padding: '2px 10px', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 500 }}>
+                                                <LockIcon /> {tierLabels?.guarded || "Registered Baha'is Only"}
                                             </span>
                                         )}
                                     </div>

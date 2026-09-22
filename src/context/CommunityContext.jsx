@@ -125,7 +125,7 @@ export const CommunityProvider = ({ children }) => {
         
         if (userIsGlobalAdmin) {
             const { data } = await fetchWithRetry(() =>
-              supabase.from("communities").select("id, name").order("name"), 2, 400, 7000
+              supabase.from("communities").select("id, name, settings").order("name"), 2, 400, 7000
             );
             combined = data || [];
         } else {
@@ -133,7 +133,7 @@ export const CommunityProvider = ({ children }) => {
             const { data: rows } = await fetchWithRetry(() =>
               supabase
                 .from("memberships")
-                .select("community_id, admin_level, communities(id, name)")
+                .select("community_id, admin_level, member_tier, communities(id, name, settings)")
                 .eq("user_id", session.user.id)
                 .eq("approved", true),
               2,
@@ -241,9 +241,19 @@ export const CommunityProvider = ({ children }) => {
     });
   };
 
+  const activeCommunity = communities.find(c => c.id === activeCommunityId) || null;
   const activeMembership = userMemberships.find(m => m.community_id === activeCommunityId);
   const currentIsAdmin = isGlobalAdmin || (activeMembership && activeMembership.admin_level > 0);
   const hasMembership = isGlobalAdmin || (communities && communities.length > 0) || (userMemberships && userMemberships.length > 0);
+  const currentMemberTier = activeMembership?.member_tier || (isGlobalAdmin ? 'full' : 'full');
+  const hasFullTierAccess = isGlobalAdmin || currentIsAdmin || currentMemberTier === 'full';
+
+  const tierLabels = {
+    full: activeCommunity?.settings?.tier_labels?.full || "Registered Baha'i",
+    guest: activeCommunity?.settings?.tier_labels?.guest || "Friend of the Faith",
+    guarded: activeCommunity?.settings?.tier_labels?.guarded_content_label || "Registered Baha'is Only",
+    public: activeCommunity?.settings?.tier_labels?.public_content_label || "All Members & Friends"
+  };
 
   const refreshCommunities = async () => {
     const session = (await supabase.auth.getSession()).data.session;
@@ -256,14 +266,14 @@ export const CommunityProvider = ({ children }) => {
       let membershipsList = [];
       if (userIsGlobalAdmin) {
         const { data } = await fetchWithRetry(() =>
-          supabase.from("communities").select("id, name").order("name"), 2, 400, 7000
+          supabase.from("communities").select("id, name, settings").order("name"), 2, 400, 7000
         );
         combined = data || [];
       } else {
         const { data: rows } = await fetchWithRetry(() =>
           supabase
             .from("memberships")
-            .select("community_id, admin_level, communities(id, name)")
+            .select("community_id, admin_level, member_tier, communities(id, name, settings)")
             .eq("user_id", session.user.id)
             .eq("approved", true),
           2,
@@ -313,13 +323,16 @@ export const CommunityProvider = ({ children }) => {
     <CommunityContext.Provider value={{ 
       communities, 
       activeCommunityId, 
-      communityDetails: communities.find(c => c.id === activeCommunityId) || null,
+      communityDetails: activeCommunity,
       setActiveCommunityId: handleSetCommunity, 
       loading,
       isAdmin: currentIsAdmin,
       isGlobalAdmin,
       hasMembership,
-      refreshCommunities
+      refreshCommunities,
+      memberTier: currentMemberTier,
+      hasFullTierAccess,
+      tierLabels
     }}>
       {children}
     </CommunityContext.Provider>

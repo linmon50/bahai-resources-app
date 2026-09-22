@@ -78,11 +78,12 @@ async function execute() {
                 ON CONFLICT (user_id) DO NOTHING;
 
                 -- 5. Join Community
-                INSERT INTO public.memberships (user_id, community_id, role, admin_level, approved)
-                VALUES (v_user_id, v_invite.community_id, v_invite.role, v_invite.admin_level, true)
+                INSERT INTO public.memberships (user_id, community_id, role, admin_level, approved, member_tier)
+                VALUES (v_user_id, v_invite.community_id, v_invite.role, v_invite.admin_level, true, COALESCE(v_invite.member_tier, 'full'))
                 ON CONFLICT (user_id, community_id) DO UPDATE SET
                     role = EXCLUDED.role,
                     admin_level = GREATEST(public.memberships.admin_level, EXCLUDED.admin_level),
+                    member_tier = COALESCE(EXCLUDED.member_tier, public.memberships.member_tier, 'full'),
                     approved = true;
 
                 -- 6. Mark as Used

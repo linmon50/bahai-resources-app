@@ -2,10 +2,28 @@ import React, { useState, useRef, useEffect } from 'react';
 import supabase from '../supabaseClient';
 import { compressImage } from '../utils/imageUtils';
 import { notifyAdmins } from '../utils/notifyAdmins';
+import { useCommunity } from '../context/CommunityContext';
+
+const GlobeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
 
 export default function CreatePost({ session, communityId, onPostCreated, isAdmin }) {
+  const { hasFullTierAccess, tierLabels } = useCommunity();
   const [content, setContent] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  const [visibility, setVisibility] = useState('all');
   const [images, setImages] = useState([]); // Array of { file, previewUrl }
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -123,7 +141,8 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
           content,
           image_urls: imageUrls,
           link_url: linkUrl,
-          status: isAdmin ? 'approved' : 'pending'
+          status: isAdmin ? 'approved' : 'pending',
+          visibility: hasFullTierAccess ? visibility : 'all'
         });
 
       if (error) throw error;
@@ -141,6 +160,7 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
       // Reset
       setContent('');
       setLinkUrl('');
+      setVisibility('all');
       images.forEach(img => URL.revokeObjectURL(img.previewUrl));
       setImages([]);
 
@@ -300,6 +320,57 @@ export default function CreatePost({ session, communityId, onPostCreated, isAdmi
             />
           </div>
         </div>
+
+        {/* Audience / Visibility Selector for Full-tier members & admins */}
+        {hasFullTierAccess && (
+          <div style={{ marginBottom: '1.5rem', padding: '0.8rem 1rem', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#ffffff', fontWeight: '600' }}>
+              Who can see this post?
+            </label>
+            <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setVisibility('all')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  fontSize: '0.85rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  border: visibility === 'all' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+                  background: visibility === 'all' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: '#ffffff',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <GlobeIcon />
+                {tierLabels?.public || 'All Members & Friends'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisibility('full_only')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  fontSize: '0.85rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  border: visibility === 'full_only' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+                  background: visibility === 'full_only' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: '#ffffff',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <LockIcon />
+                {tierLabels?.guarded || "Registered Baha'is Only"}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
           <div style={{ flex: 1 }}>

@@ -20,14 +20,62 @@ const ADMIN_LEVELS = [
 
 const ADMIN_LEVEL_OPTIONS = ADMIN_LEVELS.sort((a, b) => a.value - b.value);
 
-const TABS = ["Invite New Users", "Grant Access", "Manage Members", "Invite Requests", "Pending Posts"];
+const TABS = ["Invite New Users", "Grant Access", "Manage Members", "Invite Requests", "Pending Posts", "Community Settings"];
 
 const levelLabel = (lv) => ADMIN_LEVELS.find(a => a.value === lv)?.label || "Unknown";
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
-// ─── Shared Components moved to separate files ────────────────────────
+const ShieldIcon = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+);
 
+const UsersIcon = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+);
+
+const LockIcon = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+);
+
+const GlobeIcon = ({ size = 14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+);
+
+function MemberTierBadge({ tier, tierLabels }) {
+    const isFull = tier === 'full' || !tier;
+    return (
+        <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '0.75rem',
+            fontWeight: '500',
+            background: isFull ? 'rgba(56, 189, 248, 0.2)' : 'rgba(151, 247, 233, 0.15)',
+            border: isFull ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(151, 247, 233, 0.3)',
+            color: '#ffffff',
+            whiteSpace: 'nowrap'
+        }}>
+            {isFull ? <ShieldIcon size={12} /> : <UsersIcon size={12} />}
+            {isFull ? (tierLabels?.full || "Registered Baha'i") : (tierLabels?.guest || "Friend of the Faith")}
+        </span>
+    );
+}
 
 function CommunitySelect({ communities, value, onChange }) {
     return (
@@ -42,15 +90,20 @@ function CommunitySelect({ communities, value, onChange }) {
     );
 }
 
-function RoleAndLevel({ role, adminLevel, onRoleChange, onLevelChange, isGlobalAdmin }) {
+function RoleAndLevel({ role, adminLevel, onRoleChange, onLevelChange, isGlobalAdmin, memberTier, onMemberTierChange, tierLabels }) {
     const levelOptions = ADMIN_LEVEL_OPTIONS.filter(opt => {
         if (opt.value === 0) return role !== "admin";
         if (opt.value === 3) return isGlobalAdmin;
         return true;
     });
 
+    const tierOptions = [
+        { value: "full", label: tierLabels?.full || "Registered Baha'i" },
+        { value: "guest", label: tierLabels?.guest || "Friend of the Faith" }
+    ];
+
     return (
-        <div className="admin-row">
+        <div className="admin-row" style={{ display: 'grid', gridTemplateColumns: onMemberTierChange ? '1fr 1fr 1.2fr' : '1fr 1fr', gap: '1rem' }}>
             <div className="admin-input-group">
                 <label>Role</label>
                 <CustomSelect
@@ -73,15 +126,27 @@ function RoleAndLevel({ role, adminLevel, onRoleChange, onLevelChange, isGlobalA
                     options={levelOptions}
                 />
             </div>
+
+            {onMemberTierChange && (
+                <div className="admin-input-group">
+                    <label>Member Tier</label>
+                    <CustomSelect
+                        value={memberTier || "full"}
+                        onChange={e => onMemberTierChange(e.target.value)}
+                        options={tierOptions}
+                    />
+                </div>
+            )}
         </div>
     );
 }
 
 // ─── Tab 1: Invite New Users ──────────────────────────────────────────────────
 
-function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, setEmailsRaw, onSuccess, onMoveToGrantAccess }) {
+function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, setEmailsRaw, onSuccess, onMoveToGrantAccess, tierLabels }) {
     const [role, setRole] = useState("member");
     const [adminLevel, setAdminLevel] = useState(0);
+    const [memberTier, setMemberTier] = useState("full");
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState([]);
     const [errorMsg, setErrorMsg] = useState("");
@@ -298,6 +363,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                     role,
                     admin_level: isUpgrade ? 2 : finalAdminLevel,
                     email,
+                    member_tier: memberTier,
                     created_by: user.id,
                     expires_at: expiresAt.toISOString(),
                 };
@@ -430,7 +496,16 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
             )}
 
             <form onSubmit={handleGenerate} className="admin-form">
-                <RoleAndLevel role={role} adminLevel={adminLevel} onRoleChange={setRole} onLevelChange={setAdminLevel} isGlobalAdmin={isGlobalAdmin} />
+                <RoleAndLevel 
+                    role={role} 
+                    adminLevel={adminLevel} 
+                    onRoleChange={setRole} 
+                    onLevelChange={setAdminLevel} 
+                    isGlobalAdmin={isGlobalAdmin}
+                    memberTier={memberTier}
+                    onMemberTierChange={setMemberTier}
+                    tierLabels={tierLabels}
+                />
 
                 <div className="admin-input-group">
                     <label>Target Emails (separate by comma or new line)</label>
@@ -476,6 +551,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                     <th>Invite Code & Link</th>
                                     <th>Role</th>
                                     <th>Level</th>
+                                    <th>Tier</th>
                                     <th>Status</th>
                                     <th>Email Sent?</th>
                                     <th>Actions</th>
@@ -573,6 +649,7 @@ function InviteTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, s
                                             </td>
                                             <td>{inv.role}</td>
                                             <td>{levelLabel(inv.admin_level)}</td>
+                                            <td><MemberTierBadge tier={inv.member_tier} tierLabels={tierLabels} /></td>
                                             <td>
                                                 {inv.used_at ? (
                                                     <span style={{ color: "var(--warning-text)", fontWeight: 600 }}>Used</span>
@@ -762,9 +839,10 @@ Baha'i Resources App Team`;
 
 // ─── Tab 2: Grant Access ──────────────────────────────────────────────────────
 
-function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, setEmailsRaw, onSuccess }) {
+function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsRaw, setEmailsRaw, onSuccess, tierLabels }) {
     const [role, setRole] = useState("member");
     const [adminLevel, setAdminLevel] = useState(0);
+    const [memberTier, setMemberTier] = useState("full");
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState([]);
     const [errorMsg, setErrorMsg] = useState("");
@@ -846,6 +924,7 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
                     p_community_id: selectedCommunity,
                     p_role: role,
                     p_admin_level: targetLevel,
+                    p_member_tier: memberTier,
                 });
 
                 if (error) {
@@ -934,7 +1013,16 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
             )}
 
             <form onSubmit={handleGrant} className="admin-form">
-                <RoleAndLevel role={role} adminLevel={adminLevel} onRoleChange={setRole} onLevelChange={setAdminLevel} isGlobalAdmin={isGlobalAdmin} />
+                <RoleAndLevel 
+                    role={role} 
+                    adminLevel={adminLevel} 
+                    onRoleChange={setRole} 
+                    onLevelChange={setAdminLevel} 
+                    isGlobalAdmin={isGlobalAdmin}
+                    memberTier={memberTier}
+                    onMemberTierChange={setMemberTier}
+                    tierLabels={tierLabels}
+                />
 
                 <div className="admin-input-group">
                     <label>User Emails (separate by comma or new line)</label>
@@ -992,12 +1080,13 @@ function GrantAccessTab({ communities, selectedCommunity, isGlobalAdmin, emailsR
 
 // ─── Tab 3: Manage Members ────────────────────────────────────────────────────
 
-function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMembers }) {
+function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMembers, tierLabels }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [editingId, setEditingId] = useState(null);
     const [editRole, setEditRole] = useState("member");
     const [editLevel, setEditLevel] = useState(0);
+    const [editTier, setEditTier] = useState("full");
     const [saving, setSaving] = useState(false);
     const [statusMsg, setStatusMsg] = useState("");
 
@@ -1005,6 +1094,7 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
         setEditingId(member.user_id);
         setEditRole(member.role);
         setEditLevel(member.admin_level);
+        setEditTier(member.member_tier || "full");
         setStatusMsg("");
     }
 
@@ -1033,7 +1123,8 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
             p_user_id: member.user_id,
             p_community_id: selectedCommunity,
             p_role: editRole,
-            p_admin_level: finalLevel
+            p_admin_level: finalLevel,
+            p_member_tier: editTier,
         });
 
         if (error) {
@@ -1124,6 +1215,7 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
                                         <th>Joined At</th>
                                         <th>Role</th>
                                         <th>Level</th>
+                                        <th>Tier</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -1151,6 +1243,17 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
                                                             variant="dense"
                                                         />
                                                     </td>
+                                                    <td style={{ minWidth: "180px" }}>
+                                                        <CustomSelect 
+                                                            value={editTier} 
+                                                            onChange={e => setEditTier(e.target.value)} 
+                                                            options={[
+                                                                { value: 'full', label: tierLabels?.full || "Registered Baha'i" },
+                                                                { value: 'guest', label: tierLabels?.guest || "Friend of the Faith" }
+                                                            ]} 
+                                                            variant="dense"
+                                                        />
+                                                    </td>
                                                     <td>
                                                         <button onClick={() => saveEdit(m)} disabled={saving} className="admin-pill-btn" style={{ padding: "0.4rem 0.8rem", marginRight: "0.5rem" }}>
                                                             {saving ? "Saving..." : "Save"}
@@ -1162,6 +1265,9 @@ function ManageMembersTab({ selectedCommunity, isGlobalAdmin, members, refreshMe
                                                 <>
                                                     <td>{m.role}</td>
                                                     <td>{levelLabel(m.admin_level)}</td>
+                                                    <td>
+                                                        <MemberTierBadge tier={m.member_tier} tierLabels={tierLabels} />
+                                                    </td>
                                                     <td>
                                                         <button onClick={() => startEdit(m)} className="admin-pill-btn" style={{ padding: "0.4rem 0.8rem", marginRight: "0.5rem" }}>Edit</button>
                                                         <button onClick={() => revokeAccess(m)} className="admin-pill-btn danger" style={{ padding: "0.4rem 0.8rem" }}>Revoke</button>
@@ -1747,9 +1853,384 @@ function PendingPostsTab({ selectedCommunity, refreshCounts }) {
     );
 }
 
+// ─── Tab 6: Community Settings ────────────────────────────────────────────────
+
+function CommunitySettingsTab({ selectedCommunity, communities, refreshCommunities }) {
+    const currentCommunity = communities.find(c => c.id === selectedCommunity);
+    const existingTierLabels = currentCommunity?.settings?.tier_labels || {};
+
+    const [fullLabel, setFullLabel] = useState(existingTierLabels.full || "Registered Baha'i");
+    const [guestLabel, setGuestLabel] = useState(existingTierLabels.guest || "Friend of the Faith");
+    const [guardedLabel, setGuardedLabel] = useState(existingTierLabels.guarded_content_label || "Registered Baha'is Only");
+    const [publicLabel, setPublicLabel] = useState(existingTierLabels.public_content_label || "All Members & Friends");
+
+    const [saving, setSaving] = useState(false);
+    const [statusMsg, setStatusMsg] = useState("");
+    const [errorMsg, setErrorMsg] = useState("");
+
+    // Sync when selected community changes or community list updates
+    useEffect(() => {
+        if (currentCommunity) {
+            const labels = currentCommunity.settings?.tier_labels || {};
+            setFullLabel(labels.full || "Registered Baha'i");
+            setGuestLabel(labels.guest || "Friend of the Faith");
+            setGuardedLabel(labels.guarded_content_label || "Registered Baha'is Only");
+            setPublicLabel(labels.public_content_label || "All Members & Friends");
+            setStatusMsg("");
+            setErrorMsg("");
+        }
+    }, [selectedCommunity, currentCommunity]);
+
+    const handleApplyPreset = (preset) => {
+        if (preset === 'bahai') {
+            setFullLabel("Registered Baha'i");
+            setGuestLabel("Friend of the Faith");
+            setGuardedLabel("Registered Baha'is Only");
+            setPublicLabel("All Members & Friends");
+        } else if (preset === 'church') {
+            setFullLabel("Church Member");
+            setGuestLabel("Visitor / Friend");
+            setGuardedLabel("Members Only");
+            setPublicLabel("Open to All");
+        } else if (preset === 'civic') {
+            setFullLabel("Full Member");
+            setGuestLabel("Guest / Associate");
+            setGuardedLabel("Members Only");
+            setPublicLabel("Public");
+        }
+    };
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        if (!selectedCommunity) {
+            setErrorMsg("No community selected.");
+            return;
+        }
+
+        if (!fullLabel.trim() || !guestLabel.trim() || !guardedLabel.trim() || !publicLabel.trim()) {
+            setErrorMsg("All label fields must have a value.");
+            return;
+        }
+
+        setSaving(true);
+        setStatusMsg("");
+        setErrorMsg("");
+
+        try {
+            const currentSettings = currentCommunity?.settings || {};
+            const newSettings = {
+                ...currentSettings,
+                tier_labels: {
+                    full: fullLabel.trim(),
+                    guest: guestLabel.trim(),
+                    guarded_content_label: guardedLabel.trim(),
+                    public_content_label: publicLabel.trim()
+                }
+            };
+
+            const { error } = await supabase
+                .from('communities')
+                .update({ settings: newSettings })
+                .eq('id', selectedCommunity);
+
+            if (error) throw error;
+
+            setStatusMsg("✅ Community tier labels saved successfully! All members and forms will now use these updated labels.");
+            if (refreshCommunities) {
+                await refreshCommunities();
+            }
+        } catch (err) {
+            console.error("Error saving community settings:", err);
+            setErrorMsg(`❌ Failed to save community settings: ${err.message}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{
+                    color: "#ffffff",
+                    fontFamily: "'Arboria', sans-serif",
+                    fontWeight: 'bold',
+                    fontSize: "1.45rem",
+                    marginBottom: "0.5rem"
+                }}>
+                    Community Tier Labels & Visibility Settings
+                </h2>
+                <p style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.95rem", lineHeight: "1.5", margin: 0 }}>
+                    Customize the terminology used throughout this community ({currentCommunity?.name || "Selected Community"}) for membership tiers and content visibility. This allows any community (Baha'i, churches, civic groups, etc.) to tailor the app to their specific needs.
+                </p>
+            </div>
+
+            {/* Presets Bar */}
+            <div style={{
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                borderRadius: "10px",
+                padding: "0.85rem 1.15rem",
+                marginBottom: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                flexWrap: "wrap"
+            }}>
+                <span style={{ fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.8)", fontWeight: "500" }}>Quick Presets:</span>
+                <button
+                    type="button"
+                    onClick={() => handleApplyPreset('bahai')}
+                    className="admin-pill-btn secondary"
+                    style={{ margin: 0, padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                >
+                    Baha'i Community
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleApplyPreset('church')}
+                    className="admin-pill-btn secondary"
+                    style={{ margin: 0, padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                >
+                    Church / Faith Community
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleApplyPreset('civic')}
+                    className="admin-pill-btn secondary"
+                    style={{ margin: 0, padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                >
+                    Club / Association
+                </button>
+            </div>
+
+            {statusMsg && (
+                <div className="admin-status-msg" style={{
+                    background: "rgba(16, 185, 129, 0.2)",
+                    border: "1px solid #10b981",
+                    padding: "0.85rem 1.15rem",
+                    borderRadius: "8px",
+                    marginBottom: "1.25rem",
+                    color: "#ffffff",
+                    fontSize: "0.95rem"
+                }}>
+                    {statusMsg}
+                </div>
+            )}
+
+            {errorMsg && (
+                <div className="admin-status-msg" style={{
+                    background: "rgba(239, 68, 68, 0.2)",
+                    border: "1px solid #ef4444",
+                    padding: "0.85rem 1.15rem",
+                    borderRadius: "8px",
+                    marginBottom: "1.25rem",
+                    color: "#ffffff",
+                    fontSize: "0.95rem"
+                }}>
+                    {errorMsg}
+                </div>
+            )}
+
+            <form onSubmit={handleSave}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
+                    {/* Membership Tiers Group */}
+                    <div style={{
+                        background: "rgba(0, 0, 0, 0.2)",
+                        border: "1px solid rgba(151, 247, 233, 0.15)",
+                        borderRadius: "12px",
+                        padding: "1.25rem"
+                    }}>
+                        <h3 style={{
+                            color: "#97f7e9",
+                            fontSize: "1.1rem",
+                            fontWeight: "600",
+                            marginTop: 0,
+                            marginBottom: "1rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px"
+                        }}>
+                            <ShieldIcon size={16} />
+                            Member Tiers
+                        </h3>
+
+                        <div className="admin-input-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ display: "block", marginBottom: "0.4rem", color: "#ffffff", fontSize: "0.9rem", fontWeight: "500" }}>
+                                Full Access Member Label
+                            </label>
+                            <input
+                                type="text"
+                                className="admin-input"
+                                value={fullLabel}
+                                onChange={e => setFullLabel(e.target.value)}
+                                placeholder="e.g. Registered Baha'i or Church Member"
+                                required
+                            />
+                            <span style={{ fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.55)", display: "block", marginTop: "0.35rem" }}>
+                                Applied to verified members with full access to guarded posts and sessions.
+                            </span>
+                        </div>
+
+                        <div className="admin-input-group">
+                            <label style={{ display: "block", marginBottom: "0.4rem", color: "#ffffff", fontSize: "0.9rem", fontWeight: "500" }}>
+                                Open / Guest Member Label
+                            </label>
+                            <input
+                                type="text"
+                                className="admin-input"
+                                value={guestLabel}
+                                onChange={e => setGuestLabel(e.target.value)}
+                                placeholder="e.g. Friend of the Faith or Visitor"
+                                required
+                            />
+                            <span style={{ fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.55)", display: "block", marginTop: "0.35rem" }}>
+                                Applied to friends, visitors, or non-verified community members.
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Content Visibility Labels Group */}
+                    <div style={{
+                        background: "rgba(0, 0, 0, 0.2)",
+                        border: "1px solid rgba(151, 247, 233, 0.15)",
+                        borderRadius: "12px",
+                        padding: "1.25rem"
+                    }}>
+                        <h3 style={{
+                            color: "#97f7e9",
+                            fontSize: "1.1rem",
+                            fontWeight: "600",
+                            marginTop: 0,
+                            marginBottom: "1rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px"
+                        }}>
+                            <LockIcon size={16} />
+                            Content Visibility Labels
+                        </h3>
+
+                        <div className="admin-input-group" style={{ marginBottom: '1.25rem' }}>
+                            <label style={{ display: "block", marginBottom: "0.4rem", color: "#ffffff", fontSize: "0.9rem", fontWeight: "500" }}>
+                                Guarded Content Badge & Toggle Label
+                            </label>
+                            <input
+                                type="text"
+                                className="admin-input"
+                                value={guardedLabel}
+                                onChange={e => setGuardedLabel(e.target.value)}
+                                placeholder="e.g. Registered Baha'is Only or Members Only"
+                                required
+                            />
+                            <span style={{ fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.55)", display: "block", marginTop: "0.35rem" }}>
+                                Displayed on posts and planning sessions restricted to full access members.
+                            </span>
+                        </div>
+
+                        <div className="admin-input-group">
+                            <label style={{ display: "block", marginBottom: "0.4rem", color: "#ffffff", fontSize: "0.9rem", fontWeight: "500" }}>
+                                Public / Open Content Label
+                            </label>
+                            <input
+                                type="text"
+                                className="admin-input"
+                                value={publicLabel}
+                                onChange={e => setPublicLabel(e.target.value)}
+                                placeholder="e.g. All Members & Friends or Open to All"
+                                required
+                            />
+                            <span style={{ fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.55)", display: "block", marginTop: "0.35rem" }}>
+                                Displayed on visibility toggles for posts and planning sessions open to all.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Live Preview Card */}
+                <div style={{
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px dashed rgba(151, 247, 233, 0.3)",
+                    borderRadius: "12px",
+                    padding: "1.25rem",
+                    marginBottom: "1.75rem"
+                }}>
+                    <h4 style={{
+                        color: "rgba(255, 255, 255, 0.9)",
+                        fontSize: "0.95rem",
+                        fontWeight: "600",
+                        margin: "0 0 1rem 0",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em"
+                    }}>
+                        Live Preview
+                    </h4>
+                    <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                        <div>
+                            <span style={{ fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.6)", display: "block", marginBottom: "0.4rem" }}>
+                                Member Tier Badges:
+                            </span>
+                            <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                                <MemberTierBadge tier="full" tierLabels={{ full: fullLabel, guest: guestLabel }} />
+                                <MemberTierBadge tier="guest" tierLabels={{ full: fullLabel, guest: guestLabel }} />
+                            </div>
+                        </div>
+
+                        <div>
+                            <span style={{ fontSize: "0.8rem", color: "rgba(255, 255, 255, 0.6)", display: "block", marginBottom: "0.4rem" }}>
+                                Content Badges & Toggles:
+                            </span>
+                            <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center" }}>
+                                <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '3px 10px',
+                                    borderRadius: '12px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '500',
+                                    background: 'rgba(239, 68, 68, 0.2)',
+                                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                                    color: '#ffffff'
+                                }}>
+                                    <LockIcon size={12} />
+                                    {guardedLabel || "Guarded"}
+                                </span>
+                                <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '3px 10px',
+                                    borderRadius: '12px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '500',
+                                    background: 'rgba(16, 185, 129, 0.2)',
+                                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                                    color: '#ffffff'
+                                }}>
+                                    <GlobeIcon size={12} />
+                                    {publicLabel || "Public"}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="admin-pill-btn"
+                        style={{ padding: "0.65rem 2rem", fontSize: "1rem", fontWeight: "600" }}
+                    >
+                        {saving ? "Saving Settings..." : "Save Community Settings"}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}
+
 // ─── Main Page Component ──────────────────────────────────────────────────────
 export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
-    const { communities, activeCommunityId, setActiveCommunityId } = useCommunity();
+    const { communities, activeCommunityId, setActiveCommunityId, tierLabels, refreshCommunities } = useCommunity();
     const [searchParams] = useSearchParams();
     const tabParam = searchParams.get('tab');
     const [isGlobalAdmin, setIsGlobalAdmin] = useState(propIsGlobalAdmin || false);
@@ -1802,6 +2283,7 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
         if (tabParam === 'members') return 2;
         if (tabParam === 'requests') return 3;
         if (tabParam === 'pending_posts') return 4;
+        if (tabParam === 'settings' || tabParam === 'tiers') return 5;
         return 0;
     };
 
@@ -1817,6 +2299,7 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
             else if (tabParam === 'members') targetTab = 2;
             else if (tabParam === 'requests') targetTab = 3;
             else if (tabParam === 'pending_posts') targetTab = 4;
+            else if (tabParam === 'settings' || tabParam === 'tiers') targetTab = 5;
             
             setActiveTab(targetTab);
             setAccordionOpen(targetTab);
@@ -2011,6 +2494,7 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
                 setEmailsRaw={setInviteEmailsRaw}
                 onSuccess={() => { fetchMembers(); fetchRequests(); }}
                 onMoveToGrantAccess={handleMoveToGrantAccess}
+                tierLabels={tierLabels}
             />
         );
         if (i === 1) return (
@@ -2021,6 +2505,7 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
                 emailsRaw={grantEmailsRaw}
                 setEmailsRaw={setGrantEmailsRaw}
                 onSuccess={() => fetchRequests(activeCommunityId)}
+                tierLabels={tierLabels}
             />
         );
         if (i === 2) return (
@@ -2029,6 +2514,7 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
                 isGlobalAdmin={isGlobalAdmin}
                 members={members}
                 refreshMembers={() => fetchMembers()}
+                tierLabels={tierLabels}
             />
         );
         if (i === 3) return (
@@ -2045,6 +2531,13 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
             <PendingPostsTab 
                 selectedCommunity={activeCommunityId} 
                 refreshCounts={setPendingPostsCount}
+            />
+        );
+        if (i === 5) return (
+            <CommunitySettingsTab
+                selectedCommunity={activeCommunityId}
+                communities={communities}
+                refreshCommunities={refreshCommunities}
             />
         );
         return null;
@@ -2067,7 +2560,7 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
                     aria-label="Member management sections"
                 >
                     {TABS.map((tab, i) => {
-                        let count = 0;
+                        let count = null;
                         if (i === 0) count = getEmailCount(inviteEmailsRaw);
                         else if (i === 1) count = getEmailCount(grantEmailsRaw);
                         else if (i === 2) count = members.length;
@@ -2091,10 +2584,12 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
                                 tabIndex={activeTab === i ? 0 : -1}
                             >
                                 {tab}
-                                <span
-                                    className="admin-tab-badge"
-                                    aria-label={`${count} ${count === 1 ? 'item' : 'items'}`}
-                                >{count}</span>
+                                {count !== null && (
+                                    <span
+                                        className="admin-tab-badge"
+                                        aria-label={`${count} ${count === 1 ? 'item' : 'items'}`}
+                                    >{count}</span>
+                                )}
                             </button>
                         );
                     })}
@@ -2117,7 +2612,7 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
                     aria-label="Member management sections"
                 >
                     {TABS.map((tab, i) => {
-                        let count = 0;
+                        let count = null;
                         if (i === 0) count = getEmailCount(inviteEmailsRaw);
                         else if (i === 1) count = getEmailCount(grantEmailsRaw);
                         else if (i === 2) count = members.length;
@@ -2142,11 +2637,13 @@ export default function AdminMembers({ isGlobalAdmin: propIsGlobalAdmin }) {
                                 >
                                     <span>
                                         {tab}
-                                        <span
-                                            className="admin-tab-badge"
-                                            aria-label={`${count} ${count === 1 ? 'item' : 'items'}`}
-                                            style={{ marginLeft: '0.5rem' }}
-                                        >{count}</span>
+                                        {count !== null && (
+                                            <span
+                                                className="admin-tab-badge"
+                                                aria-label={`${count} ${count === 1 ? 'item' : 'items'}`}
+                                                style={{ marginLeft: '0.5rem' }}
+                                            >{count}</span>
+                                        )}
                                     </span>
                                     <span className="admin-accordion-icon" aria-hidden="true">▼</span>
                                 </button>

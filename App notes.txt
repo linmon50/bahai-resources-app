@@ -1,3 +1,27 @@
+Names: 
+GatherIn (both .com and .app taken)
+GatherRound (both .com and .app taken)
+GatherWise (both .com and .app taken)
+Wellspring (both .com and .app taken)
+
+Circleful (.com taken, .app not)
+CircleRound (.com taken, .app not)
+CircleWeave (.com taken, .app not)
+CircleWide (.com taken, .app not)
+GatherAll (.com taken, .app not)
+GatherBound (.com taken, .app not)
+GatherFold (.com taken, .app not)
+GatherRise (.com taken, .app not)
+GatherWeave (.com taken, .app not)
+UnityBloom (.com taken, .app not)
+
+GatherBloom (.com not taken but expensive, .app not taken)
+GatherGrow (.com not taken but expensive, .app not taken)
+GatherNear (.com not taken but expensive, .app not taken)
+LuminBloom (.com not taken but expensive, .app not taken)
+RadiantBloom (.com not taken but expensive, .app not taken)
+
+
 * Local and multi-community admins should not be able to invite users to be global admins. Only global admins can invite other global admins. If an admin invites someone who's already an admin of another community to be an admin level 1 of their own community then their admin level should stay at a level 2 (if their level was already level 2) or automatically change to level 2 after a message prompt pops up letting the inviter know that user's admin level they are inviting was changed to a level 2 multi-community admin status and they click okay. Not sure if this makes sense to do. Advise.
 
 * I think the Admin Level feild on the create invites page should be a drop down feild and actually say the name of the admin level rather than just the number. For example: 0 - member, 1 - local admin, 2 - multi-community admin, 3 - global admin.
@@ -113,11 +137,7 @@ Manual Testing Notes
 
 - Add an other resources page
 
-* Fix the user profile top menu drop-down
-
 * Fix slow loading and being randomly kicked out issues.
-
-* Need to do new user onboarding at some point to guide users on how to use the site upon first login.
 
 * Add a contact the administrator form under help/ FAQ page. 
 
